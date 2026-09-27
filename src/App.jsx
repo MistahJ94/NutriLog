@@ -199,6 +199,7 @@ function App({ user, initialServerData, onLogout }) {
     }
   })
   const [draggingTrackerCard, setDraggingTrackerCard] = useState(null)
+  const [resizingTrackerCard, setResizingTrackerCard] = useState(null)
   const [foodSearch, setFoodSearch] = useState('')
   const [foodSort, setFoodSort] = useState('newest')
   
@@ -691,6 +692,69 @@ function App({ user, initialServerData, onLogout }) {
     setDraggingTrackerCard(null)
   }
 
+  const trackerSizeDimensions = size => ({
+    normal: { columns: 1, rows: 1 },
+    wide: { columns: 2, rows: 1 },
+    tall: { columns: 1, rows: 2 },
+    large: { columns: 2, rows: 2 }
+  }[size] || { columns: 1, rows: 1 })
+
+  const trackerSizeFromDimensions = (columns, rows) => {
+    if (columns >= 2 && rows >= 2) return 'large'
+    if (columns >= 2) return 'wide'
+    if (rows >= 2) return 'tall'
+    return 'normal'
+  }
+
+  const beginTrackerResize = (event, cardId) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const config = trackerLayout.cards[cardId] || {}
+    setResizingTrackerCard({
+      id: cardId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startSize: config.size || 'normal'
+    })
+  }
+
+  useEffect(() => {
+    if (!resizingTrackerCard) return
+
+    const handlePointerMove = event => {
+      const grid = document.querySelector('.tracker-stats-grid')
+      if (!grid) return
+
+      const gridStyle = getComputedStyle(grid)
+      const gap = parseFloat(gridStyle.columnGap) || 0
+      const gridWidth = grid.getBoundingClientRect().width
+      const columns = trackerLayout.columns || 3
+      const cellWidth = (gridWidth - gap * (columns - 1)) / columns
+      if (!Number.isFinite(cellWidth) || cellWidth <= 0) return
+
+      const start = trackerSizeDimensions(resizingTrackerCard.startSize)
+      const deltaColumns = Math.round((event.clientX - resizingTrackerCard.startX) / (cellWidth + gap))
+      const deltaRows = Math.round((event.clientY - resizingTrackerCard.startY) / 120)
+      const nextColumns = Math.max(1, Math.min(2, start.columns + deltaColumns))
+      const nextRows = Math.max(1, Math.min(2, start.rows + deltaRows))
+      const size = trackerSizeFromDimensions(nextColumns, nextRows)
+
+      setTrackerLayout(prev => ({
+        ...prev,
+        template: 'custom',
+        cards: { ...prev.cards, [resizingTrackerCard.id]: { ...(prev.cards[resizingTrackerCard.id] || {}), size } }
+      }))
+    }
+
+    const handlePointerUp = () => setResizingTrackerCard(null)
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [resizingTrackerCard, trackerLayout.columns])
+
   const orderedTrackerCards = (trackerLayout.order || trackerCards.map(card => card.id))
     .map(id => trackerCards.find(card => card.id === id))
     .filter(Boolean)
@@ -999,6 +1063,7 @@ function App({ user, initialServerData, onLogout }) {
                     <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && remaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
                     <div className="stat-subtext">{card.subtext}</div>
                     {card.progress !== undefined && <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%` }}></div></div>}
+                    {trackerLayout.customize && <button type="button" className="tracker-card-resize-handle" aria-label={`Resize ${card.label} card`} onPointerDown={event => beginTrackerResize(event, card.id)} title="Drag to resize">↘</button>}
                   </div>
                 )
               })}
