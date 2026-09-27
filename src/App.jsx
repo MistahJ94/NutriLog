@@ -7,76 +7,130 @@ function AdminPanel({ user }) {
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' })
+  const [smtp, setSmtp] = useState({ host: '', port: 587, secure: false, username: '', password: '', fromEmail: '', fromName: 'NutriLog', publicUrl: '' })
+  const [smtpConfigured, setSmtpConfigured] = useState(false)
+  const [smtpBusy, setSmtpBusy] = useState(true)
+  const [smtpSaving, setSmtpSaving] = useState(false)
+  const [smtpTesting, setSmtpTesting] = useState(false)
+  const [testEmail, setTestEmail] = useState(user.email)
 
   const loadUsers = async () => {
-    setBusy(true)
-    setError('')
-    try {
-      const result = await api.admin.users()
-      setUsers(result.users)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
+    setBusy(true); setError('')
+    try { const result = await api.admin.users(); setUsers(result.users) }
+    catch (err) { setError(err.message) }
+    finally { setBusy(false) }
   }
 
-  useEffect(() => { loadUsers() }, [])
+  const loadSmtp = async () => {
+    setSmtpBusy(true)
+    try {
+      const result = await api.admin.smtp()
+      if (result.settings) {
+        setSmtp(prev => ({ ...prev, ...result.settings, password: '' }))
+        setSmtpConfigured(Boolean(result.configured))
+      }
+    } catch (err) { setError(err.message) }
+    finally { setSmtpBusy(false) }
+  }
+
+  useEffect(() => { loadUsers(); loadSmtp() }, [])
 
   const createUser = async event => {
     event.preventDefault()
     try {
       await api.admin.createUser(newUser.email, newUser.password, newUser.role)
-      setNewUser({ email: '', password: '', role: 'user' })
-      await loadUsers()
+      setNewUser({ email: '', password: '', role: 'user' }); await loadUsers()
     } catch (err) { alert(err.message) }
   }
 
   const toggleUser = async account => {
-    try {
-      await api.admin.updateUser(account.id, { is_active: !account.is_active })
-      await loadUsers()
-    } catch (err) { alert(err.message) }
+    try { await api.admin.updateUser(account.id, { is_active: !account.is_active }); await loadUsers() }
+    catch (err) { alert(err.message) }
   }
 
   const changeRole = async account => {
     const role = account.role === 'admin' ? 'user' : 'admin'
     if (!confirm('Change ' + account.email + ' to ' + role + '?')) return
-    try {
-      await api.admin.updateUser(account.id, { role })
-      await loadUsers()
-    } catch (err) { alert(err.message) }
+    try { await api.admin.updateUser(account.id, { role }); await loadUsers() }
+    catch (err) { alert(err.message) }
   }
 
   const resetPassword = async account => {
     const password = prompt('Enter a new password for ' + account.email + ' (8-128 characters):')
     if (password === null) return
-    try {
-      await api.admin.resetPassword(account.id, password)
-      alert('Password reset. All existing sessions for this user were revoked.')
-    } catch (err) { alert(err.message) }
+    try { await api.admin.resetPassword(account.id, password); alert('Password reset. All existing sessions for this user were revoked.') }
+    catch (err) { alert(err.message) }
   }
 
   const revokeSessions = async account => {
-    try {
-      await api.admin.revokeSessions(account.id)
-      alert('Sessions revoked for ' + account.email)
-    } catch (err) { alert(err.message) }
+    try { await api.admin.revokeSessions(account.id); alert('Sessions revoked for ' + account.email) }
+    catch (err) { alert(err.message) }
   }
 
   const deleteUser = async account => {
     if (!confirm('Delete ' + account.email + '? This permanently deletes their nutrition data.')) return
+    try { await api.admin.deleteUser(account.id); await loadUsers() }
+    catch (err) { alert(err.message) }
+  }
+
+  const saveSmtp = async event => {
+    event.preventDefault()
+    setSmtpSaving(true)
     try {
-      await api.admin.deleteUser(account.id)
-      await loadUsers()
+      await api.admin.saveSmtp(smtp)
+      setSmtp(prev => ({ ...prev, password: '' }))
+      setSmtpConfigured(true)
+      alert('SMTP settings saved. The SMTP password is stored encrypted on the server.')
+      await loadSmtp()
     } catch (err) { alert(err.message) }
+    finally { setSmtpSaving(false) }
+  }
+
+  const testSmtp = async () => {
+    setSmtpTesting(true)
+    try {
+      await api.admin.testSmtp({ ...smtp, testEmail })
+      alert('Test email sent successfully.')
+    } catch (err) { alert(err.message) }
+    finally { setSmtpTesting(false) }
   }
 
   return (
     <div className="settings-container">
       <div className="planner-intro">
         <h2><Shield size={28} style={{ verticalAlign: 'middle', marginRight: 8 }} />Administrator</h2>
-        <p>Manage NutriLog accounts and access.</p>
+        <p>Manage NutriLog accounts, access, and server email settings.</p>
+      </div>
+
+      <div className="section">
+        <h2><Settings size={22} style={{ verticalAlign: 'middle', marginRight: 8 }} />Email & SMTP</h2>
+        <p className="settings-description">Configure password-recovery email without editing files on the server. Only administrators can see or change these settings.</p>
+        {smtpBusy ? <div className="empty-state"><RefreshCw className="spinner" size={28} /><p>Loading email settings…</p></div> : (
+          <form onSubmit={saveSmtp}>
+            <div className="content-grid">
+              <div>
+                <div className="form-group"><label>SMTP Host<input value={smtp.host} onChange={e => setSmtp({ ...smtp, host: e.target.value })} placeholder="smtp.example.com" required /></label></div>
+                <div className="form-group"><label>SMTP Port<input type="number" min="1" max="65535" value={smtp.port} onChange={e => setSmtp({ ...smtp, port: Number(e.target.value) })} required /></label></div>
+                <div className="form-group"><label>Security<select className="food-select" value={smtp.secure ? 'ssl' : 'starttls'} onChange={e => setSmtp({ ...smtp, secure: e.target.value === 'ssl' })}><option value="starttls">STARTTLS</option><option value="ssl">SSL/TLS</option></select></label></div>
+                <div className="form-group"><label>SMTP Username<input value={smtp.username} onChange={e => setSmtp({ ...smtp, username: e.target.value })} placeholder="Optional" autoComplete="off" /></label></div>
+                <div className="form-group"><label>SMTP Password<input type="password" value={smtp.password} onChange={e => setSmtp({ ...smtp, password: e.target.value })} placeholder={smtpConfigured ? 'Leave blank to keep current password' : 'Optional if server does not require authentication'} autoComplete="new-password" /></label></div>
+              </div>
+              <div>
+                <div className="form-group"><label>From Email<input type="email" value={smtp.fromEmail} onChange={e => setSmtp({ ...smtp, fromEmail: e.target.value })} placeholder="noreply@example.com" required /></label></div>
+                <div className="form-group"><label>From Name<input value={smtp.fromName} onChange={e => setSmtp({ ...smtp, fromName: e.target.value })} placeholder="NutriLog" /></label></div>
+                <div className="form-group"><label>Public URL<input type="url" value={smtp.publicUrl} onChange={e => setSmtp({ ...smtp, publicUrl: e.target.value })} placeholder="https://nutrilog.example.com" required /></label></div>
+                <div className="form-group"><label>Test Email Address<input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} required /></label></div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+              <button className="btn btn-primary" type="submit" disabled={smtpSaving}><Settings size={18} />{smtpSaving ? 'Saving…' : 'Save SMTP Settings'}</button>
+              <button className="btn btn-secondary" type="button" onClick={testSmtp} disabled={smtpTesting}>{smtpTesting ? 'Sending…' : 'Send Test Email'}</button>
+            </div>
+            <p style={{ marginTop: 14, color: '#666', fontSize: '0.9rem' }}>
+              {smtpConfigured ? 'SMTP is configured. The stored password is never displayed.' : 'SMTP is not configured. Password recovery email is disabled until you save valid settings.'}
+            </p>
+          </form>
+        )}
       </div>
 
       <div className="content-grid">
@@ -121,7 +175,6 @@ function AdminPanel({ user }) {
     </div>
   )
 }
-
 function App({ user, initialServerData, onLogout }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
