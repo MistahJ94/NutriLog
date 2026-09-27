@@ -471,44 +471,49 @@ function App({ user, initialServerData, onLogout }) {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const importedData = JSON.parse(e.target.result)
-        
-        // Validate the data structure
         if (!importedData.data) {
           alert('Invalid backup file format')
           return
         }
 
-        const { savedFoods: importedFoods, savedMeals: importedMeals, logEntries: importedLogs, macroGoals: importedGoals, dailyGoal: importedDailyGoal } = importedData.data
+        const {
+          savedFoods: importedFoods = [],
+          savedMeals: importedMeals = [],
+          logEntries: importedLogs = [],
+          macroGoals: importedGoals = macroGoals,
+          dailyGoal: importedDailyGoal = importedGoals?.calories || dailyGoal
+        } = importedData.data
 
-        // Confirm before importing
-        const confirmMessage = `This will import:\n- ${importedFoods?.length || 0} foods\n- ${importedMeals?.length || 0} meals\n- ${importedLogs?.length || 0} log entries\n- Macro goals\n\nThis will replace your current data. Continue?`
-        
-        if (confirm(confirmMessage)) {
-          if (importedFoods) setSavedFoods(importedFoods)
-          if (importedMeals) setSavedMeals(importedMeals)
-          if (importedLogs) setLogEntries(importedLogs)
-          if (importedGoals) {
-            setMacroGoals(importedGoals)
-            setMacroGoalsInput(importedGoals)
-          }
-          if (importedDailyGoal) {
-            setDailyGoal(importedDailyGoal)
-            setGoalInput(importedDailyGoal)
-          }
-          
-          alert('Data imported successfully!')
+        const confirmMessage = `This will import:\n- ${importedFoods.length} foods\n- ${importedMeals.length} meals\n- ${importedLogs.length} log entries\n- Macro goals\n\nThis will replace your current data. Continue?`
+
+        if (!confirm(confirmMessage)) return
+
+        if (user) {
+          await api.sync.replace({
+            goals: importedGoals,
+            foods: importedFoods,
+            meals: importedMeals,
+            logs: importedLogs,
+          })
         }
+
+        setSavedFoods(importedFoods)
+        setSavedMeals(importedMeals)
+        setLogEntries(importedLogs)
+        setMacroGoals(importedGoals)
+        setMacroGoalsInput(importedGoals)
+        setDailyGoal(importedDailyGoal)
+        setGoalInput(importedDailyGoal)
+        alert('Data imported successfully!')
       } catch (error) {
         console.error('Import error:', error)
-        alert('Failed to import data. Please check the file format.')
+        alert(error.message || 'Failed to import data. Please check the file format.')
       }
     }
     reader.readAsText(file)
-    
-    // Reset the input so the same file can be imported again if needed
     event.target.value = ''
   }
 
