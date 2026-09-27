@@ -37,6 +37,7 @@ psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f db/schema.sql
 
 echo "[4/5] Building NutriLog..."
 npm run build
+npm prune --omit=dev
 
 echo "[5/5] Restarting service..."
 systemctl daemon-reload
