@@ -1562,9 +1562,12 @@ body {
 .theme-settings {
   margin-bottom: 30px;
 }
+.theme-settings h3 {
+  margin-bottom: 8px;
+}
 .settings-description {
   color: #636e72;
-  margin: -8px 0 20px;
+  margin: 0 0 20px;
   line-height: 1.5;
 }
 .theme-options {
