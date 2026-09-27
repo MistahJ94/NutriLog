@@ -71,6 +71,8 @@ systemctl daemon-reload
 systemctl enable "${SERVICE_NAME}" >/dev/null
 systemctl restart "${SERVICE_NAME}"
 
+echo "NutriLog service restarted. Waiting for the health check..."
+
 for attempt in {1..15}; do
   if curl -fsS --max-time 3 "${HEALTH_URL}" >/dev/null; then
     echo "NutriLog health check passed."
