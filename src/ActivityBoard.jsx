@@ -6,17 +6,27 @@ const types=[['walking','Walking'],['running','Running'],['cycling','Cycling'],[
 export default function ActivityBoard(){
   const [items,setItems]=useState([]);const [form,setForm]=useState({activityType:'walking',durationMinutes:'30',intensity:'moderate',caloriesSource:'estimated',caloriesBurned:'',activityDate:new Date().toISOString().slice(0,10),notes:''});const [busy,setBusy]=useState(false)
   const load=async()=>{try{const r=await api.activities.list();setItems(r.activities||[])}catch(e){alert(e.message)}};useEffect(()=>{load()},[])
-  const today=new Date().toISOString().slice(0,10);const todayItems=items.filter(x=>String(x.activity_date).slice(0,10)===today);const total=todayItems.reduce((n,x)=>n+Number(x.calories_burned),0);const minutes=todayItems.reduce((n,x)=>n+Number(x.duration_minutes),0)
+  const today=new Date().toISOString().slice(0,10);const todayItems=items.filter(x=>String(x.activity_date).slice(0,10)===today);const total=todayItems.reduce((n,x)=>n+(Number(x.calories_burned)||0),0);const minutes=todayItems.reduce((n,x)=>n+(Number(x.duration_minutes)||0),0)
   const save=async e=>{e.preventDefault();setBusy(true);try{const r=await api.activities.create(form);setItems(x=>[r.activity,...x]);setForm(x=>({...x,caloriesBurned:'',notes:''}))}catch(e){alert(e.message)}finally{setBusy(false)}}
   const remove=async id=>{try{await api.activities.remove(id);setItems(x=>x.filter(a=>a.id!==id))}catch(e){alert(e.message)}}
   return <div className="activity-page"><div className="planner-intro"><h2>Activity</h2><p>Track workouts and calories from NutriLog estimates, manual entries, or your watch/phone.</p></div>
-    <div className="activity-stats"><div><span>🔥 Calories Burned</span><strong>{Math.round(total)}</strong></div><div><span>⏱ Active Minutes</span><strong>{Math.round(minutes)}</strong></div><div><span>🏋️ Workouts</span><strong>{todayItems.length}</strong></div></div>
+    <div className="activity-stats">
+      <div className="activity-stat-card">
+        <div className="activity-stat-icon">🔥</div><div><span>Calories Burned</span><strong>{Math.round(total || 0)}</strong><small>kcal today</small></div>
+      </div>
+      <div className="activity-stat-card">
+        <div className="activity-stat-icon">⏱</div><div><span>Active Minutes</span><strong>{Math.round(minutes || 0)}</strong><small>minutes today</small></div>
+      </div>
+      <div className="activity-stat-card">
+        <div className="activity-stat-icon">🏋️</div><div><span>Workouts</span><strong>{todayItems.length || 0}</strong><small>workouts today</small></div>
+      </div>
+    </div>
     <div className="activity-grid"><div className="section"><h3><Plus size={20}/> Log Activity</h3><form onSubmit={save}><div className="form-row"><div className="form-group"><label>Activity<select value={form.activityType} onChange={e=>setForm(x=>({...x,activityType:e.target.value}))}>{types.map(x=><option value={x[0]} key={x[0]}>{x[1]}</option>)}</select></label></div><div className="form-group"><label>Duration (minutes)<input type="number" min="1" step=".1" value={form.durationMinutes} onChange={e=>setForm(x=>({...x,durationMinutes:e.target.value}))}/></label></div></div>
     <div className="form-row"><div className="form-group"><label>Intensity<select value={form.intensity} onChange={e=>setForm(x=>({...x,intensity:e.target.value}))}><option value="light">Light</option><option value="moderate">Moderate</option><option value="vigorous">Vigorous</option></select></label></div><div className="form-group"><label>Calories source<select value={form.caloriesSource} onChange={e=>setForm(x=>({...x,caloriesSource:e.target.value}))}><option value="estimated">NutriLog estimate</option><option value="manual">Manual</option><option value="device">Watch / Phone</option></select></label></div></div>
     {form.caloriesSource!=='estimated'&&<div className="form-group"><label>Calories burned<input type="number" min="0" step=".1" required value={form.caloriesBurned} onChange={e=>setForm(x=>({...x,caloriesBurned:e.target.value}))} placeholder="e.g. 327"/></label></div>}
     <div className="form-row"><div className="form-group"><label>Date<input type="date" value={form.activityDate} onChange={e=>setForm(x=>({...x,activityDate:e.target.value}))}/></label></div><div className="form-group"><label>Notes<input value={form.notes} onChange={e=>setForm(x=>({...x,notes:e.target.value}))} placeholder="Optional"/></label></div></div>
     <button className="btn btn-primary" disabled={busy}><Plus size={18}/>Add Activity</button></form></div>
-    <div className="section"><h3><Flame size={20}/> Activity History</h3><div className="activity-list">{items.map(a=><div className="activity-row" key={a.id}><div><strong>{types.find(x=>x[0]===a.activity_type)?.[1]||a.activity_type}</strong><span>{a.activity_date} · {Number(a.duration_minutes)} min · {a.calories_source}</span></div><strong>{Math.round(Number(a.calories_burned))} kcal</strong><button className="btn btn-danger" onClick={()=>remove(a.id)}><Trash2 size={16}/></button></div>)}{!items.length&&<p>No activities logged yet.</p>}</div></div></div>
+    <div className="section"><h3><Flame size={20}/> Activity History</h3><div className="activity-list">{items.map(a=><div className="activity-row" key={a.id}><div><strong>{types.find(x=>x[0]===a.activity_type)?.[1]||a.activity_type}</strong><span>{a.activity_date} · {Number(a.duration_minutes)} min · {a.calories_source}</span></div><strong>{Math.round(Number(a.calories_burned))} kcal</strong><button className="btn btn-danger" onClick={()=>remove(a.id)}><Trash2 size={16}/></button></div>)}{!items.length&&<p>No activities logged yet. Nothing recorded yet — 0 calories, 0 minutes, 0 workouts today.</p>}</div></div></div>
     <div className="info-box"><ActivityIcon size={18}/><span>Device/watch calories are stored as provided. Estimated calories are based on activity intensity and your saved body weight.</span></div>
   </div>
 }
