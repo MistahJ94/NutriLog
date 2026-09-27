@@ -17,7 +17,7 @@ NutriLog is being developed as a **self-hosted, offline-capable, multi-user plat
 - ⚡ React + Vite
 - 🔒 Local-first data storage in the current release
 
-## Planned Platform
+## Platform
 
 NutriLog is being structured so the current UI can evolve without being tied directly to browser storage.
 
@@ -25,8 +25,8 @@ NutriLog is being structured so the current UI can evolve without being tied dir
 - 🗄️ PostgreSQL-backed storage
 - 🌐 Node.js backend API
 - 👥 User-scoped multi-user isolation
-- ☁️ Optional cloud/cross-device synchronization
-- 📱 Offline synchronization
+- ☁️ Cross-device synchronization through the self-hosted API
+- 📱 Local browser cache for responsive/offline viewing
 - 🔐 Secure session management
 - 🖥️ Self-hosted Proxmox LXC deployment
 - 🔄 Simple in-container updates using the `update` command
@@ -46,7 +46,7 @@ Proxmox VE
         └── /usr/bin/update
 ```
 
-The final deployment will provide an installer modeled around the Proxmox helper-script experience. Once installed, updates will be performed from inside the LXC with:
+The deployment includes an installer modeled around the Proxmox helper-script experience. Once installed, updates will be performed from inside the LXC with:
 
 ```bash
 update
@@ -114,9 +114,7 @@ MIT License
 
 ## Platform foundation
 
-The development branch now includes the initial PostgreSQL data model in `db/schema.sql`. The schema is designed around a per-user ownership model for goals, foods, meals, and log entries so multi-user support can be added without redesigning the data model.
-
-The frontend remains local-first during this phase. The database schema is intentionally separated from the existing localStorage implementation so the migration to an API can happen incrementally.
+The PostgreSQL data model in `db/schema.sql` uses a per-user ownership model for goals, foods, meals, and log entries. The browser keeps a local cache, while authenticated create/delete/goal operations are persisted through the API.
 
 ### Platform status
 
