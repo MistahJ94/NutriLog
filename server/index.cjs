@@ -98,7 +98,7 @@ const decryptSecret = value => {
 const normalizeSmtpSettings = body => ({
   host: String(body.host || "").trim(),
   port: Number(body.port || 587),
-  secure: Boolean(body.secure),
+  security: ["starttls", "ssl", "none"].includes(body.security) ? body.security : "starttls",
   username: String(body.username || "").trim(),
   password: String(body.password || ""),
   fromEmail: String(body.fromEmail || "").trim().toLowerCase(),
@@ -114,7 +114,7 @@ const smtpSettingsValid = settings =>
 const sendSmtpEmail = async (settings, to, subject, body) => {
   if (!smtpSettingsValid(settings)) throw new Error("SMTP settings are incomplete")
   const net = require("node:net"), tls = require("node:tls")
-  const secure = settings.secure || settings.port === 465
+  const secure = settings.security === "ssl" || settings.port === 465
   let socket = await new Promise((resolve, reject) => {
     const s = secure
       ? tls.connect({ host: settings.host, port: settings.port, servername: settings.host }, () => resolve(s))
@@ -148,7 +148,7 @@ const sendSmtpEmail = async (settings, to, subject, body) => {
       socket.once("error", reject)
     })
     await command("EHLO nutrilog", [250])
-    if (!secure) {
+    if (!secure && settings.security === "starttls") {
       await command("STARTTLS", [220])
       socket = await new Promise((resolve, reject) => {
         const tlsSocket = tls.connect({ socket, servername: settings.host }, () => resolve(tlsSocket))
@@ -301,10 +301,10 @@ async function adminApi(req, res, pathname, user) {
   if (!(await isAdmin(user))) return send(res, 403, { error: "Administrator access required" })
 
   if (req.method === "GET" && pathname === "/api/admin/smtp") {
-    const rows = await sql.unsafe("SELECT host, port, secure, username, password_encrypted, from_email, from_name, public_url, updated_at FROM smtp_settings WHERE id=TRUE")
+    const rows = await sql.unsafe("SELECT host, port, security, username, password_encrypted, from_email, from_name, public_url, updated_at FROM smtp_settings WHERE id=TRUE")
     const settings = rows[0]
     return send(res, 200, { configured: Boolean(settings), settings: settings ? {
-      host: settings.host, port: Number(settings.port), secure: settings.secure,
+      host: settings.host, port: Number(settings.port), security: settings.security || "starttls",
       username: settings.username || "", fromEmail: settings.from_email,
       fromName: settings.from_name, publicUrl: settings.public_url,
       hasPassword: Boolean(decryptSecret(settings.password_encrypted)), updatedAt: settings.updated_at
@@ -317,7 +317,7 @@ async function adminApi(req, res, pathname, user) {
     if (!smtpSettingsValid(settings)) return send(res, 400, { error: "SMTP host, valid port, from email, and a valid public URL are required" })
     const existing = (await sql.unsafe("SELECT password_encrypted FROM smtp_settings WHERE id=TRUE"))[0]
     if (!settings.password && existing) settings.password = decryptSecret(existing.password_encrypted)
-    await sql.unsafe("INSERT INTO smtp_settings (id, host, port, secure, username, password_encrypted, from_email, from_name, public_url, updated_at) VALUES (TRUE,$1,$2,$3,$4,$5,$6,$7,$8,NOW()) ON CONFLICT (id) DO UPDATE SET host=EXCLUDED.host,port=EXCLUDED.port,secure=EXCLUDED.secure,username=EXCLUDED.username,password_encrypted=EXCLUDED.password_encrypted,from_email=EXCLUDED.from_email,from_name=EXCLUDED.from_name,public_url=EXCLUDED.public_url,updated_at=NOW()", [settings.host, settings.port, settings.secure, settings.username, encryptSecret(settings.password), settings.fromEmail, settings.fromName, settings.publicUrl])
+    await sql.unsafe("INSERT INTO smtp_settings (id, host, port, security, username, password_encrypted, from_email, from_name, public_url, updated_at) VALUES (TRUE,$1,$2,$3,$4,$5,$6,$7,$8,NOW()) ON CONFLICT (id) DO UPDATE SET host=EXCLUDED.host,port=EXCLUDED.port,security=EXCLUDED.security,username=EXCLUDED.username,password_encrypted=EXCLUDED.password_encrypted,from_email=EXCLUDED.from_email,from_name=EXCLUDED.from_name,public_url=EXCLUDED.public_url,updated_at=NOW()", [settings.host, settings.port, settings.security, settings.username, encryptSecret(settings.password), settings.fromEmail, settings.fromName, settings.publicUrl])
     return send(res, 200, { ok: true })
   }
 
