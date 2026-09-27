@@ -1842,6 +1842,8 @@ body {
 .recommendation-grid>div{padding:14px;border:1px solid var(--accent-border);border-radius:10px;background:var(--accent-pale);display:flex;flex-direction:column;gap:4px}
 .recommendation-grid strong{font-size:.8rem;color:#667}
 .recommendation-grid span{font-size:1.15rem;font-weight:700}
+:root[data-mode="dark"] .recommendation-grid strong{color:#94A3B8}
+:root[data-mode="dark"] .recommendation-grid span{color:#F8FAFC}
 .activity-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .activity-stats>div{background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:6px}
 .activity-stats span{font-size:.9rem;color:#667}.activity-stats strong{font-size:1.8rem}
