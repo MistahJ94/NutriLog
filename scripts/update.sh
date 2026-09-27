@@ -30,7 +30,7 @@ git checkout --quiet main
 git reset --hard origin/main
 
 echo "[2/5] Installing production dependencies..."
-npm ci --omit=dev
+npm ci
 
 echo "[3/5] Applying database schema..."
 psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f db/schema.sql
