@@ -29,6 +29,10 @@ export const api = {
     login: (email, password) => json('POST', '/auth/login', { email, password }),
     setup: (email, password) => json('POST', '/auth/setup', { email, password }),
     logout: () => request('/auth/logout', { method: 'POST' }),
+    changePassword: (currentPassword, newPassword) => json('POST', '/auth/change-password', { currentPassword, newPassword }),
+    revokeOtherSessions: () => json('POST', '/auth/revoke-other-sessions', {}),
+    forgotPassword: email => json('POST', '/auth/forgot-password', { email }),
+    resetPassword: (token, newPassword) => json('POST', '/auth/reset-password', { token, newPassword }),
   },
 
   admin: {
