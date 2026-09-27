@@ -112,5 +112,5 @@ export default function AuthGate({ App }) {
 
   if (!ready) return <div className="auth-loading">Loading NutriLog…</div>
   if (!user) return <AuthScreen onAuthenticated={authenticated} />
-  return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); setUser(null); setData(null) }} />
+  return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} />
 }
