@@ -7,7 +7,7 @@ function AdminPanel({ user }) {
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' })
-  const [smtp, setSmtp] = useState({ host: '', port: 587, secure: false, username: '', password: '', fromEmail: '', fromName: 'NutriLog', publicUrl: '' })
+  const [smtp, setSmtp] = useState({ host: '', port: 587, security: 'starttls', username: '', password: '', fromEmail: '', fromName: 'NutriLog', publicUrl: '' })
   const [smtpConfigured, setSmtpConfigured] = useState(false)
   const [smtpBusy, setSmtpBusy] = useState(true)
   const [smtpSaving, setSmtpSaving] = useState(false)
@@ -111,7 +111,7 @@ function AdminPanel({ user }) {
               <div>
                 <div className="form-group"><label>SMTP Host<input value={smtp.host} onChange={e => setSmtp({ ...smtp, host: e.target.value })} placeholder="smtp.example.com" required /></label></div>
                 <div className="form-group"><label>SMTP Port<input type="number" min="1" max="65535" value={smtp.port} onChange={e => setSmtp({ ...smtp, port: Number(e.target.value) })} required /></label></div>
-                <div className="form-group"><label>Security<select className="food-select" value={smtp.secure ? 'ssl' : 'starttls'} onChange={e => setSmtp({ ...smtp, secure: e.target.value === 'ssl' })}><option value="starttls">STARTTLS</option><option value="ssl">SSL/TLS</option></select></label></div>
+                <div className="form-group"><label>Security<select className="food-select" value={smtp.security} onChange={e => setSmtp({ ...smtp, security: e.target.value })}><option value="starttls">STARTTLS</option><option value="ssl">SSL/TLS</option><option value="none">None</option></select></label></div>
                 <div className="form-group"><label>SMTP Username<input value={smtp.username} onChange={e => setSmtp({ ...smtp, username: e.target.value })} placeholder="Optional" autoComplete="off" /></label></div>
                 <div className="form-group"><label>SMTP Password<input type="password" value={smtp.password} onChange={e => setSmtp({ ...smtp, password: e.target.value })} placeholder={smtpConfigured ? 'Leave blank to keep current password' : 'Optional if server does not require authentication'} autoComplete="new-password" /></label></div>
               </div>
@@ -125,7 +125,7 @@ function AdminPanel({ user }) {
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
               <button className="btn btn-primary" type="submit" disabled={smtpSaving}><Settings size={18} />{smtpSaving ? 'Saving…' : 'Save SMTP Settings'}</button>
               <button className="btn btn-secondary" type="button" onClick={testSmtp} disabled={smtpTesting || !smtp.host}>{smtpTesting ? 'Sending…' : 'Send Test Email'}</button>
-              {smtpConfigured && <button className="btn btn-danger" type="button" onClick={async () => { if (!confirm('Disable email password recovery?')) return; try { await api.admin.disableSmtp(); setSmtp({ host: '', port: 587, secure: false, username: '', password: '', fromEmail: '', fromName: 'NutriLog', publicUrl: '' }); setSmtpConfigured(false); alert('SMTP password recovery has been disabled.') } catch (err) { alert(err.message) } }}>Disable SMTP</button>}
+              {smtpConfigured && <button className="btn btn-danger" type="button" onClick={async () => { if (!confirm('Disable email password recovery?')) return; try { await api.admin.disableSmtp(); setSmtp({ host: '', port: 587, security: 'starttls', username: '', password: '', fromEmail: '', fromName: 'NutriLog', publicUrl: '' }); setSmtpConfigured(false); alert('SMTP password recovery has been disabled.') } catch (err) { alert(err.message) } }}>Disable SMTP</button>}
             </div>
             <p style={{ marginTop: 14, color: '#666', fontSize: '0.9rem' }}>
               {smtpConfigured ? 'SMTP is configured. The stored password is never displayed.' : 'SMTP is not configured. Password recovery email is disabled until you save valid settings.'}
