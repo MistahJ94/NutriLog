@@ -72,10 +72,7 @@ const loadServerData = async userId => {
   const canMigrateLegacyData = !localOwner && (local.foods.length || local.meals.length || local.logs.length)
 
   if (emptyServer && canMigrateLegacyData) {
-    await api.goals.save(local.goals)
-    for (const food of local.foods) await api.foods.create(food)
-    for (const meal of local.meals) await api.meals.create(meal)
-    for (const entry of local.logs) await api.logs.create(entry)
+    await api.sync.replace({ goals: local.goals, foods: local.foods, meals: local.meals, logs: local.logs })
     localStorage.setItem('nutrilog_owner_id', userId)
     return loadServerData(userId)
   }
