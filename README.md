@@ -195,6 +195,24 @@ npm run check
 npm run build
 ```
 
+## ⚙️ Configuration
+
+The production environment file is:
+
+```text
+/etc/nutrilog/nutrilog.env
+```
+
+Important settings include:
+
+- `DATABASE_URL` — PostgreSQL connection string.
+- `PORT` — API/static server port; defaults to `3001`.
+- `DB_POOL_SIZE` — PostgreSQL connection pool size.
+- `COOKIE_SECURE` — set to `true` when authentication is served over HTTPS.
+- `CORS_ORIGIN` — optional. Leave empty or unset for the normal same-origin deployment. Set it to the exact frontend origin only when the API is intentionally used cross-origin.
+
+For a standard NutriLog deployment behind a reverse proxy, the frontend and API are served from the same origin, so `CORS_ORIGIN` does not need to be configured.
+
 ## 🔒 Security
 
 NutriLog is designed for private, self-hosted deployments.
