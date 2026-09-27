@@ -184,6 +184,13 @@ function App({ user, initialServerData, onLogout }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('nutrilog-theme') || 'green')
   const [mode, setMode] = useState(() => localStorage.getItem('nutrilog-mode') || 'light')
   const [customAccent, setCustomAccent] = useState(() => localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
+  const [trackerLayout, setTrackerLayout] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('nutrilog-tracker-layout')) || { template: 'balanced', columns: 3, customize: false, cards: {} }
+    } catch { return { template: 'balanced', columns: 3, customize: false, cards: {} } }
+  })
+  const [foodSearch, setFoodSearch] = useState('')
+  const [foodSort, setFoodSort] = useState('newest')
   
   // Ref for click outside detection
   const quickLogSearchRef = useRef(null)
@@ -261,6 +268,10 @@ function App({ user, initialServerData, onLogout }) {
     localStorage.setItem('nutrilog-custom-accent', customAccent)
   }, [theme, mode, customAccent])
 
+  useEffect(() => {
+    localStorage.setItem('nutrilog-tracker-layout', JSON.stringify(trackerLayout))
+  }, [trackerLayout])
+
   // Load data through the application storage service.
   useEffect(() => {
     const local = storage.load()
@@ -331,6 +342,48 @@ function App({ user, initialServerData, onLogout }) {
       alert(error.message)
     }
   }
+
+  const trackerCards = [
+    { id: 'calories', label: "Today's Calories", value: totalCalories, subtext: `of ${macroGoals.calories} kcal`, progress, className: 'primary' },
+    { id: 'remaining', label: 'Remaining', value: remaining, subtext: `kcal ${remaining < 0 ? 'over' : 'left'}`, className: 'success' },
+    { id: 'protein', label: 'Protein', value: `${totalProtein}g`, subtext: `of ${macroGoals.protein}g`, progress: proteinProgress },
+    { id: 'carbs', label: 'Carbs', value: `${totalCarbs}g`, subtext: `of ${macroGoals.carbs}g`, progress: carbsProgress },
+    { id: 'fat', label: 'Fat', value: `${totalFat}g`, subtext: `of ${macroGoals.fat}g`, progress: fatProgress },
+    { id: 'fiber', label: 'Fiber', value: `${totalFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: fiberProgress, className: 'warning' }
+  ]
+
+  const trackerTemplates = {
+    balanced: { label: 'Balanced', columns: 3, cards: {} },
+    calories: { label: 'Calories Focus', columns: 3, cards: { calories: { size: 'wide' }, remaining: { size: 'normal' } } },
+    compact: { label: 'Compact', columns: 4, cards: {} },
+    dashboard: { label: 'Dashboard', columns: 3, cards: { calories: { size: 'large' }, protein: { size: 'wide' }, carbs: { size: 'wide' } } }
+  }
+
+  const applyTrackerTemplate = key => {
+    const template = trackerTemplates[key]
+    setTrackerLayout({ template: key, columns: template.columns, customize: false, cards: template.cards })
+  }
+
+  const updateTrackerCard = (id, field, value) => {
+    setTrackerLayout(prev => ({
+      ...prev,
+      template: 'custom',
+      cards: { ...prev.cards, [id]: { ...(prev.cards[id] || {}), [field]: value } }
+    }))
+  }
+
+  const visibleFoods = savedFoods
+    .filter(food => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase()))
+    .sort((a, b) => {
+      if (foodSort === 'az') return a.name.localeCompare(b.name)
+      if (foodSort === 'za') return b.name.localeCompare(a.name)
+      const getTime = food => {
+        const value = food.created_at || food.createdAt || food.id
+        const time = new Date(value).getTime()
+        return Number.isFinite(time) ? time : 0
+      }
+      return foodSort === 'oldest' ? getTime(a) - getTime(b) : getTime(b) - getTime(a)
+    })
 
   const handleDeleteFood = async (id) => {
     try {
@@ -815,60 +868,69 @@ function App({ user, initialServerData, onLogout }) {
         {/* TRACKER TAB */}
         {activeTab === 'tracker' && (
           <>
-            {/* Stats Grid */}
-            <div className="stats-grid">
-            <div className="stat-card primary">
-            <div className="stat-label">Today's Calories</div>
-            <div className="stat-value">{totalCalories}</div>
-            <div className="stat-subtext">of {macroGoals.calories} kcal</div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+            {/* Tracker card dashboard */}
+            <div className="tracker-dashboard-header">
+              <div>
+                <h2>Daily Dashboard</h2>
+                <p>Arrange your nutrition cards to fit the way you track.</p>
+              </div>
+              <div className="tracker-layout-actions">
+                <label>Template
+                  <select value={trackerLayout.template} onChange={e => applyTrackerTemplate(e.target.value)}>
+                    {Object.entries(trackerTemplates).map(([key, template]) => <option key={key} value={key}>{template.label}</option>)}
+                    <option value="custom">Custom</option>
+                  </select>
+                </label>
+                <button type="button" className={trackerLayout.customize ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTrackerLayout(prev => ({ ...prev, customize: !prev.customize }))}>
+                  <Settings size={16} /> {trackerLayout.customize ? 'Done Customizing' : 'Customize'}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="stat-card success">
-            <div className="stat-label">Remaining</div>
-            <div className="stat-value" style={{ color: remaining < 0 ? '#D86C70' : 'inherit' }}>
-              {remaining}
-            </div>
-            <div className="stat-subtext">kcal {remaining < 0 ? 'over' : 'left'}</div>
-          </div>
+            {trackerLayout.customize && (
+              <div className="tracker-customizer section">
+                <div className="form-group">
+                  <label>Columns
+                    <select value={trackerLayout.columns} onChange={e => setTrackerLayout(prev => ({ ...prev, template: 'custom', columns: Number(e.target.value) }))}>
+                      <option value="2">2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="tracker-card-options">
+                  {trackerCards.map(card => {
+                    const config = trackerLayout.cards[card.id] || {}
+                    return (
+                      <div className="tracker-card-option" key={card.id}>
+                        <strong>{card.label}</strong>
+                        <label>Size<select value={config.size || 'normal'} onChange={e => updateTrackerCard(card.id, 'size', e.target.value)}>
+                          <option value="normal">Normal</option><option value="wide">Wide</option><option value="tall">Tall</option><option value="large">Large</option>
+                        </select></label>
+                        <label>Orientation<select value={config.orientation || 'vertical'} onChange={e => updateTrackerCard(card.id, 'orientation', e.target.value)}>
+                          <option value="vertical">Vertical</option><option value="horizontal">Horizontal</option>
+                        </select></label>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
-          <div className="stat-card">
-            <div className="stat-label">Protein</div>
-            <div className="stat-value" style={{ fontSize: '2rem' }}>{totalProtein}g</div>
-            <div className="stat-subtext">of {macroGoals.protein}g</div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${proteinProgress}%`, background: '#6B9080' }}></div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-label">Carbs</div>
-            <div className="stat-value" style={{ fontSize: '2rem' }}>{totalCarbs}g</div>
-            <div className="stat-subtext">of {macroGoals.carbs}g</div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${carbsProgress}%`, background: '#A4C3B2' }}></div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-label">Fat</div>
-            <div className="stat-value" style={{ fontSize: '2rem' }}>{totalFat}g</div>
-            <div className="stat-subtext">of {macroGoals.fat}g</div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${fatProgress}%`, background: '#8B6F47' }}></div>
-            </div>
-          </div>
-
-          <div className="stat-card warning">
-            <div className="stat-label">Fiber</div>
-            <div className="stat-value" style={{ fontSize: '2rem' }}>{totalFiber}g</div>
-            <div className="stat-subtext">of {macroGoals.fiber}g</div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${fiberProgress}%`, background: '#5a7a6d' }}></div>
-            </div>
-          </div>
+            <div className="stats-grid tracker-stats-grid" style={{ '--tracker-columns': trackerLayout.columns }}>
+              {trackerCards.map(card => {
+                const config = trackerLayout.cards[card.id] || {}
+                return (
+                  <div key={card.id} className={`stat-card ${card.className || ''} tracker-card-size-${config.size || 'normal'} tracker-card-orientation-${config.orientation || 'vertical'}`}>
+                    <div className="stat-label">{card.label}</div>
+                    <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && remaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
+                    <div className="stat-subtext">{card.subtext}</div>
+                    {card.progress !== undefined && (
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${card.progress}%` }}></div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {/* Quick Add with Date */}
@@ -1394,7 +1456,16 @@ function App({ user, initialServerData, onLogout }) {
             {/* Saved Foods List */}
             <div className="section">
               <h2>Your Foods ({savedFoods.length})</h2>
-              <div className="food-list">
+                          <div className="food-library-controls">
+              <div className="food-search-wrap"><Search size={18} /><input type="search" value={foodSearch} onChange={e => setFoodSearch(e.target.value)} placeholder="Search your foods..." aria-label="Search your foods" /></div>
+              <label className="food-sort-control">Sort
+                <select value={foodSort} onChange={e => setFoodSort(e.target.value)}>
+                  <option value="newest">Newest added</option><option value="oldest">Oldest added</option><option value="az">A to Z</option><option value="za">Z to A</option>
+                </select>
+              </label>
+            </div>
+            <div className="food-library-result-count">{visibleFoods.length} of {savedFoods.length} foods</div>
+<div className="food-list">
                 {savedFoods.length === 0 ? (
                   <div className="empty-state">
                     <Coffee size={48} />
@@ -1402,7 +1473,7 @@ function App({ user, initialServerData, onLogout }) {
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Create your food database!</p>
                   </div>
                 ) : (
-                  savedFoods.map(food => editingFoodId === food.id ? (
+                  visibleFoods.map(food => editingFoodId === food.id ? (
                     <form key={food.id} className="food-item food-item-edit" onSubmit={handleUpdateFood}>
                       <div className="food-edit-form">
                         <div className="form-group"><label>Food Name *</label><input name="name" value={editingFoodForm.name} onChange={handleEditingFoodChange} required /></div>
@@ -1424,27 +1495,17 @@ function App({ user, initialServerData, onLogout }) {
                     </form>
                   ) : (
                     <div key={food.id} className="food-item">
-                      <div className="food-info">
-                        <h3>{food.name}</h3>
-                        <div className="food-details">
-                          <span className="serving-badge">{food.servingSize}</span>
-                          <span><strong>{food.calories}</strong> kcal</span>
-                          {food.protein > 0 && <span>P: {food.protein}g</span>}
-                          {food.carbs > 0 && <span>C: {food.carbs}g</span>}
-                          {food.fat > 0 && <span>F: {food.fat}g</span>}
-                          {food.fiber > 0 && <span>Fiber: {food.fiber}g</span>}
-                        </div>
-                      </div>
+                      <div className="food-info"><h3>{food.name}</h3><div className="food-details">
+                        <span className="serving-badge">{food.servingSize}</span><span><strong>{food.calories}</strong> kcal</span>
+                        {food.protein > 0 && <span>P: {food.protein}g</span>}{food.carbs > 0 && <span>C: {food.carbs}g</span>}{food.fat > 0 && <span>F: {food.fat}g</span>}{food.fiber > 0 && <span>Fiber: {food.fiber}g</span>}
+                      </div></div>
                       <div className="food-actions">
                         <button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food)}><Plus size={16} />Log</button>
                         <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
                         <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
                       </div>
                     </div>
-                  ))               )}
-              </div>
-            </div>
-          </div>
+                  ))          </div>
           </>
         )}
 
