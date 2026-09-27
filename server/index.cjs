@@ -321,6 +321,11 @@ async function adminApi(req, res, pathname, user) {
     return send(res, 200, { ok: true })
   }
 
+  if (req.method === "DELETE" && pathname === "/api/admin/smtp") {
+    await sql.unsafe("DELETE FROM smtp_settings WHERE id=TRUE")
+    return send(res, 200, { ok: true })
+  }
+
   if (req.method === "POST" && pathname === "/api/admin/smtp/test") {
     const body = await readBody(req)
     const settings = normalizeSmtpSettings(body)
