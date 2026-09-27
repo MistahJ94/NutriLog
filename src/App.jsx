@@ -232,6 +232,11 @@ function App({ user, initialServerData, onLogout }) {
     servingAmount: '1',
     servingUnit: 'serving'
   })
+  const [editingFoodId, setEditingFoodId] = useState(null)
+  const [editingFoodForm, setEditingFoodForm] = useState({
+    name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '',
+    servingAmount: '1', servingUnit: 'serving'
+  })
   
   const [mealFormData, setMealFormData] = useState({
     name: '',
@@ -334,6 +339,57 @@ function App({ user, initialServerData, onLogout }) {
     } catch (error) {
       alert(error.message)
     }
+  }
+
+  const startEditFood = food => {
+    setEditingFoodId(food.id)
+    setEditingFoodForm({
+      name: food.name || '', calories: food.calories ?? '', protein: food.protein ?? '',
+      carbs: food.carbs ?? '', fat: food.fat ?? '', fiber: food.fiber ?? '',
+      servingAmount: food.servingAmount ?? 1, servingUnit: food.servingUnit || 'serving'
+    })
+  }
+
+  const handleEditingFoodChange = e => {
+    const { name, value } = e.target
+    setEditingFoodForm(prev => ({ ...prev, [name]: value }))
+  }
+
+  const cancelEditFood = () => setEditingFoodId(null)
+
+  const handleUpdateFood = async e => {
+    e.preventDefault()
+    if (!editingFoodForm.name || editingFoodForm.calories === '') {
+      alert('Please enter at least food name and calories')
+      return
+    }
+    const draft = {
+      name: editingFoodForm.name,
+      calories: parseFloat(editingFoodForm.calories) || 0,
+      protein: parseFloat(editingFoodForm.protein) || 0,
+      carbs: parseFloat(editingFoodForm.carbs) || 0,
+      fat: parseFloat(editingFoodForm.fat) || 0,
+      fiber: parseFloat(editingFoodForm.fiber) || 0,
+      servingSize: `${editingFoodForm.servingAmount || 1} ${editingFoodForm.servingUnit || 'serving'}`,
+      servingAmount: Number(editingFoodForm.servingAmount) || 1,
+      servingUnit: editingFoodForm.servingUnit || 'serving'
+    }
+    try {
+      const result = user ? (await api.foods.update(editingFoodId, draft)).item : { ...draft, id: editingFoodId }
+      const updatedFood = {
+        ...draft, ...result, id: editingFoodId,
+        servingSize: result?.serving_size || draft.servingSize,
+        calories: Number(result?.calories ?? draft.calories),
+        protein: Number(result?.protein ?? draft.protein),
+        carbs: Number(result?.carbs ?? draft.carbs),
+        fat: Number(result?.fat ?? draft.fat),
+        fiber: Number(result?.fiber ?? draft.fiber),
+        servingAmount: Number(result?.serving_amount ?? draft.servingAmount),
+        servingUnit: result?.serving_unit || draft.servingUnit
+      }
+      setSavedFoods(prev => prev.map(food => food.id === editingFoodId ? updatedFood : food))
+      setEditingFoodId(null)
+    } catch (error) { alert(error.message) }
   }
 
   // Meal Builder Handlers
@@ -1323,6 +1379,11 @@ function App({ user, initialServerData, onLogout }) {
                    step="0.01"/>
                 </div>
 
+                <div className="form-group">
+                  <label>Fiber (g)</label>
+                  <input type="number" name="fiber" value={foodFormData.fiber} onChange={handleFoodFormChange} placeholder="e.g., 2.4" min="0" step="0.01"/>
+                </div>
+
                 <button type="submit" className="btn btn-primary">
                   <Plus size={20} />
                   Save Food
@@ -1341,7 +1402,27 @@ function App({ user, initialServerData, onLogout }) {
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Create your food database!</p>
                   </div>
                 ) : (
-                  savedFoods.map(food => (
+                  savedFoods.map(food => editingFoodId === food.id ? (
+                    <form key={food.id} className="food-item food-item-edit" onSubmit={handleUpdateFood}>
+                      <div className="food-edit-form">
+                        <div className="form-group"><label>Food Name *</label><input name="name" value={editingFoodForm.name} onChange={handleEditingFoodChange} required /></div>
+                        <div className="form-row">
+                          <div className="form-group"><label>Serving Amount *</label><input type="number" name="servingAmount" value={editingFoodForm.servingAmount} onChange={handleEditingFoodChange} min="0.01" step="0.01" required /></div>
+                          <div className="form-group"><label>Serving Unit *</label><select name="servingUnit" value={editingFoodForm.servingUnit} onChange={handleEditingFoodChange} className="food-select" required><option value="serving">serving</option><option value="g">g</option><option value="oz">oz</option><option value="lb">lb</option><option value="ml">ml</option><option value="fl oz">fl oz</option><option value="cup">cup</option><option value="tbsp">tbsp</option><option value="tsp">tsp</option><option value="piece">piece</option><option value="slice">slice</option><option value="container">container</option></select></div>
+                        </div>
+                        <div className="form-row">
+                          <div className="form-group"><label>Calories (kcal) *</label><input type="number" name="calories" value={editingFoodForm.calories} onChange={handleEditingFoodChange} min="0" step="0.01" required /></div>
+                          <div className="form-group"><label>Protein (g)</label><input type="number" name="protein" value={editingFoodForm.protein} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                        </div>
+                        <div className="form-row">
+                          <div className="form-group"><label>Carbs (g)</label><input type="number" name="carbs" value={editingFoodForm.carbs} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                          <div className="form-group"><label>Fat (g)</label><input type="number" name="fat" value={editingFoodForm.fat} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                        </div>
+                        <div className="form-group"><label>Fiber (g)</label><input type="number" name="fiber" value={editingFoodForm.fiber} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                        <div className="food-edit-actions"><button type="submit" className="btn btn-primary">Save Changes</button><button type="button" className="btn btn-secondary" onClick={cancelEditFood}>Cancel</button></div>
+                      </div>
+                    </form>
+                  ) : (
                     <div key={food.id} className="food-item">
                       <div className="food-info">
                         <h3>{food.name}</h3>
@@ -1351,27 +1432,16 @@ function App({ user, initialServerData, onLogout }) {
                           {food.protein > 0 && <span>P: {food.protein}g</span>}
                           {food.carbs > 0 && <span>C: {food.carbs}g</span>}
                           {food.fat > 0 && <span>F: {food.fat}g</span>}
+                          {food.fiber > 0 && <span>Fiber: {food.fiber}g</span>}
                         </div>
                       </div>
                       <div className="food-actions">
-                        <button 
-                          className="btn btn-primary"
-                          style={{ padding: '8px 12px', fontSize: '0.9rem' }}
-                          onClick={() => handleLogSavedFood(food)}
-                        >
-                          <Plus size={16} />
-                          Log
-                        </button>
-                        <button 
-                          className="btn btn-danger"
-                          onClick={() => handleDeleteFood(food.id)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food)}><Plus size={16} />Log</button>
+                        <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
+                        <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
                       </div>
                     </div>
-                  ))
-                )}
+                  ))               )}
               </div>
             </div>
           </div>
