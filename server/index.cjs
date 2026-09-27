@@ -594,6 +594,8 @@ async function healthApi(req, res, pathname, user) {
 }
 
 async function protectedApi(req, res, pathname, user) {
+  const healthHandled = await healthApi(req, res, pathname, user)
+  if (healthHandled !== false) return
   if (pathname === "/api/goals") {
     if (req.method === "GET") {
       const rows = await sql.unsafe("SELECT calories, protein, carbs, fat, fiber, updated_at FROM user_goals WHERE user_id = $1", [user.id])
