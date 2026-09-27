@@ -34,6 +34,13 @@
   --accent-hover: #FFFBF7;
 }
 
+ :root[data-theme="teal"] { --accent:#0D9488; --accent-soft:#5EEAD4; --accent-dark:#0F766E; --accent-pale:#F0FDFA; --accent-border:#99F6E4; --accent-hover:#F7FFFD; }
+:root[data-theme="red"] { --accent:#E11D48; --accent-soft:#FDA4AF; --accent-dark:#BE123C; --accent-pale:#FFF1F2; --accent-border:#FECDD3; --accent-hover:#FFF8F9; }
+:root[data-theme="pink"] { --accent:#DB2777; --accent-soft:#F9A8D4; --accent-dark:#BE185D; --accent-pale:#FDF2F8; --accent-border:#FBCFE8; --accent-hover:#FFF8FC; }
+:root[data-theme="indigo"] { --accent:#4F46E5; --accent-soft:#A5B4FC; --accent-dark:#4338CA; --accent-pale:#EEF2FF; --accent-border:#C7D2FE; --accent-hover:#F8F8FF; }
+:root[data-theme="yellow"] { --accent:#CA8A04; --accent-soft:#FDE047; --accent-dark:#A16207; --accent-pale:#FEFCE8; --accent-border:#FDE68A; --accent-hover:#FFFDF5; }
+:root[data-theme="slate"] { --accent:#475569; --accent-soft:#94A3B8; --accent-dark:#334155; --accent-pale:#F1F5F9; --accent-border:#CBD5E1; --accent-hover:#F8FAFC; }
+:root[data-theme="custom"] { --accent:var(--custom-accent); --accent-soft:color-mix(in srgb, var(--custom-accent) 45%, white); --accent-dark:color-mix(in srgb, var(--custom-accent) 80%, black); --accent-pale:color-mix(in srgb, var(--custom-accent) 10%, white); --accent-border:color-mix(in srgb, var(--custom-accent) 25%, white); --accent-hover:color-mix(in srgb, var(--custom-accent) 5%, white); }
 :root[data-theme="dark"] {
   --accent: #60A5FA;
   --accent-soft: #1D4ED8;
@@ -1798,3 +1805,28 @@ body {
     margin-bottom: 24px;
   }
 }
+
+
+/* Appearance controls */
+.appearance-controls { display: grid; gap: 24px; }
+.appearance-group { display: grid; gap: 10px; }
+.appearance-label { font-weight: 600; color: #4a5568; }
+.mode-toggle { display: flex; gap: 8px; flex-wrap: wrap; }
+.mode-toggle button { border: 1.5px solid #d4d4ce; background: white; color: #2d3436; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: 500; }
+.mode-toggle button.selected { background: var(--accent-pale); border-color: var(--accent); color: var(--accent-dark); }
+.custom-color-picker { display: inline-flex; align-items: center; gap: 12px; width: fit-content; border: 1.5px solid #d4d4ce; border-radius: 8px; padding: 8px 12px; background: white; color: #4a5568; font-weight: 500; }
+.custom-color-picker input { width: 42px; height: 32px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.custom-color-value { font-family: monospace; font-size: .9rem; }
+.theme-option-teal .theme-swatch { background:#0D9488; } .theme-option-red .theme-swatch { background:#E11D48; } .theme-option-pink .theme-swatch { background:#DB2777; } .theme-option-indigo .theme-swatch { background:#4F46E5; } .theme-option-yellow .theme-swatch { background:#CA8A04; } .theme-option-slate .theme-swatch { background:#475569; }
+
+:root[data-mode="dark"] { color-scheme: dark; --surface:#111827; --surface-alt:#1F2937; --surface-raised:#273244; --text:#F3F4F6; --text-muted:#CBD5E1; --border:#374151; }
+:root[data-mode="dark"] body { background:#0B1120; color:var(--text); }
+:root[data-mode="dark"] .app { background:var(--surface); color:var(--text); box-shadow:0 2px 20px rgba(0,0,0,.35); }
+:root[data-mode="dark"] .section, :root[data-mode="dark"] .stat-card, :root[data-mode="dark"] .goal-section, :root[data-mode="dark"] .meal-foods, :root[data-mode="dark"] .meal-food-item { background:var(--surface-alt); border-color:var(--border); }
+:root[data-mode="dark"] .stat-card:not(.primary), :root[data-mode="dark"] .section h2, :root[data-mode="dark"] .food-info h3, :root[data-mode="dark"] .meal-food-info span:first-child { color:var(--text); }
+:root[data-mode="dark"] .form-group label, :root[data-mode="dark"] .food-details, :root[data-mode="dark"] .meal-food-macros, :root[data-mode="dark"] .appearance-label { color:var(--text-muted); }
+:root[data-mode="dark"] .form-group input, :root[data-mode="dark"] .food-select, :root[data-mode="dark"] .quantity-input, :root[data-mode="dark"] .quick-add-btn, :root[data-mode="dark"] .food-item, :root[data-mode="dark"] .custom-color-picker, :root[data-mode="dark"] .mode-toggle button { background:var(--surface-raised); color:var(--text); border-color:var(--border); }
+:root[data-mode="dark"] .food-item:hover, :root[data-mode="dark"] .quick-add-btn:hover { border-color:var(--accent); background:#2B3648; }
+:root[data-mode="dark"] .settings-description, :root[data-mode="dark"] .data-stat-label, :root[data-mode="dark"] .data-stat-info { color:var(--text-muted); }
+:root[data-mode="dark"] .mode-toggle button.selected { background:var(--accent-pale); color:var(--accent-soft); border-color:var(--accent); }
+:root[data-mode="dark"] .custom-color-picker { color:var(--text-muted); }

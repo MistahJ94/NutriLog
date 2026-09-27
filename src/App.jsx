@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
-import { storage, api, normalizeServerData, calculateMealTotals } from './services'
+import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition } from './services'
 
 function AdminPanel({ user }) {
   const [users, setUsers] = useState([])
@@ -126,6 +126,8 @@ function App({ user, initialServerData, onLogout }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
   const [theme, setTheme] = useState(() => localStorage.getItem('nutrilog-theme') || 'green')
+  const [mode, setMode] = useState(() => localStorage.getItem('nutrilog-mode') || 'light')
+  const [customAccent, setCustomAccent] = useState(() => localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
   
   // Ref for click outside detection
   const quickLogSearchRef = useRef(null)
@@ -171,7 +173,8 @@ function App({ user, initialServerData, onLogout }) {
     carbs: '',
     fat: '',
     fiber: '',
-    servingSize: ''
+    servingAmount: '1',
+    servingUnit: 'serving'
   })
   
   const [mealFormData, setMealFormData] = useState({
@@ -184,13 +187,18 @@ function App({ user, initialServerData, onLogout }) {
     itemType: '', // 'food' or 'meal'
     date: new Date().toISOString().split('T')[0], // Default to today
     searchQuery: '',
-    showSuggestions: false
+    showSuggestions: false,
+    quantity: '1'
   })
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    document.documentElement.dataset.mode = mode
+    document.documentElement.style.setProperty('--custom-accent', customAccent)
     localStorage.setItem('nutrilog-theme', theme)
-  }, [theme])
+    localStorage.setItem('nutrilog-mode', mode)
+    localStorage.setItem('nutrilog-custom-accent', customAccent)
+  }, [theme, mode, customAccent])
 
   // Load data through the application storage service.
   useEffect(() => {
@@ -249,13 +257,15 @@ function App({ user, initialServerData, onLogout }) {
       carbs: parseInt(foodFormData.carbs) || 0,
       fat: parseInt(foodFormData.fat) || 0,
       fiber: parseInt(foodFormData.fiber) || 0,
-      servingSize: foodFormData.servingSize || '1 serving'
+      servingSize: `${foodFormData.servingAmount || 1} ${foodFormData.servingUnit || 'serving'}`,
+      servingAmount: Number(foodFormData.servingAmount) || 1,
+      servingUnit: foodFormData.servingUnit || 'serving'
     }
     try {
       const serverFood = user ? (await api.foods.create(draft)).item : null
       const newFood = serverFood ? { ...draft, ...serverFood, id: serverFood.id, servingSize: serverFood.serving_size || draft.servingSize, calories: Number(serverFood.calories), protein: Number(serverFood.protein), carbs: Number(serverFood.carbs), fat: Number(serverFood.fat), fiber: Number(serverFood.fiber) } : { ...draft, id: Date.now() }
       setSavedFoods(prev => [newFood, ...prev])
-      setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingSize: '' })
+      setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingAmount: '1', servingUnit: 'serving' })
     } catch (error) {
       alert(error.message)
     }
@@ -346,7 +356,8 @@ function App({ user, initialServerData, onLogout }) {
       selectedItem: item,
       itemType: type,
       searchQuery: item.name,
-      showSuggestions: false
+      showSuggestions: false,
+      quantity: '1'
     }))
   }
 
@@ -392,44 +403,37 @@ function App({ user, initialServerData, onLogout }) {
       return
     }
     const selectedDate = new Date(quickLogForm.date + 'T' + new Date().toTimeString().split(' ')[0])
+    const quantity = Number(quickLogForm.quantity)
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      alert('Please enter a valid serving quantity.')
+      return
+    }
+    const scaled = scaleNutrition(quickLogForm.selectedItem, quantity)
     const draft = {
       type: quickLogForm.itemType,
       name: quickLogForm.selectedItem.name,
-      calories: quickLogForm.selectedItem.calories,
-      protein: quickLogForm.selectedItem.protein,
-      carbs: quickLogForm.selectedItem.carbs,
-      fat: quickLogForm.selectedItem.fat,
-      fiber: quickLogForm.selectedItem.fiber || 0,
+      ...scaled,
+      quantity,
       timestamp: selectedDate.toISOString(),
       ...(quickLogForm.itemType === 'meal' ? { foods: quickLogForm.selectedItem.foods } : {})
     }
     try {
       const newEntry = await createLogEntry(draft)
       setLogEntries(prev => [newEntry, ...prev])
-      setQuickLogForm({ selectedItem: null, itemType: '', date: new Date().toISOString().split('T')[0], searchQuery: '', showSuggestions: false })
+      setQuickLogForm({ selectedItem: null, itemType: '', date: new Date().toISOString().split('T')[0], searchQuery: '', showSuggestions: false, quantity: '1' })
     } catch (error) {
       alert(error.message)
     }
   }
 
-  const handleLogSavedFood = async (food) => {
-    try {
-      const newEntry = await createLogEntry({
-        type: 'food', name: food.name, calories: food.calories, protein: food.protein,
-        carbs: food.carbs, fat: food.fat, fiber: food.fiber || 0, timestamp: new Date().toISOString()
-      })
-      setLogEntries(prev => [newEntry, ...prev])
-    } catch (error) { alert(error.message) }
+  const handleLogSavedFood = (food) => {
+    setQuickLogForm({ selectedItem: food, itemType: 'food', date: new Date().toISOString().split('T')[0], searchQuery: food.name, showSuggestions: false, quantity: '1' })
+    setActiveTab('tracker')
   }
 
-  const handleLogMeal = async (meal) => {
-    try {
-      const newEntry = await createLogEntry({
-        type: 'meal', name: meal.name, calories: meal.calories, protein: meal.protein,
-        carbs: meal.carbs, fat: meal.fat, fiber: meal.fiber || 0, foods: meal.foods, timestamp: new Date().toISOString()
-      })
-      setLogEntries(prev => [newEntry, ...prev])
-    } catch (error) { alert(error.message) }
+  const handleLogMeal = (meal) => {
+    setQuickLogForm({ selectedItem: meal, itemType: 'meal', date: new Date().toISOString().split('T')[0], searchQuery: meal.name, showSuggestions: false, quantity: '1' })
+    setActiveTab('tracker')
   }
 
   const handleDeleteLogEntry = async (id) => {
@@ -830,22 +834,29 @@ function App({ user, initialServerData, onLogout }) {
                 {quickLogForm.selectedItem && (
                   <div className="selected-item-preview">
                     <h4>{quickLogForm.selectedItem.name}</h4>
-                    <div className="preview-macros">
-                      <span className="preview-macro"><strong>{quickLogForm.selectedItem.calories}</strong> kcal</span>
-                      <span className="preview-macro">P: {quickLogForm.selectedItem.protein}g</span>
-                      <span className="preview-macro">C: {quickLogForm.selectedItem.carbs}g</span>
-                      <span className="preview-macro">F: {quickLogForm.selectedItem.fat}g</span>
-                      {quickLogForm.selectedItem.fiber > 0 && (
-                        <span className="preview-macro">Fiber: {quickLogForm.selectedItem.fiber}g</span>
-                      )}
+                    <div className="preview-serving"><strong>Serving:</strong> {quickLogForm.itemType === 'food' ? (quickLogForm.selectedItem.servingSize || '1 serving') : '1 meal'}</div>
+                    <div className="form-row" style={{ alignItems: 'end', marginTop: '12px' }}>
+                      <div className="form-group" style={{ flex: '1', marginBottom: 0 }}>
+                        <label>Number of servings *</label>
+                        <input type="number" min="0.01" step="0.01" value={quickLogForm.quantity} onChange={e => setQuickLogForm(prev => ({ ...prev, quantity: e.target.value }))} />
+                      </div>
+                      <div className="form-group" style={{ flex: '2', marginBottom: 0 }}>
+                        <label>Total nutrition</label>
+                        <div className="preview-macros">
+                          <span className="preview-macro"><strong>{scaleNutrition(quickLogForm.selectedItem, Number(quickLogForm.quantity) || 0).calories}</strong> kcal</span>
+                          <span className="preview-macro">P: {scaleNutrition(quickLogForm.selectedItem, Number(quickLogForm.quantity) || 0).protein}g</span>
+                          <span className="preview-macro">C: {scaleNutrition(quickLogForm.selectedItem, Number(quickLogForm.quantity) || 0).carbs}g</span>
+                          <span className="preview-macro">F: {scaleNutrition(quickLogForm.selectedItem, Number(quickLogForm.quantity) || 0).fat}g</span>
+                          {quickLogForm.selectedItem.fiber > 0 && <span className="preview-macro">Fiber: {scaleNutrition(quickLogForm.selectedItem, Number(quickLogForm.quantity) || 0).fiber}g</span>}
+                        </div>
+                      </div>
                     </div>
                     {quickLogForm.itemType === 'meal' && quickLogForm.selectedItem.foods && (
                       <div className="preview-meal-items">
-                        <small>Includes: {quickLogForm.selectedItem.foods.map(f => `${f.name} (${f.quantity}x)`).join(', ')}</small>
+                        <small>Includes: {quickLogForm.selectedItem.foods.map(f => f.name + ' (' + f.quantity + 'x)').join(', ')}</small>
                       </div>
                     )}
                   </div>
-                )}
 
                 <button 
                   type="submit" 
@@ -1179,15 +1190,17 @@ function App({ user, initialServerData, onLogout }) {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Serving Size</label>
-                  <input
-                    type="text"
-                    name="servingSize"
-                    value={foodFormData.servingSize}
-                    onChange={handleFoodFormChange}
-                    placeholder="e.g., 100g, 1 cup"
-                  />
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: '1' }}>
+                    <label>Serving Amount *</label>
+                    <input type="number" name="servingAmount" value={foodFormData.servingAmount} onChange={handleFoodFormChange} min="0.01" step="0.01" placeholder="e.g., 100" required />
+                  </div>
+                  <div className="form-group" style={{ flex: '1' }}>
+                    <label>Serving Unit *</label>
+                    <select name="servingUnit" value={foodFormData.servingUnit} onChange={handleFoodFormChange} className="food-select" required>
+                      <option value="serving">serving</option><option value="g">g</option><option value="oz">oz</option><option value="lb">lb</option><option value="ml">ml</option><option value="fl oz">fl oz</option><option value="cup">cup</option><option value="tbsp">tbsp</option><option value="tsp">tsp</option><option value="piece">piece</option><option value="slice">slice</option><option value="container">container</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -1452,25 +1465,41 @@ function App({ user, initialServerData, onLogout }) {
             <div className="section theme-settings">
               <h3>Appearance</h3>
               <p className="settings-description">Choose a color scheme for this browser. Your choice is saved locally on this device.</p>
-              <div className="theme-options">
-                {[
-                  { id: 'green', label: 'Sage' },
-                  { id: 'blue', label: 'Ocean' },
-                  { id: 'purple', label: 'Berry' },
-                  { id: 'orange', label: 'Citrus' },
-                  { id: 'dark', label: 'Dark' }
-                ].map(option => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={`theme-option theme-option-${option.id} ${theme === option.id ? 'selected' : ''}`}
-                    onClick={() => setTheme(option.id)}
-                    aria-pressed={theme === option.id}
-                  >
-                    <span className="theme-swatch" />
-                    <span>{option.label}</span>
-                  </button>
-                ))}
+              <div className="appearance-controls">
+                <div className="appearance-group">
+                  <span className="appearance-label">Mode</span>
+                  <div className="mode-toggle" role="group" aria-label="Color mode">
+                    <button type="button" className={mode === 'light' ? 'selected' : ''} onClick={() => setMode('light')}>☀ Light</button>
+                    <button type="button" className={mode === 'dark' ? 'selected' : ''} onClick={() => setMode('dark')}>☾ Dark</button>
+                  </div>
+                </div>
+                <div className="appearance-group">
+                  <span className="appearance-label">Accent color</span>
+                  <div className="theme-options">
+                    {[
+                      { id: 'green', label: 'Sage' },
+                      { id: 'blue', label: 'Ocean' },
+                      { id: 'purple', label: 'Berry' },
+                      { id: 'orange', label: 'Citrus' },
+                      { id: 'teal', label: 'Teal' },
+                      { id: 'red', label: 'Ruby' },
+                      { id: 'pink', label: 'Rose' },
+                      { id: 'indigo', label: 'Indigo' },
+                      { id: 'yellow', label: 'Gold' },
+                      { id: 'slate', label: 'Slate' }
+                    ].map(option => (
+                      <button key={option.id} type="button" className={`theme-option theme-option-${option.id} ${theme === option.id ? 'selected' : ''}`} onClick={() => setTheme(option.id)} aria-pressed={theme === option.id}>
+                        <span className="theme-swatch" />
+                        <span>{option.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <label className="custom-color-picker">
+                    <span>Custom</span>
+                    <input type="color" value={customAccent} onChange={e => { setCustomAccent(e.target.value); setTheme('custom') }} aria-label="Choose custom accent color" />
+                    <span className="custom-color-value">{customAccent.toUpperCase()}</span>
+                  </label>
+                </div>
               </div>
             </div>
 
