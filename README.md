@@ -2,7 +2,7 @@
 
 A modern, privacy-focused nutrition and macro tracking platform for managing daily nutrition, foods, meals, and personal goals.
 
-NutriLog is being developed as a **self-hosted, offline-capable, multi-user platform**. The current application is a browser-based single-user implementation using local storage. The project is being expanded toward a backend API, database-backed accounts, synchronization, and Proxmox LXC deployment.
+NutriLog is being developed as a **self-hosted, offline-capable, multi-user platform**. The application now has database-backed accounts, authenticated sessions, user-scoped API storage, local browser caching, legacy local-data migration, and a Debian LXC deployment path.
 
 ## Current Features
 
@@ -22,9 +22,9 @@ NutriLog is being developed as a **self-hosted, offline-capable, multi-user plat
 NutriLog is being structured so the current UI can evolve without being tied directly to browser storage.
 
 - 👤 User accounts and authentication
-- 🗄️ Database-backed storage
-- 🌐 Backend API
-- 👥 Multi-user isolation
+- 🗄️ PostgreSQL-backed storage
+- 🌐 Node.js backend API
+- 👥 User-scoped multi-user isolation
 - ☁️ Optional cloud/cross-device synchronization
 - 📱 Offline synchronization
 - 🔐 Secure session management
@@ -70,7 +70,18 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-### Build
+#### Production server
+
+Build the frontend and run the combined API/static server:
+
+```bash
+npm run build
+npm start
+```
+
+The server expects `DATABASE_URL` and listens on port `3001` by default.
+
+## Build
 
 ```bash
 npm run build
@@ -107,11 +118,44 @@ The development branch now includes the initial PostgreSQL data model in `db/sch
 
 The frontend remains local-first during this phase. The database schema is intentionally separated from the existing localStorage implementation so the migration to an API can happen incrementally.
 
-### Planned backend sequence
+### Platform status
 
-1. Authentication and account/session handling
-2. PostgreSQL repository/API layer
-3. User-scoped CRUD for foods, meals, goals, and log entries
-4. Local-first synchronization and conflict handling
-5. Proxmox LXC installer and the `update` command
-6. Reverse-proxy deployment under JonDomain
+The platform foundation is implemented on this development branch:
+
+1. Authentication and HTTP-only session handling
+2. PostgreSQL schema and user-scoped API CRUD
+3. Local browser cache synchronized through authenticated mutations
+4. Legacy localStorage migration into the first authenticated account
+5. Debian-based Proxmox LXC installer
+6. `/usr/bin/update` maintenance command
+7. systemd service for the NutriLog API and production web application
+
+For public deployment, place NutriLog behind HTTPS such as Nginx Proxy Manager. The application itself should not be exposed directly to the Internet on port 3001.
+
+
+
+### Proxmox LXC deployment
+
+The intended production target is a dedicated Debian-based LXC. The installer is:
+
+```bash
+bash scripts/install-lxc.sh
+```
+
+After installation, updates are performed with:
+
+```bash
+update
+```
+
+The update workflow fetches the `main` branch, installs dependencies, applies the PostgreSQL schema, rebuilds the application, and restarts the systemd service. Database credentials live outside the repository in `/etc/nutrilog/nutrilog.env`.
+
+### Security notes
+
+- Authentication uses server-side sessions stored as SHA-256 token hashes in PostgreSQL.
+- Passwords are hashed with Node.js `scrypt` using per-password salts.
+- Session cookies are HTTP-only and SameSite protected; production cookies also use Secure.
+- Authentication attempts are rate limited in-process.
+- PostgreSQL is intended to remain bound to localhost in the LXC.
+- The application should be published through HTTPS/reverse proxy rather than exposing port 3001 directly.
+- Do not commit `.env` files, database credentials, or session secrets.
