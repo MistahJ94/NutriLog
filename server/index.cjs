@@ -627,6 +627,25 @@ async function protectedApi(req, res, pathname, user) {
       : send(res, 200, { items: rows })
   }
 
+  if (req.method === "PUT" && id && match[1] === "foods") {
+    const body = await readBody(req)
+    if (!body.name) return send(res, 400, { error: "Name is required" })
+    const values = config.fields.map(field => {
+      if (["calories","protein","carbs","fat","fiber"].includes(field)) return numberValue(body[field])
+      if (field === "source") return body[field] || "custom"
+      if (field === "serving_size") return body[field] || "1 serving"
+      if (field === "serving_amount") return numberValue(body[field] || 1)
+      if (field === "serving_unit") return body[field] || "serving"
+      return body[field] ?? null
+    })
+    const setClause = config.fields.map((field, i) => field + " = $" + (i + 2)).join(", ")
+    const rows = await sql.unsafe(
+      "UPDATE " + config.table + " SET " + setClause + ", updated_at = NOW() WHERE user_id = $1 AND id = $" + (config.fields.length + 2) + " RETURNING " + config.select,
+      [user.id, ...values, id]
+    )
+    return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
+  }
+
   if (req.method === "DELETE" && id) {
     const rows = await sql.unsafe("DELETE FROM " + config.table + " WHERE user_id = $1 AND id = $2 RETURNING id", [user.id, id])
     return rows.length ? send(res, 200, { ok: true }) : send(res, 404, { error: "Not found" })
