@@ -8,6 +8,7 @@ const PORT = Number(process.env.PORT || 3001)
 const DATABASE_URL = process.env.DATABASE_URL
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173"
 const PRODUCTION = process.env.NODE_ENV === "production"
+const COOKIE_SECURE = process.env.COOKIE_SECURE !== "false"
 
 if (!DATABASE_URL) {
   console.error("DATABASE_URL is required")
@@ -73,7 +74,7 @@ const verifyPassword = (password, stored) => new Promise((resolve, reject) => {
 
 const sessionCookie = token =>
   "nutrilog_session=" + encodeURIComponent(token) + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000" +
-  (PRODUCTION ? "; Secure" : "")
+  (COOKIE_SECURE ? "; Secure" : "")
 
 const validEmail = email => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validPassword = password => typeof password === "string" && password.length >= 8 && password.length <= 128
