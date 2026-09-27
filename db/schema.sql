@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS smtp_settings (
   id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (id),
   host TEXT NOT NULL,
   port INTEGER NOT NULL DEFAULT 587,
-  secure BOOLEAN NOT NULL DEFAULT FALSE,
+  security TEXT NOT NULL DEFAULT 'starttls' CHECK (security IN ('starttls','ssl','none')),
   username TEXT NOT NULL DEFAULT '',
   password_encrypted TEXT NOT NULL DEFAULT '',
   from_email TEXT NOT NULL,
