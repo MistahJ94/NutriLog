@@ -46,7 +46,7 @@ const AuthScreen = ({ onAuthenticated }) => {
   )
 }
 
-const loadServerData = async () => {
+const loadServerData = async userId => {
   const local = (() => {
     try {
       return {
@@ -68,15 +68,19 @@ const loadServerData = async () => {
   ])
 
   const emptyServer = !goalsResult.goals && !foodsResult.items.length && !mealsResult.items.length && !logsResult.items.length
+  const localOwner = localStorage.getItem('nutrilog_owner_id')
+  const canMigrateLegacyData = !localOwner && (local.foods.length || local.meals.length || local.logs.length)
 
-  if (emptyServer && (local.foods.length || local.meals.length || local.logs.length)) {
+  if (emptyServer && canMigrateLegacyData) {
     await api.goals.save(local.goals)
     for (const food of local.foods) await api.foods.create(food)
     for (const meal of local.meals) await api.meals.create(meal)
     for (const entry of local.logs) await api.logs.create(entry)
-    return loadServerData()
+    localStorage.setItem('nutrilog_owner_id', userId)
+    return loadServerData(userId)
   }
 
+  localStorage.setItem('nutrilog_owner_id', userId)
   return {
     goals: goalsResult.goals || blankGoals,
     foods: foodsResult.items,
@@ -91,7 +95,7 @@ export default function AuthGate({ App }) {
   const [data, setData] = useState(null)
 
   const authenticated = async currentUser => {
-    const serverData = await loadServerData()
+    const serverData = await loadServerData(currentUser.id)
     setData(serverData)
     setUser(currentUser)
     setReady(true)
