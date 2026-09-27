@@ -53,7 +53,7 @@ const tokenHash = token => crypto.createHash("sha256").update(token).digest("hex
 
 const hashPassword = password => new Promise((resolve, reject) => {
   const salt = crypto.randomBytes(16)
-  crypto.scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (err, derived) => {
+  crypto.scrypt(password, salt, 64, { N: 32768, r: 8, p: 3 }, (err, derived) => {
     if (err) return reject(err)
     resolve("scrypt$" + salt.toString("base64url") + "$" + derived.toString("base64url"))
   })
@@ -70,11 +70,19 @@ const verifyPassword = (password, stored) => new Promise((resolve, reject) => {
 })
 
 const sessionCookie = token =>
-  "nutrilog_session=" + encodeURIComponent(token) + "; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000" +
+  "nutrilog_session=" + encodeURIComponent(token) + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000" +
   (PRODUCTION ? "; Secure" : "")
 
 const validEmail = email => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validPassword = password => typeof password === "string" && password.length >= 8 && password.length <= 128
+const authAttempts = new Map()
+const authAllowed = req => {
+  const key = req.socket.remoteAddress || "unknown"
+  const now = Date.now()
+  const recent = (authAttempts.get(key) || []).filter(timestamp => now - timestamp < 15 * 60 * 1000)
+  if (recent.length >= 20) { authAttempts.set(key, recent); return false }
+  recent.push(now); authAttempts.set(key, recent); return true
+}
 const numberValue = value => Number.isFinite(Number(value)) ? Number(value) : 0
 
 async function createSession(userId) {
@@ -103,6 +111,7 @@ async function authApi(req, res, pathname) {
   }
 
   if (req.method === "POST" && pathname === "/api/auth/register") {
+    if (!authAllowed(req)) return send(res, 429, { error: "Too many authentication attempts. Try again later." })
     const body = await readBody(req)
     const email = String(body.email || "").trim().toLowerCase()
     if (!validEmail(email) || !validPassword(body.password)) return send(res, 400, { error: "Valid email and password (8-128 characters) are required" })
@@ -115,6 +124,7 @@ async function authApi(req, res, pathname) {
   }
 
   if (req.method === "POST" && pathname === "/api/auth/login") {
+    if (!authAllowed(req)) return send(res, 429, { error: "Too many authentication attempts. Try again later." })
     const body = await readBody(req)
     const email = String(body.email || "").trim().toLowerCase()
     const rows = await sql.unsafe("SELECT id, email, role, password_hash FROM users WHERE email = $1", [email])
