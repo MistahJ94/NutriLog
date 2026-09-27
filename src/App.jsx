@@ -516,6 +516,10 @@ function App({ user, initialServerData, onLogout }) {
       <div className="header">
         <h1>🥗 NutriLog</h1>
         <p>Track your nutrition, macros, and daily goals</p>
+        <div className="account-bar">
+          <span>Signed in as <strong>{user?.email}</strong></span>
+          <button className="account-logout" onClick={onLogout}>Sign out</button>
+        </div>
         
         {/* Tab Navigation */}
         <div className="tab-navigation">
