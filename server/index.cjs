@@ -39,7 +39,7 @@ const verifyPassword = (password, stored) => new Promise((resolve, reject) => {
   })
 })
 const cookie = token => "nutrilog_session=" + encodeURIComponent(token) + "; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000" + (PRODUCTION ? "; Secure" : "")
-const validEmail = email => typeof email === "string" && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)
+const validEmail = email => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validPassword = password => typeof password === "string" && password.length >= 8 && password.length <= 128
 
 async function session(userId) {
