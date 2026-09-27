@@ -217,6 +217,49 @@ async function protectedApi(req, res, pathname, user) {
   return send(res, 405, { error: "Method not allowed" })
 }
 
+async function replaceUserData(res, user, body) {
+  if (!body || typeof body !== "object") return send(res, 400, { error: "Invalid sync payload" })
+  const goals = body.goals || {}
+  const foods = Array.isArray(body.foods) ? body.foods : []
+  const meals = Array.isArray(body.meals) ? body.meals : []
+  const logs = Array.isArray(body.logs) ? body.logs : []
+
+  await sql.begin(async tx => {
+    await tx.unsafe("DELETE FROM log_entries WHERE user_id = $1", [user.id])
+    await tx.unsafe("DELETE FROM meals WHERE user_id = $1", [user.id])
+    await tx.unsafe("DELETE FROM foods WHERE user_id = $1", [user.id])
+
+    await tx.unsafe(
+      "INSERT INTO user_goals (user_id, calories, protein, carbs, fat, fiber) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET calories=EXCLUDED.calories, protein=EXCLUDED.protein, carbs=EXCLUDED.carbs, fat=EXCLUDED.fat, fiber=EXCLUDED.fiber, updated_at=NOW()",
+      [user.id, numberValue(goals.calories), numberValue(goals.protein), numberValue(goals.carbs), numberValue(goals.fat), numberValue(goals.fiber)]
+    )
+
+    for (const food of foods) {
+      await tx.unsafe(
+        "INSERT INTO foods (user_id, name, calories, protein, carbs, fat, fiber, serving_size, source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+        [user.id, food.name, numberValue(food.calories), numberValue(food.protein), numberValue(food.carbs), numberValue(food.fat), numberValue(food.fiber), food.servingSize || food.serving_size || "1 serving", food.source || "custom"]
+      )
+    }
+
+    for (const meal of meals) {
+      await tx.unsafe(
+        "INSERT INTO meals (user_id, name, calories, protein, carbs, fat, fiber, foods) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+        [user.id, meal.name, numberValue(meal.calories), numberValue(meal.protein), numberValue(meal.carbs), numberValue(meal.fat), numberValue(meal.fiber), JSON.stringify(Array.isArray(meal.foods) ? meal.foods : [])]
+      )
+    }
+
+    for (const entry of logs) {
+      if (!["food", "meal"].includes(entry.type || entry.entry_type) || !entry.name) continue
+      await tx.unsafe(
+        "INSERT INTO log_entries (user_id, entry_type, name, calories, protein, carbs, fat, fiber, foods, consumed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+        [user.id, entry.type || entry.entry_type, entry.name, numberValue(entry.calories), numberValue(entry.protein), numberValue(entry.carbs), numberValue(entry.fat), numberValue(entry.fiber), JSON.stringify(Array.isArray(entry.foods) ? entry.foods : []), entry.timestamp || entry.consumed_at || new Date().toISOString()]
+      )
+    }
+  })
+
+  return send(res, 200, { ok: true, counts: { foods: foods.length, meals: meals.length, logs: logs.length } })
+}
+
 async function serveStatic(res, pathname) {
   const root = path.resolve(process.cwd(), "dist")
   let relative = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "")
@@ -265,7 +308,7 @@ const server = http.createServer(async (req, res) => {
     const authHandled = await authApi(req, res, pathname)
     if (authHandled !== false) return
 
-    if (pathname.startsWith("/api/")) {
+    if (req.method === "PUT" && pathname === "/api/sync") {\n      const user = await userFromRequest(req)\n      if (!user) return send(res, 401, { error: "Authentication required" })\n      return replaceUserData(res, user, await readBody(req))\n    }\n\n    if (pathname.startsWith("/api/")) {
       const user = await userFromRequest(req)
       if (!user) return send(res, 401, { error: "Authentication required" })
       const handled = await protectedApi(req, res, pathname, user)
