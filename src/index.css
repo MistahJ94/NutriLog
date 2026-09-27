@@ -1839,12 +1839,12 @@ body {
 .health-page,.activity-page{display:flex;flex-direction:column;gap:20px}
 .section h3{display:flex;align-items:center;gap:8px}
 .recommendation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.recommendation-grid>div{padding:14px;border:1px solid var(--accent-border);border-radius:10px;background:var(--accent-pale);color:#2d3436;display:flex;flex-direction:column;gap:4px}
-.recommendation-grid strong{font-size:.8rem;color:#4a5568}
-.recommendation-grid span{font-size:1.15rem;font-weight:700;color:#1f2937}
-:root[data-mode="dark"] .recommendation-grid>div{background:var(--surface-raised);border-color:var(--border);color:var(--text)}
-:root[data-mode="dark"] .recommendation-grid strong{color:var(--text-muted)}
-:root[data-mode="dark"] .recommendation-grid span{color:var(--text)}
+.recommendation-grid>div{padding:14px;border:1px solid var(--accent);border-radius:10px;background:linear-gradient(135deg,var(--accent) 0%,var(--accent-soft) 100%);color:white;display:flex;flex-direction:column;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.recommendation-grid strong{font-size:.8rem;color:rgba(255,255,255,.85)}
+.recommendation-grid span{font-size:1.15rem;font-weight:700;color:white}
+:root[data-mode="dark"] .recommendation-grid>div{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-soft) 100%);border-color:var(--accent);color:white}
+:root[data-mode="dark"] .recommendation-grid strong{color:rgba(255,255,255,.88)}
+:root[data-mode="dark"] .recommendation-grid span{color:white}
 .activity-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .activity-stats>div{background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:6px}
 .activity-stats span{font-size:.9rem;color:#667}.activity-stats strong{font-size:1.8rem}
