@@ -124,7 +124,8 @@ function AdminPanel({ user }) {
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
               <button className="btn btn-primary" type="submit" disabled={smtpSaving}><Settings size={18} />{smtpSaving ? 'Saving…' : 'Save SMTP Settings'}</button>
-              <button className="btn btn-secondary" type="button" onClick={testSmtp} disabled={smtpTesting}>{smtpTesting ? 'Sending…' : 'Send Test Email'}</button>
+              <button className="btn btn-secondary" type="button" onClick={testSmtp} disabled={smtpTesting || !smtp.host}>{smtpTesting ? 'Sending…' : 'Send Test Email'}</button>
+              {smtpConfigured && <button className="btn btn-danger" type="button" onClick={async () => { if (!confirm('Disable email password recovery?')) return; try { await api.admin.disableSmtp(); setSmtp({ host: '', port: 587, secure: false, username: '', password: '', fromEmail: '', fromName: 'NutriLog', publicUrl: '' }); setSmtpConfigured(false); alert('SMTP password recovery has been disabled.') } catch (err) { alert(err.message) } }}>Disable SMTP</button>}
             </div>
             <p style={{ marginTop: 14, color: '#666', fontSize: '0.9rem' }}>
               {smtpConfigured ? 'SMTP is configured. The stored password is never displayed.' : 'SMTP is not configured. Password recovery email is disabled until you save valid settings.'}
