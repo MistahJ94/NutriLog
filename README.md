@@ -118,7 +118,7 @@ The PostgreSQL data model in `db/schema.sql` uses a per-user ownership model for
 
 ### Platform status
 
-The platform foundation is implemented on this development branch:
+The platform foundation is implemented on `main`:
 
 1. Authentication and HTTP-only session handling
 2. PostgreSQL schema and user-scoped API CRUD
@@ -134,13 +134,15 @@ For public deployment, place NutriLog behind HTTPS such as Nginx Proxy Manager. 
 
 ### Proxmox LXC deployment
 
-The intended production target is a dedicated Debian-based LXC. The installer is:
+The intended production target is a dedicated Debian 13-based LXC on Proxmox VE. From the Proxmox host, the installer follows the Proxmox helper-script model and creates the LXC, configures its resources, installs NutriLog, PostgreSQL, Node.js, and the systemd service.
+
+Run the public installer with:
 
 ```bash
-bash scripts/install-lxc.sh
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/MistahJ94/NutriLog/main/install.sh)"
 ```
 
-After installation, updates are performed with:
+After installation, enter the LXC and updates are performed with:
 
 ```bash
 update
