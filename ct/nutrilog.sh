@@ -48,6 +48,29 @@ start
 build_container
 description
 
+# Replace the Community Scripts-generated description with NutriLog's own
+# project information. The Community Scripts framework is still used for the
+# LXC build/update workflow, but NutriLog is presented as its own project.
+NUTRILOG_DESCRIPTION=$(cat <<EOF
+<div align='center'>
+  <h2 style='font-size: 24px; margin: 20px 0;'>NutriLog LXC</h2>
+
+  <p style='margin: 16px 0;'>
+    Self-hosted nutrition and macro tracking platform.
+  </p>
+
+  <p style='margin: 12px 0;'>
+    <a href='https://github.com/MistahJ94/NutriLog' target='_blank' rel='noopener noreferrer'>GitHub</a>
+    &nbsp;|&nbsp;
+    <a href='https://github.com/MistahJ94/NutriLog/discussions' target='_blank' rel='noopener noreferrer'>Discussions</a>
+    &nbsp;|&nbsp;
+    <a href='https://github.com/MistahJ94/NutriLog/issues' target='_blank' rel='noopener noreferrer'>Issues</a>
+  </p>
+</div>
+EOF
+)
+qm set "$VMID" -description "$NUTRILOG_DESCRIPTION" >/dev/null
+
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Access it using the following URL:${CL}"
