@@ -1473,43 +1473,28 @@ function App({ user, initialServerData, onLogout }) {
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Create your food database!</p>
                   </div>
                 ) : (
-                  visibleFoods.map(food => {
-                    if (editingFoodId === food.id) {
-                      return (
-                    <form key={food.id} className="food-item food-item-edit" onSubmit={handleUpdateFood}>
-                      <div className="food-edit-form">
-                        <div className="form-group"><label>Food Name *</label><input name="name" value={editingFoodForm.name} onChange={handleEditingFoodChange} required /></div>
-                        <div className="form-row">
-                          <div className="form-group"><label>Serving Amount *</label><input type="number" name="servingAmount" value={editingFoodForm.servingAmount} onChange={handleEditingFoodChange} min="0.01" step="0.01" required /></div>
-                          <div className="form-group"><label>Serving Unit *</label><select name="servingUnit" value={editingFoodForm.servingUnit} onChange={handleEditingFoodChange} className="food-select" required><option value="serving">serving</option><option value="g">g</option><option value="oz">oz</option><option value="lb">lb</option><option value="ml">ml</option><option value="fl oz">fl oz</option><option value="cup">cup</option><option value="tbsp">tbsp</option><option value="tsp">tsp</option><option value="piece">piece</option><option value="slice">slice</option><option value="container">container</option></select></div>
+                  visibleFoods.map(food => (
+                    editingFoodId === food.id ? (
+                      <form key={food.id} className="food-item food-item-edit" onSubmit={handleUpdateFood}>
+                        <div className="food-edit-form">
+                          <div className="form-group"><label>Food Name *</label><input name="name" value={editingFoodForm.name} onChange={handleEditingFoodChange} required /></div>
+                          <div className="form-row">
+                            <div className="form-group"><label>Serving Amount *</label><input type="number" name="servingAmount" value={editingFoodForm.servingAmount} onChange={handleEditingFoodChange} min="0.01" step="0.01" required /></div>
+                            <div className="form-group"><label>Serving Unit *</label><select name="servingUnit" value={editingFoodForm.servingUnit} onChange={handleEditingFoodChange} className="food-select" required><option value="serving">serving</option><option value="g">g</option><option value="oz">oz</option><option value="lb">lb</option><option value="ml">ml</option><option value="fl oz">fl oz</option><option value="cup">cup</option><option value="tbsp">tbsp</option><option value="tsp">tsp</option><option value="piece">piece</option><option value="slice">slice</option><option value="container">container</option></select></div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-group"><label>Calories (kcal) *</label><input type="number" name="calories" value={editingFoodForm.calories} onChange={handleEditingFoodChange} min="0" step="0.01" required /></div>
+                            <div className="form-group"><label>Protein (g)</label><input type="number" name="protein" value={editingFoodForm.protein} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-group"><label>Carbs (g)</label><input type="number" name="carbs" value={editingFoodForm.carbs} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                            <div className="form-group"><label>Fat (g)</label><input type="number" name="fat" value={editingFoodForm.fat} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                          </div>
+                          <div className="form-group"><label>Fiber (g)</label><input type="number" name="fiber" value={editingFoodForm.fiber} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                          <div className="food-edit-actions"><button type="submit" className="btn btn-primary">Save Changes</button><button type="button" className="btn btn-secondary" onClick={cancelEditFood}>Cancel</button></div>
                         </div>
-                        <div className="form-row">
-                          <div className="form-group"><label>Calories (kcal) *</label><input type="number" name="calories" value={editingFoodForm.calories} onChange={handleEditingFoodChange} min="0" step="0.01" required /></div>
-                          <div className="form-group"><label>Protein (g)</label><input type="number" name="protein" value={editingFoodForm.protein} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
-                        </div>
-                        <div className="form-row">
-                          <div className="form-group"><label>Carbs (g)</label><input type="number" name="carbs" value={editingFoodForm.carbs} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
-                          <div className="form-group"><label>Fat (g)</label><input type="number" name="fat" value={editingFoodForm.fat} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
-                        </div>
-                        <div className="form-group"><label>Fiber (g)</label><input type="number" name="fiber" value={editingFoodForm.fiber} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
-                        <div className="food-edit-actions"><button type="submit" className="btn btn-primary">Save Changes</button><button type="button" className="btn btn-secondary" onClick={cancelEditFood}>Cancel</button></div>
-                      </div>
-                    </form>
-                  ) : (
-                    <div key={food.id} className="food-item">
-                      <div className="food-info"><h3>{food.name}</h3><div className="food-details">
-                        <span className="serving-badge">{food.servingSize}</span><span><strong>{food.calories}</strong> kcal</span>
-                        {food.protein > 0 && <span>P: {food.protein}g</span>}{food.carbs > 0 && <span>C: {food.carbs}g</span>}{food.fat > 0 && <span>F: {food.fat}g</span>}{food.fiber > 0 && <span>Fiber: {food.fiber}g</span>}
-                      </div></div>
-                      <div className="food-actions">
-                        <button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food)}><Plus size={16} />Log</button>
-                        <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
-                        <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
-                      </div>
-                    </div>
-                      )
-                    }
-                    return (
+                      </form>
+                    ) : (
                       <div key={food.id} className="food-item">
                         <div className="food-info"><h3>{food.name}</h3><div className="food-details">
                           <span className="serving-badge">{food.servingSize}</span><span><strong>{food.calories}</strong> kcal</span>
@@ -1522,8 +1507,8 @@ function App({ user, initialServerData, onLogout }) {
                         </div>
                       </div>
                     )
-                  })}
-              </div>
+                  ))}
+
             </div>
           </>
         )}
