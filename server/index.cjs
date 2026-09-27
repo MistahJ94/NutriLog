@@ -78,6 +78,7 @@ const sessionCookie = token =>
 
 const validEmail = email => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validPassword = password => typeof password === "string" && password.length >= 8 && password.length <= 128
+const validRole = role => role === "admin" || role === "user"
 const authAttempts = new Map()
 const authAllowed = req => {
   const key = req.socket.remoteAddress || "unknown"
@@ -98,10 +99,14 @@ async function userFromRequest(req) {
   const token = parseCookies(req.headers.cookie).nutrilog_session
   if (!token) return null
   const rows = await sql.unsafe(
-    "SELECT u.id, u.email, u.role FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > NOW()",
+    "SELECT u.id, u.email, u.role, u.is_active FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > NOW()",
     [tokenHash(token)]
   )
   return rows[0] || null
+}
+
+async function isAdmin(user) {
+  return Boolean(user && user.role === "admin")
 }
 
 async function authApi(req, res, pathname) {
@@ -109,15 +114,36 @@ async function authApi(req, res, pathname) {
     return send(res, 200, { ok: true, service: "nutrilog-api" })
   }
 
+  if (req.method === "GET" && pathname === "/api/setup") {
+    const rows = await sql.unsafe("SELECT COUNT(*)::int AS count FROM users")
+    return send(res, 200, { setupRequired: Number(rows[0]?.count || 0) === 0 })
+  }
+
   if (req.method === "GET" && pathname === "/api/auth/me") {
     return send(res, 200, { user: await userFromRequest(req) })
   }
 
+  if (req.method === "POST" && pathname === "/api/auth/setup") {
+    if (!authAllowed(req)) return send(res, 429, { error: "Too many authentication attempts. Try again later." })
+    const countRows = await sql.unsafe("SELECT COUNT(*)::int AS count FROM users")
+    if (Number(countRows[0]?.count || 0) !== 0) return send(res, 409, { error: "Initial setup has already been completed" })
+    const body = await readBody(req)
+    const email = String(body.email || "").trim().toLowerCase()
+    if (!validEmail(email) || !validPassword(body.password)) return send(res, 400, { error: "Valid email and password (8-128 characters) are required" })
+    const passwordHash = await hashPassword(body.password)
+    const user = (await sql.unsafe("INSERT INTO users (email, password_hash, role) VALUES ($1, $2, 'admin') RETURNING id, email, role, is_active", [email, passwordHash]))[0]
+    await sql.unsafe("INSERT INTO user_goals (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING", [user.id])
+    return send(res, 201, { user }, { "Set-Cookie": sessionCookie(await createSession(user.id)) })
+  }
+
   if (req.method === "POST" && pathname === "/api/auth/register") {
+
     if (!authAllowed(req)) return send(res, 429, { error: "Too many authentication attempts. Try again later." })
     const body = await readBody(req)
     const email = String(body.email || "").trim().toLowerCase()
     if (!validEmail(email) || !validPassword(body.password)) return send(res, 400, { error: "Valid email and password (8-128 characters) are required" })
+    const countRows = await sql.unsafe("SELECT COUNT(*)::int AS count FROM users")
+    if (Number(countRows[0]?.count || 0) !== 0) return send(res, 403, { error: "Public registration is disabled. Ask an administrator to create your account." })
     const existing = await sql.unsafe("SELECT id FROM users WHERE email = $1", [email])
     if (existing.length) return send(res, 409, { error: "An account with that email already exists" })
     const passwordHash = await hashPassword(body.password)
@@ -130,8 +156,9 @@ async function authApi(req, res, pathname) {
     if (!authAllowed(req)) return send(res, 429, { error: "Too many authentication attempts. Try again later." })
     const body = await readBody(req)
     const email = String(body.email || "").trim().toLowerCase()
-    const rows = await sql.unsafe("SELECT id, email, role, password_hash FROM users WHERE email = $1", [email])
+    const rows = await sql.unsafe("SELECT id, email, role, password_hash, is_active FROM users WHERE email = $1", [email])
     if (!rows.length || !(await verifyPassword(body.password, rows[0].password_hash))) return send(res, 401, { error: "Invalid email or password" })
+    if (!rows[0].is_active) return send(res, 403, { error: "This account has been disabled" })
     const user = { id: rows[0].id, email: rows[0].email, role: rows[0].role }
     return send(res, 200, { user }, { "Set-Cookie": sessionCookie(await createSession(user.id)) })
   }
@@ -161,6 +188,73 @@ const resources = {
     fields: ["entry_type","name","calories","protein","carbs","fat","fiber","foods","consumed_at"],
     select: "id, entry_type, name, calories, protein, carbs, fat, fiber, foods, consumed_at, created_at"
   }
+}
+
+async function adminApi(req, res, pathname, user) {
+  if (!(await isAdmin(user))) return send(res, 403, { error: "Administrator access required" })
+
+  if (req.method === "GET" && pathname === "/api/admin/users") {
+    const rows = await sql.unsafe("SELECT id, email, role, is_active, created_at, updated_at FROM users ORDER BY created_at ASC")
+    return send(res, 200, { users: rows })
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/users") {
+    const body = await readBody(req)
+    const email = String(body.email || "").trim().toLowerCase()
+    const password = body.password
+    const role = body.role || "user"
+    if (!validEmail(email) || !validPassword(password) || !validRole(role)) return send(res, 400, { error: "Valid email, password (8-128 characters), and role are required" })
+    const existing = await sql.unsafe("SELECT id FROM users WHERE email = $1", [email])
+    if (existing.length) return send(res, 409, { error: "An account with that email already exists" })
+    const passwordHash = await hashPassword(password)
+    const created = (await sql.unsafe("INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, email, role, is_active, created_at, updated_at", [email, passwordHash, role]))[0]
+    await sql.unsafe("INSERT INTO user_goals (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING", [created.id])
+    return send(res, 201, { user: created })
+  }
+
+  const match = pathname.match(/^\/api\/admin\/users\/([0-9a-f-]+)$/i)
+  if (!match) return send(res, 404, { error: "Admin route not found" })
+  const targetId = match[1]
+
+  if (req.method === "PUT") {
+    const body = await readBody(req)
+    const target = (await sql.unsafe("SELECT id, email, role, is_active FROM users WHERE id = $1", [targetId]))[0]
+    if (!target) return send(res, 404, { error: "User not found" })
+    if (body.role !== undefined && !validRole(body.role)) return send(res, 400, { error: "Invalid role" })
+    if (target.id === user.id && body.is_active === false) return send(res, 400, { error: "You cannot disable your own account" })
+    if (target.id === user.id && body.role === "user") return send(res, 400, { error: "You cannot remove your own administrator role" })
+    const nextRole = body.role === undefined ? target.role : body.role
+    const nextActive = body.is_active === undefined ? target.is_active : Boolean(body.is_active)
+    const rows = await sql.unsafe("UPDATE users SET role = $1, is_active = $2, updated_at = NOW() WHERE id = $3 RETURNING id, email, role, is_active, created_at, updated_at", [nextRole, nextActive, targetId])
+    if (!nextActive) await sql.unsafe("DELETE FROM sessions WHERE user_id = $1", [targetId])
+    return send(res, 200, { user: rows[0] })
+  }
+
+  if (req.method === "DELETE") {
+    if (targetId === user.id) return send(res, 400, { error: "You cannot delete your own account" })
+    const rows = await sql.unsafe("DELETE FROM users WHERE id = $1 RETURNING id", [targetId])
+    return rows.length ? send(res, 200, { ok: true }) : send(res, 404, { error: "User not found" })
+  }
+
+  if (req.method === "POST" && pathname.endsWith("/sessions/revoke")) {
+    const target = (await sql.unsafe("SELECT id FROM users WHERE id = $1", [targetId]))[0]
+    if (!target) return send(res, 404, { error: "User not found" })
+    await sql.unsafe("DELETE FROM sessions WHERE user_id = $1", [targetId])
+    return send(res, 200, { ok: true })
+  }
+
+  if (req.method === "POST" && pathname.endsWith("/password")) {
+    const body = await readBody(req)
+    if (!validPassword(body.password)) return send(res, 400, { error: "Password must be 8-128 characters" })
+    const target = (await sql.unsafe("SELECT id FROM users WHERE id = $1", [targetId]))[0]
+    if (!target) return send(res, 404, { error: "User not found" })
+    const passwordHash = await hashPassword(body.password)
+    await sql.unsafe("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2", [passwordHash, targetId])
+    await sql.unsafe("DELETE FROM sessions WHERE user_id = $1", [targetId])
+    return send(res, 200, { ok: true })
+  }
+
+  return send(res, 405, { error: "Method not allowed" })
 }
 
 async function protectedApi(req, res, pathname, user) {
@@ -310,6 +404,12 @@ const server = http.createServer(async (req, res) => {
   try {
     const authHandled = await authApi(req, res, pathname)
     if (authHandled !== false) return
+
+    if (pathname.startsWith("/api/admin/")) {
+      const user = await userFromRequest(req)
+      if (!user) return send(res, 401, { error: "Authentication required" })
+      return adminApi(req, res, pathname, user)
+    }
 
     if (req.method === "PUT" && pathname === "/api/sync") {
       const user = await userFromRequest(req)
