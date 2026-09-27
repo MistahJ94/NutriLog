@@ -866,16 +866,17 @@ body {
   align-items: center;
   gap: 15px;
   padding: 18px;
-  background: white;
+  background: var(--accent-pale);
   border-radius: 10px;
-  border: 1.5px solid #e8e8e3;
+  border: 1.5px solid var(--accent-border);
+  color: var(--text, #2d3436);
   transition: all 0.2s;
 }
 
 .goal-display-item:hover {
   border-color: var(--accent);
   transform: translateX(3px);
-  box-shadow: 0 2px 8px rgba(107, 144, 128, 0.1);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .goal-display-item.primary {
@@ -1854,3 +1855,40 @@ body {
 .weight-action{display:flex;align-items:flex-end}.info-box{display:flex;align-items:flex-start;gap:8px}
 @media(max-width:800px){.health-grid,.activity-grid,.activity-stats{grid-template-columns:1fr}.recommendation-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.recommendation-grid{grid-template-columns:1fr}}
+
+
+/* Saved food editing and accent-tinted cards */
+.food-item {
+  background: var(--accent-pale);
+  border-color: var(--accent-border);
+}
+.food-item:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+:root[data-mode="dark"] .food-item {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-raised));
+  border-color: var(--accent-border);
+}
+.food-item-edit {
+  display: block;
+}
+.food-edit-form {
+  width: 100%;
+}
+.food-edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.food-edit-actions .btn {
+  width: auto;
+}
+@media (max-width: 768px) {
+  .food-edit-actions {
+    flex-direction: column;
+  }
+  .food-edit-actions .btn {
+    width: 100%;
+  }
+}
