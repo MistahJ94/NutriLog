@@ -74,16 +74,19 @@ function App({ user, initialServerData, onLogout }) {
 
   // Load data through the application storage service.
   useEffect(() => {
-    const data = storage.load()
+    const local = storage.load()
+    const data = initialServerData ? normalizeServerData(initialServerData) : local
     setSavedFoods(data.savedFoods)
     setSavedMeals(data.savedMeals)
     setLogEntries(data.logEntries)
-    setDailyGoal(data.dailyGoal)
-    setGoalInput(data.dailyGoal)
-    setMacroGoals(data.macroGoals)
-    setMacroGoalsInput(data.macroGoals)
+    const goals = data.macroGoals || local.macroGoals
+    const calories = Number(goals?.calories || local.dailyGoal || 2000)
+    setDailyGoal(calories)
+    setGoalInput(calories)
+    setMacroGoals(goals)
+    setMacroGoalsInput(goals)
     setIsInitialLoadComplete(true)
-  }, [])
+  }, [initialServerData])
 
   // Persist state through the storage service. This adapter can later be
   // replaced by the authenticated API without changing the UI components.
