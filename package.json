@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.cjs",
-    "start:api": "node server/index.cjs"
+    "start:api": "node server/index.cjs",
+    "check": "node --check server/index.cjs",
+    "check:build": "npm run check && npm run build"
   },
   "dependencies": {
     "lucide-react": "^0.294.0",
