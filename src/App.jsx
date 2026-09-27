@@ -305,49 +305,7 @@ function App({ user, initialServerData, onLogout }) {
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    const trackerCards = [
-    { id: 'calories', label: "Today's Calories", value: totalCalories, subtext: `of ${macroGoals.calories} kcal`, progress, className: 'primary' },
-    { id: 'remaining', label: 'Remaining', value: remaining, subtext: `kcal ${remaining < 0 ? 'over' : 'left'}`, className: 'success' },
-    { id: 'protein', label: 'Protein', value: `${totalProtein}g`, subtext: `of ${macroGoals.protein}g`, progress: proteinProgress },
-    { id: 'carbs', label: 'Carbs', value: `${totalCarbs}g`, subtext: `of ${macroGoals.carbs}g`, progress: carbsProgress },
-    { id: 'fat', label: 'Fat', value: `${totalFat}g`, subtext: `of ${macroGoals.fat}g`, progress: fatProgress },
-    { id: 'fiber', label: 'Fiber', value: `${totalFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: fiberProgress, className: 'warning' }
-  ]
-
-  const trackerTemplates = {
-    balanced: { label: 'Balanced', columns: 3, cards: {} },
-    calories: { label: 'Calories Focus', columns: 3, cards: { calories: { size: 'wide' }, remaining: { size: 'normal' } } },
-    compact: { label: 'Compact', columns: 4, cards: {} },
-    dashboard: { label: 'Dashboard', columns: 3, cards: { calories: { size: 'large' }, protein: { size: 'wide' }, carbs: { size: 'wide' } } }
-  }
-
-  const applyTrackerTemplate = key => {
-    const template = trackerTemplates[key]
-    setTrackerLayout({ template: key, columns: template.columns, customize: false, cards: template.cards })
-  }
-
-  const updateTrackerCard = (id, field, value) => {
-    setTrackerLayout(prev => ({
-      ...prev,
-      template: 'custom',
-      cards: { ...prev.cards, [id]: { ...(prev.cards[id] || {}), [field]: value } }
-    }))
-  }
-
-  const visibleFoods = savedFoods
-    .filter(food => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase()))
-    .sort((a, b) => {
-      if (foodSort === 'az') return a.name.localeCompare(b.name)
-      if (foodSort === 'za') return b.name.localeCompare(a.name)
-      const getTime = food => {
-        const value = food.created_at || food.createdAt || food.id
-        const time = new Date(value).getTime()
-        return Number.isFinite(time) ? time : 0
-      }
-      return foodSort === 'oldest' ? getTime(a) - getTime(b) : getTime(b) - getTime(a)
-    })
-
-  return () => {
+    return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
@@ -661,6 +619,48 @@ function App({ user, initialServerData, onLogout }) {
   const carbsProgress = macroGoals.carbs > 0 ? Math.min((totalCarbs / macroGoals.carbs) * 100, 100) : 0
   const fatProgress = macroGoals.fat > 0 ? Math.min((totalFat / macroGoals.fat) * 100, 100) : 0
   const fiberProgress = macroGoals.fiber > 0 ? Math.min((totalFiber / macroGoals.fiber) * 100, 100) : 0
+
+  const trackerCards = [
+    { id: 'calories', label: "Today's Calories", value: totalCalories, subtext: `of ${macroGoals.calories} kcal`, progress, className: 'primary' },
+    { id: 'remaining', label: 'Remaining', value: remaining, subtext: `kcal ${remaining < 0 ? 'over' : 'left'}`, className: 'success' },
+    { id: 'protein', label: 'Protein', value: `${totalProtein}g`, subtext: `of ${macroGoals.protein}g`, progress: proteinProgress },
+    { id: 'carbs', label: 'Carbs', value: `${totalCarbs}g`, subtext: `of ${macroGoals.carbs}g`, progress: carbsProgress },
+    { id: 'fat', label: 'Fat', value: `${totalFat}g`, subtext: `of ${macroGoals.fat}g`, progress: fatProgress },
+    { id: 'fiber', label: 'Fiber', value: `${totalFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: fiberProgress, className: 'warning' }
+  ]
+
+  const trackerTemplates = {
+    balanced: { label: 'Balanced', columns: 3, cards: {} },
+    calories: { label: 'Calories Focus', columns: 3, cards: { calories: { size: 'wide' }, remaining: { size: 'normal' } } },
+    compact: { label: 'Compact', columns: 4, cards: {} },
+    dashboard: { label: 'Dashboard', columns: 3, cards: { calories: { size: 'large' }, protein: { size: 'wide' }, carbs: { size: 'wide' } } }
+  }
+
+  const applyTrackerTemplate = key => {
+    const template = trackerTemplates[key]
+    setTrackerLayout({ template: key, columns: template.columns, customize: false, cards: template.cards })
+  }
+
+  const updateTrackerCard = (id, field, value) => {
+    setTrackerLayout(prev => ({
+      ...prev,
+      template: 'custom',
+      cards: { ...prev.cards, [id]: { ...(prev.cards[id] || {}), [field]: value } }
+    }))
+  }
+
+  const visibleFoods = savedFoods
+    .filter(food => String(food.name || '').toLowerCase().includes(foodSearch.trim().toLowerCase()))
+    .sort((a, b) => {
+      if (foodSort === 'az') return String(a.name || '').localeCompare(String(b.name || ''))
+      if (foodSort === 'za') return String(b.name || '').localeCompare(String(a.name || ''))
+      const getTime = food => {
+        const value = food.created_at || food.createdAt
+        const time = value ? new Date(value).getTime() : 0
+        return Number.isFinite(time) ? time : 0
+      }
+      return foodSort === 'oldest' ? getTime(a) - getTime(b) : getTime(b) - getTime(a)
+    })
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp)
@@ -1473,7 +1473,9 @@ function App({ user, initialServerData, onLogout }) {
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Create your food database!</p>
                   </div>
                 ) : (
-                  visibleFoods.map(food => editingFoodId === food.id ? (
+                  visibleFoods.map(food => {
+                    if (editingFoodId === food.id) {
+                      return (
                     <form key={food.id} className="food-item food-item-edit" onSubmit={handleUpdateFood}>
                       <div className="food-edit-form">
                         <div className="form-group"><label>Food Name *</label><input name="name" value={editingFoodForm.name} onChange={handleEditingFoodChange} required /></div>
@@ -1505,7 +1507,22 @@ function App({ user, initialServerData, onLogout }) {
                         <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
                       </div>
                     </div>
-                  ))}
+                      )
+                    }
+                    return (
+                      <div key={food.id} className="food-item">
+                        <div className="food-info"><h3>{food.name}</h3><div className="food-details">
+                          <span className="serving-badge">{food.servingSize}</span><span><strong>{food.calories}</strong> kcal</span>
+                          {food.protein > 0 && <span>P: {food.protein}g</span>}{food.carbs > 0 && <span>C: {food.carbs}g</span>}{food.fat > 0 && <span>F: {food.fat}g</span>}{food.fiber > 0 && <span>Fiber: {food.fiber}g</span>}
+                        </div></div>
+                        <div className="food-actions">
+                          <button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food)}><Plus size={16} />Log</button>
+                          <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
+                          <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    )
+                  })}
               </div>
             </div>
           </>
