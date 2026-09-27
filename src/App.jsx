@@ -1,6 +1,126 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload } from 'lucide-react'
+import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
 import { storage, api, normalizeServerData, searchUsdaFoods as searchUsdaFoodsApi, mapUsdaFood, calculateMealTotals } from './services'
+
+function AdminPanel({ user }) {
+  const [users, setUsers] = useState([])
+  const [busy, setBusy] = useState(true)
+  const [error, setError] = useState('')
+  const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' })
+
+  const loadUsers = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const result = await api.admin.users()
+      setUsers(result.users)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  useEffect(() => { loadUsers() }, [])
+
+  const createUser = async event => {
+    event.preventDefault()
+    try {
+      await api.admin.createUser(newUser.email, newUser.password, newUser.role)
+      setNewUser({ email: '', password: '', role: 'user' })
+      await loadUsers()
+    } catch (err) { alert(err.message) }
+  }
+
+  const toggleUser = async account => {
+    try {
+      await api.admin.updateUser(account.id, { is_active: !account.is_active })
+      await loadUsers()
+    } catch (err) { alert(err.message) }
+  }
+
+  const changeRole = async account => {
+    const role = account.role === 'admin' ? 'user' : 'admin'
+    if (!confirm('Change ' + account.email + ' to ' + role + '?')) return
+    try {
+      await api.admin.updateUser(account.id, { role })
+      await loadUsers()
+    } catch (err) { alert(err.message) }
+  }
+
+  const resetPassword = async account => {
+    const password = prompt('Enter a new password for ' + account.email + ' (8-128 characters):')
+    if (password === null) return
+    try {
+      await api.admin.resetPassword(account.id, password)
+      alert('Password reset. All existing sessions for this user were revoked.')
+    } catch (err) { alert(err.message) }
+  }
+
+  const revokeSessions = async account => {
+    try {
+      await api.admin.revokeSessions(account.id)
+      alert('Sessions revoked for ' + account.email)
+    } catch (err) { alert(err.message) }
+  }
+
+  const deleteUser = async account => {
+    if (!confirm('Delete ' + account.email + '? This permanently deletes their nutrition data.')) return
+    try {
+      await api.admin.deleteUser(account.id)
+      await loadUsers()
+    } catch (err) { alert(err.message) }
+  }
+
+  return (
+    <div className="settings-container">
+      <div className="planner-intro">
+        <h2><Shield size={28} style={{ verticalAlign: 'middle', marginRight: 8 }} />Administrator</h2>
+        <p>Manage NutriLog accounts and access.</p>
+      </div>
+
+      <div className="content-grid">
+        <div className="section">
+          <h2><Users size={22} style={{ verticalAlign: 'middle', marginRight: 8 }} />Create User</h2>
+          <form onSubmit={createUser}>
+            <div className="form-group"><label>Email<input type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} required /></label></div>
+            <div className="form-group"><label>Temporary Password<input type="password" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} minLength={8} required /></label></div>
+            <div className="form-group"><label>Role<select className="food-select" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}><option value="user">User</option><option value="admin">Administrator</option></select></label></div>
+            <button className="btn btn-primary"><UserCheck size={18} />Create Account</button>
+          </form>
+        </div>
+
+        <div className="section">
+          <h2>Accounts ({users.length})</h2>
+          {error && <div className="auth-error">{error}</div>}
+          {busy ? <div className="empty-state"><RefreshCw className="spinner" size={32} /><p>Loading users…</p></div> : (
+            <div className="food-list">
+              {users.map(account => (
+                <div className="food-item" key={account.id}>
+                  <div className="food-info">
+                    <h3>{account.email} {account.id === user.id && <span className="time-badge">You</span>}</h3>
+                    <div className="food-details">
+                      <span className="time-badge">{account.role}</span>
+                      <span className={account.is_active ? 'time-badge' : 'badge-meal-small'}>{account.is_active ? 'active' : 'disabled'}</span>
+                      <span>{new Date(account.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div className="food-actions">
+                    <button className="btn btn-secondary" title="Reset password" onClick={() => resetPassword(account)}><KeyRound size={16} /></button>
+                    <button className="btn btn-secondary" title="Revoke sessions" onClick={() => revokeSessions(account)}><RefreshCw size={16} /></button>
+                    <button className="btn btn-secondary" title="Change role" onClick={() => changeRole(account)} disabled={account.id === user.id}><Shield size={16} /></button>
+                    <button className={account.is_active ? 'btn btn-danger' : 'btn btn-primary'} title={account.is_active ? 'Disable account' : 'Enable account'} onClick={() => toggleUser(account)} disabled={account.id === user.id}>{account.is_active ? <UserX size={16} /> : <UserCheck size={16} />}</button>
+                    <button className="btn btn-danger" title="Delete account" onClick={() => deleteUser(account)} disabled={account.id === user.id}><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function App({ user, initialServerData, onLogout }) {
   // Navigation
@@ -564,10 +684,23 @@ function App({ user, initialServerData, onLogout }) {
             <Settings size={20} />
             Settings
           </button>
+          {user?.role === 'admin' && (
+            <button
+              className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+            >
+              <Shield size={20} />
+              Admin
+            </button>
+          )}
         </div>
       </div>
 
       <div className="main-content">
+        {activeTab === 'admin' && user?.role === 'admin' && (
+          <AdminPanel user={user} />
+        )}
+
         {/* TRACKER TAB */}
         {activeTab === 'tracker' && (
           <>
