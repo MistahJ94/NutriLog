@@ -212,9 +212,31 @@ async function adminApi(req, res, pathname, user) {
     return send(res, 201, { user: created })
   }
 
-  const match = pathname.match(/^\/api\/admin\/users\/([0-9a-f-]+)$/i)
-  if (!match) return send(res, 404, { error: "Admin route not found" })
-  const targetId = match[1]
+  const revokeMatch = pathname.match(/^\/api\/admin\/users\/([0-9a-f-]+)\/sessions\/revoke$/i)
+  const passwordMatch = pathname.match(/^\/api\/admin\/users\/([0-9a-f-]+)\/password$/i)
+  const userMatch = pathname.match(/^\/api\/admin\/users\/([0-9a-f-]+)$/i)
+  const targetId = revokeMatch?.[1] || passwordMatch?.[1] || userMatch?.[1]
+  if (!targetId) return send(res, 404, { error: "Admin route not found" })
+
+  if (revokeMatch && req.method === "POST") {
+    const target = (await sql.unsafe("SELECT id FROM users WHERE id = $1", [targetId]))[0]
+    if (!target) return send(res, 404, { error: "User not found" })
+    await sql.unsafe("DELETE FROM sessions WHERE user_id = $1", [targetId])
+    return send(res, 200, { ok: true })
+  }
+
+  if (passwordMatch && req.method === "POST") {
+    const body = await readBody(req)
+    if (!validPassword(body.password)) return send(res, 400, { error: "Password must be 8-128 characters" })
+    const target = (await sql.unsafe("SELECT id FROM users WHERE id = $1", [targetId]))[0]
+    if (!target) return send(res, 404, { error: "User not found" })
+    const passwordHash = await hashPassword(body.password)
+    await sql.unsafe("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2", [passwordHash, targetId])
+    await sql.unsafe("DELETE FROM sessions WHERE user_id = $1", [targetId])
+    return send(res, 200, { ok: true })
+  }
+
+  if (!userMatch) return send(res, 404, { error: "Admin route not found" })
 
   if (req.method === "PUT") {
     const body = await readBody(req)
@@ -234,24 +256,6 @@ async function adminApi(req, res, pathname, user) {
     if (targetId === user.id) return send(res, 400, { error: "You cannot delete your own account" })
     const rows = await sql.unsafe("DELETE FROM users WHERE id = $1 RETURNING id", [targetId])
     return rows.length ? send(res, 200, { ok: true }) : send(res, 404, { error: "User not found" })
-  }
-
-  if (req.method === "POST" && pathname.endsWith("/sessions/revoke")) {
-    const target = (await sql.unsafe("SELECT id FROM users WHERE id = $1", [targetId]))[0]
-    if (!target) return send(res, 404, { error: "User not found" })
-    await sql.unsafe("DELETE FROM sessions WHERE user_id = $1", [targetId])
-    return send(res, 200, { ok: true })
-  }
-
-  if (req.method === "POST" && pathname.endsWith("/password")) {
-    const body = await readBody(req)
-    if (!validPassword(body.password)) return send(res, 400, { error: "Password must be 8-128 characters" })
-    const target = (await sql.unsafe("SELECT id FROM users WHERE id = $1", [targetId]))[0]
-    if (!target) return send(res, 404, { error: "User not found" })
-    const passwordHash = await hashPassword(body.password)
-    await sql.unsafe("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2", [passwordHash, targetId])
-    await sql.unsafe("DELETE FROM sessions WHERE user_id = $1", [targetId])
-    return send(res, 200, { ok: true })
   }
 
   return send(res, 405, { error: "Method not allowed" })
