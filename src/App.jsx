@@ -186,9 +186,19 @@ function App({ user, initialServerData, onLogout }) {
   const [customAccent, setCustomAccent] = useState(() => localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
   const [trackerLayout, setTrackerLayout] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('nutrilog-tracker-layout')) || { template: 'balanced', columns: 3, customize: false, cards: {} }
-    } catch { return { template: 'balanced', columns: 3, customize: false, cards: {} } }
+      const saved = JSON.parse(localStorage.getItem('nutrilog-tracker-layout'))
+      return {
+        template: saved?.template || 'balanced',
+        columns: Number(saved?.columns) || 3,
+        customize: Boolean(saved?.customize),
+        cards: saved?.cards || {},
+        order: Array.isArray(saved?.order) ? saved.order : ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber']
+      }
+    } catch {
+      return { template: 'balanced', columns: 3, customize: false, cards: {}, order: ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber'] }
+    }
   })
+  const [draggingTrackerCard, setDraggingTrackerCard] = useState(null)
   const [foodSearch, setFoodSearch] = useState('')
   const [foodSort, setFoodSort] = useState('newest')
   
@@ -638,7 +648,15 @@ function App({ user, initialServerData, onLogout }) {
 
   const applyTrackerTemplate = key => {
     const template = trackerTemplates[key]
-    setTrackerLayout({ template: key, columns: template.columns, customize: false, cards: template.cards })
+    if (!template) return
+    setTrackerLayout(prev => ({
+      ...prev,
+      template: key,
+      columns: template.columns,
+      customize: false,
+      cards: { ...template.cards },
+      order: ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber']
+    }))
   }
 
   const updateTrackerCard = (id, field, value) => {
@@ -648,6 +666,34 @@ function App({ user, initialServerData, onLogout }) {
       cards: { ...prev.cards, [id]: { ...(prev.cards[id] || {}), [field]: value } }
     }))
   }
+
+  const moveTrackerCard = (id, direction) => {
+    setTrackerLayout(prev => {
+      const order = Array.isArray(prev.order) ? [...prev.order] : trackerCards.map(card => card.id)
+      const index = order.indexOf(id)
+      const nextIndex = index + direction
+      if (index < 0 || nextIndex < 0 || nextIndex >= order.length) return prev
+      ;[order[index], order[nextIndex]] = [order[nextIndex], order[index]]
+      return { ...prev, template: 'custom', order }
+    })
+  }
+
+  const dropTrackerCard = targetId => {
+    setTrackerLayout(prev => {
+      const order = Array.isArray(prev.order) ? [...prev.order] : trackerCards.map(card => card.id)
+      const from = order.indexOf(draggingTrackerCard)
+      const to = order.indexOf(targetId)
+      if (from < 0 || to < 0 || from === to) return prev
+      const [moved] = order.splice(from, 1)
+      order.splice(to, 0, moved)
+      return { ...prev, template: 'custom', order }
+    })
+    setDraggingTrackerCard(null)
+  }
+
+  const orderedTrackerCards = (trackerLayout.order || trackerCards.map(card => card.id))
+    .map(id => trackerCards.find(card => card.id === id))
+    .filter(Boolean)
 
   const visibleFoods = savedFoods
     .filter(food => String(food.name || '').toLowerCase().includes(foodSearch.trim().toLowerCase()))
@@ -868,46 +914,75 @@ function App({ user, initialServerData, onLogout }) {
         {/* TRACKER TAB */}
         {activeTab === 'tracker' && (
           <>
-            {/* Tracker card dashboard */}
             <div className="tracker-dashboard-header">
               <div>
                 <h2>Daily Dashboard</h2>
                 <p>Arrange your nutrition cards to fit the way you track.</p>
               </div>
               <div className="tracker-layout-actions">
-                <label>Template
-                  <select value={trackerLayout.template} onChange={e => applyTrackerTemplate(e.target.value)}>
-                    {Object.entries(trackerTemplates).map(([key, template]) => <option key={key} value={key}>{template.label}</option>)}
-                    <option value="custom">Custom</option>
-                  </select>
-                </label>
                 <button type="button" className={trackerLayout.customize ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTrackerLayout(prev => ({ ...prev, customize: !prev.customize }))}>
-                  <Settings size={16} /> {trackerLayout.customize ? 'Done Customizing' : 'Customize'}
+                  <Settings size={16} /> {trackerLayout.customize ? 'Done Customizing' : 'Customize Cards'}
                 </button>
               </div>
             </div>
 
+            <div className="tracker-template-picker">
+              {Object.entries(trackerTemplates).map(([key, template]) => (
+                <button type="button" key={key} className={`tracker-template ${trackerLayout.template === key ? 'selected' : ''}`} onClick={() => applyTrackerTemplate(key)}>
+                  <span className="tracker-template-title">{template.label}</span>
+                  <span className={`tracker-template-preview columns-${template.columns}`}>
+                    {trackerCards.map(card => {
+                      const size = template.cards?.[card.id]?.size || 'normal'
+                      return <span key={card.id} className={`tracker-template-mini tracker-mini-${size}`}></span>
+                    })}
+                  </span>
+                </button>
+              ))}
+            </div>
+
             {trackerLayout.customize && (
               <div className="tracker-customizer section">
-                <div className="form-group">
-                  <label>Columns
-                    <select value={trackerLayout.columns} onChange={e => setTrackerLayout(prev => ({ ...prev, template: 'custom', columns: Number(e.target.value) }))}>
-                      <option value="2">2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option>
-                    </select>
-                  </label>
+                <div className="tracker-customizer-intro">
+                  <div>
+                    <h3>Customize Dashboard</h3>
+                    <p>Drag cards to reorder them. Click a visual size to resize a card.</p>
+                  </div>
+                  <div className="tracker-column-picker">
+                    {[2,3,4].map(columns => (
+                      <button type="button" key={columns} className={trackerLayout.columns === columns ? 'selected' : ''} onClick={() => setTrackerLayout(prev => ({ ...prev, template: 'custom', columns }))}>{columns} columns</button>
+                    ))}
+                  </div>
                 </div>
-                <div className="tracker-card-options">
-                  {trackerCards.map(card => {
+
+                <div className="tracker-card-editor-grid">
+                  {orderedTrackerCards.map(card => {
                     const config = trackerLayout.cards[card.id] || {}
                     return (
-                      <div className="tracker-card-option" key={card.id}>
-                        <strong>{card.label}</strong>
-                        <label>Size<select value={config.size || 'normal'} onChange={e => updateTrackerCard(card.id, 'size', e.target.value)}>
-                          <option value="normal">Normal</option><option value="wide">Wide</option><option value="tall">Tall</option><option value="large">Large</option>
-                        </select></label>
-                        <label>Orientation<select value={config.orientation || 'vertical'} onChange={e => updateTrackerCard(card.id, 'orientation', e.target.value)}>
-                          <option value="vertical">Vertical</option><option value="horizontal">Horizontal</option>
-                        </select></label>
+                      <div className={`tracker-card-editor ${draggingTrackerCard === card.id ? 'dragging' : ''}`} key={card.id}
+                        draggable
+                        onDragStart={() => setDraggingTrackerCard(card.id)}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={() => dropTrackerCard(card.id)}
+                        onDragEnd={() => setDraggingTrackerCard(null)}>
+                        <div className="tracker-card-editor-head"><span className="tracker-drag-handle">☷</span><strong>{card.label}</strong></div>
+                        <div className="tracker-size-choices">
+                          {['normal','wide','tall','large'].map(size => (
+                            <button type="button" key={size} className={config.size === size || (!config.size && size === 'normal') ? 'selected' : ''} onClick={() => updateTrackerCard(card.id, 'size', size)}>
+                              <span className={`tracker-size-preview tracker-size-${size}`}></span><span>{size}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="tracker-orientation-choices">
+                          {['vertical','horizontal'].map(orientation => (
+                            <button type="button" key={orientation} className={config.orientation === orientation || (!config.orientation && orientation === 'vertical') ? 'selected' : ''} onClick={() => updateTrackerCard(card.id, 'orientation', orientation)}>
+                              {orientation === 'vertical' ? '↕ Vertical' : '↔ Horizontal'}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="tracker-reorder-buttons">
+                          <button type="button" className="btn btn-secondary" onClick={() => moveTrackerCard(card.id, -1)} disabled={orderedTrackerCards[0]?.id === card.id}>↑ Move up</button>
+                          <button type="button" className="btn btn-secondary" onClick={() => moveTrackerCard(card.id, 1)} disabled={orderedTrackerCards[orderedTrackerCards.length - 1]?.id === card.id}>↓ Move down</button>
+                        </div>
                       </div>
                     )
                   })}
@@ -916,18 +991,14 @@ function App({ user, initialServerData, onLogout }) {
             )}
 
             <div className="stats-grid tracker-stats-grid" style={{ '--tracker-columns': trackerLayout.columns }}>
-              {trackerCards.map(card => {
+              {orderedTrackerCards.map(card => {
                 const config = trackerLayout.cards[card.id] || {}
                 return (
                   <div key={card.id} className={`stat-card ${card.className || ''} tracker-card-size-${config.size || 'normal'} tracker-card-orientation-${config.orientation || 'vertical'}`}>
-                    <div className="stat-label">{card.label}</div>
+                    <div className="stat-label">{trackerLayout.customize && <span className="tracker-card-drag-dot">⠿</span>}{card.label}</div>
                     <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && remaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
                     <div className="stat-subtext">{card.subtext}</div>
-                    {card.progress !== undefined && (
-                      <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${card.progress}%` }}></div>
-                      </div>
-                    )}
+                    {card.progress !== undefined && <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%` }}></div></div>}
                   </div>
                 )
               })}
@@ -1474,8 +1545,7 @@ function App({ user, initialServerData, onLogout }) {
                   </div>
                 ) : (
                   visibleFoods.map(food => {
-                    if (editingFoodId === food.id) {
-                      return (
+                    return (
                         <form key={food.id} className="food-item food-item-edit" onSubmit={handleUpdateFood}>
                           <div className="food-edit-form">
                             <div className="form-group"><label>Food Name *</label><input name="name" value={editingFoodForm.name} onChange={handleEditingFoodChange} required /></div>
@@ -1519,6 +1589,34 @@ function App({ user, initialServerData, onLogout }) {
             </div>
             </div>
           </>
+        )}
+
+        {editingFoodId !== null && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-food-title" onMouseDown={e => { if (e.target === e.currentTarget) cancelEditFood() }}>
+            <form className="modal-content food-edit-modal" onSubmit={handleUpdateFood}>
+              <div className="modal-header">
+                <h2 id="edit-food-title">Edit Food</h2>
+                <button type="button" className="modal-close" onClick={cancelEditFood} aria-label="Close">×</button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group"><label>Food Name *</label><input type="text" name="name" value={editingFoodForm.name} onChange={handleEditingFoodChange} required /></div>
+                <div className="form-row">
+                  <div className="form-group"><label>Serving Amount *</label><input type="number" name="servingAmount" value={editingFoodForm.servingAmount} onChange={handleEditingFoodChange} min="0.01" step="0.01" required /></div>
+                  <div className="form-group"><label>Serving Unit *</label><select className="food-select" name="servingUnit" value={editingFoodForm.servingUnit} onChange={handleEditingFoodChange} required><option value="serving">serving</option><option value="g">g</option><option value="oz">oz</option><option value="lb">lb</option><option value="ml">ml</option><option value="fl oz">fl oz</option><option value="cup">cup</option><option value="tbsp">tbsp</option><option value="tsp">tsp</option><option value="piece">piece</option><option value="slice">slice</option><option value="container">container</option></select></div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Calories (kcal) *</label><input type="number" name="calories" value={editingFoodForm.calories} onChange={handleEditingFoodChange} min="0" step="0.01" required /></div>
+                  <div className="form-group"><label>Protein (g)</label><input type="number" name="protein" value={editingFoodForm.protein} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Carbs (g)</label><input type="number" name="carbs" value={editingFoodForm.carbs} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                  <div className="form-group"><label>Fat (g)</label><input type="number" name="fat" value={editingFoodForm.fat} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                </div>
+                <div className="form-group"><label>Fiber (g)</label><input type="number" name="fiber" value={editingFoodForm.fiber} onChange={handleEditingFoodChange} min="0" step="0.01" /></div>
+                <div className="food-edit-actions"><button type="submit" className="btn btn-primary">Save Changes</button><button type="button" className="btn btn-secondary" onClick={cancelEditFood}>Cancel</button></div>
+              </div>
+            </form>
+          </div>
         )}
 
         {/* MEALS TAB */}
