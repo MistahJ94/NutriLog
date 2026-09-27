@@ -19,7 +19,7 @@ const empty = {
 const formatDate = value => {
   const raw = String(value || '').slice(0, 10)
   const date = new Date(raw + 'T12:00:00')
-  return Number.isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleDateString()
+  return Number.isNaN(date.getTime()) ? 'Unknown date' : `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}-${date.getFullYear()}`
 }
 
 const calculate = p => {
