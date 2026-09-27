@@ -42,6 +42,9 @@ export const api = {
     deleteUser: id => request('/admin/users/' + id, { method: 'DELETE' }),
     revokeSessions: id => request('/admin/users/' + id + '/sessions/revoke', { method: 'POST' }),
     resetPassword: (id, password) => json('POST', '/admin/users/' + id + '/password', { password }),
+    smtp: () => request('/admin/smtp'),
+    saveSmtp: settings => json('PUT', '/admin/smtp', settings),
+    testSmtp: settings => json('POST', '/admin/smtp/test', settings),
   },
 
   goals: {
