@@ -690,6 +690,7 @@ function App({ user, initialServerData, onLogout }) {
     event.preventDefault()
     event.stopPropagation()
     const config = trackerLayout.cards[cardId] || {}
+    if (event.currentTarget?.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
     setResizingTrackerCard({
       id: cardId,
       startX: event.clientX,
