@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload } from 'lucide-react'
+import { storage, searchUsdaFoods as searchUsdaFoodsApi, mapUsdaFood, calculateMealTotals } from './services'
 
 function App() {
   // Navigation
@@ -71,71 +72,26 @@ function App() {
     showSuggestions: false
   })
 
-  // Load data from localStorage on mount
+  // Load data through the application storage service.
   useEffect(() => {
-    const loadedSavedFoods = localStorage.getItem('savedFoods')
-    const loadedSavedMeals = localStorage.getItem('savedMeals')
-    const loadedLogEntries = localStorage.getItem('logEntries')
-    const savedGoal = localStorage.getItem('dailyGoal')
-    const savedMacroGoals = localStorage.getItem('macroGoals')
-    
-    if (loadedSavedFoods) {
-      setSavedFoods(JSON.parse(loadedSavedFoods))
-    }
-    if (loadedSavedMeals) {
-      setSavedMeals(JSON.parse(loadedSavedMeals))
-    }
-    if (loadedLogEntries) {
-      setLogEntries(JSON.parse(loadedLogEntries))
-    }
-    if (savedGoal) {
-      const goal = parseInt(savedGoal)
-      setDailyGoal(goal)
-      setGoalInput(goal)
-    }
-    if (savedMacroGoals) {
-      const goals = JSON.parse(savedMacroGoals)
-      setMacroGoals(goals)
-      setMacroGoalsInput(goals)
-      // Sync dailyGoal with macroGoals.calories
-      setDailyGoal(goals.calories)
-      setGoalInput(goals.calories)
-    }
-    
-    // Mark initial load as complete
+    const data = storage.load()
+    setSavedFoods(data.savedFoods)
+    setSavedMeals(data.savedMeals)
+    setLogEntries(data.logEntries)
+    setDailyGoal(data.dailyGoal)
+    setGoalInput(data.dailyGoal)
+    setMacroGoals(data.macroGoals)
+    setMacroGoalsInput(data.macroGoals)
     setIsInitialLoadComplete(true)
   }, [])
 
-  // Save to localStorage whenever data changes (after initial load)
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('savedFoods', JSON.stringify(savedFoods))
-    }
-  }, [savedFoods, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('savedMeals', JSON.stringify(savedMeals))
-    }
-  }, [savedMeals, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('logEntries', JSON.stringify(logEntries))
-    }
-  }, [logEntries, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('dailyGoal', dailyGoal.toString())
-    }
-  }, [dailyGoal, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('macroGoals', JSON.stringify(macroGoals))
-    }
-  }, [macroGoals, isInitialLoadComplete])
+  // Persist state through the storage service. This adapter can later be
+  // replaced by the authenticated API without changing the UI components.
+  useEffect(() => { if (isInitialLoadComplete) storage.save('foods', savedFoods) }, [savedFoods, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('meals', savedMeals) }, [savedMeals, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('logs', logEntries) }, [logEntries, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('dailyGoal', dailyGoal.toString()) }, [dailyGoal, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('macroGoals', macroGoals) }, [macroGoals, isInitialLoadComplete])
 
   // Handle click outside to close suggestions
   useEffect(() => {
@@ -160,20 +116,9 @@ function App() {
 
     setIsSearching(true)
     setUsdaSearchResults([])
-
     try {
-      // Using the public USDA FoodData Central API
-      const apiKey = 'DEMO_KEY' // Users can get their own key from api.data.gov
-      const response = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}&query=${encodeURIComponent(usdaSearchQuery)}&pageSize=10`
-      )
-
-      if (!response.ok) {
-        throw new Error('Search failed')
-      }
-
-      const data = await response.json()
-      setUsdaSearchResults(data.foods || [])
+      const results = await searchUsdaFoodsApi(usdaSearchQuery)
+      setUsdaSearchResults(results)
     } catch (error) {
       console.error('USDA API Error:', error)
       alert('Failed to search foods. Please try again.')
@@ -183,37 +128,8 @@ function App() {
   }
 
   const selectUsdaFood = (food) => {
-    // Extract nutrients from the USDA food data
-    const nutrients = food.foodNutrients || []
-    
-    const getnutrient = (nutrientId) => {
-      const nutrient = nutrients.find(n => n.nutrientId === nutrientId)
-      return nutrient ? Math.round(nutrient.value) : 0
-    }
-
-    // Nutrient IDs in USDA database:
-    // 1008 = Energy (kcal)
-    // 1003 = Protein
-    // 1005 = Carbohydrates
-    // 1004 = Total Fat
-    
-    const calories = getnutrient(1008)
-    const protein = getnutrient(1003)
-    const carbs = getnutrient(1005)
-    const fat = getnutrient(1004)
-
-    // Auto-fill the form
-    setFoodFormData({
-      name: food.description || '',
-      calories: calories.toString(),
-      protein: protein.toString(),
-      carbs: carbs.toString(),
-      fat: fat.toString(),
-      fiber: '0',
-      servingSize: food.servingSize ? `${food.servingSize} ${food.servingSizeUnit || 'g'}` : '100g'
-    })
-
-    // Close search modal
+    const mapped = mapUsdaFood(food)
+    setFoodFormData(mapped)
     setShowUsdaSearch(false)
     setUsdaSearchQuery('')
     setUsdaSearchResults([])
@@ -281,16 +197,6 @@ function App() {
         i === index ? { ...food, quantity: parseInt(quantity) || 1 } : food
       )
     }))
-  }
-
-  const calculateMealTotals = (foods) => {
-    return foods.reduce((totals, food) => ({
-      calories: totals.calories + (food.calories * food.quantity),
-      protein: totals.protein + (food.protein * food.quantity),
-      carbs: totals.carbs + (food.carbs * food.quantity),
-      fat: totals.fat + (food.fat * food.quantity),
-      fiber: totals.fiber + ((food.fiber || 0) * food.quantity)
-    }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
   }
 
   const handleSaveMeal = (e) => {
@@ -514,7 +420,7 @@ function App() {
 
   // Import/Export Handlers
   const handleExportData = () => {
-    const exportData = {
+    const exportData = storage.exportData({
       version: '1.0',
       exportDate: new Date().toISOString(),
       data: {
@@ -524,14 +430,14 @@ function App() {
         macroGoals,
         dailyGoal
       }
-    }
+    })
 
     const dataStr = JSON.stringify(exportData, null, 2)
     const dataBlob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `macro-tracker-backup-${new Date().toISOString().split('T')[0]}.json`
+    link.download = `nutrilog-backup-${new Date().toISOString().split('T')[0]}.json`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -587,8 +493,8 @@ function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>🔥 Macro Tracker</h1>
-        <p>Track your daily nutrition and reach your goals</p>
+        <h1>🥗 NutriLog</h1>
+        <p>Track your nutrition, macros, and daily goals</p>
         
         {/* Tab Navigation */}
         <div className="tab-navigation">
