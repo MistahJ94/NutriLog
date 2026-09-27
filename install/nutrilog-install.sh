@@ -52,6 +52,14 @@ CORS_ORIGIN=
 DB_POOL_SIZE=10
 # Set to true after HTTPS is configured through NPM.
 COOKIE_SECURE=false
+# Optional email password-reset configuration. Leave blank to disable email recovery.
+PUBLIC_URL=
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
+SMTP_SECURE=false
 EOF
 chmod 640 /etc/nutrilog/nutrilog.env
 
