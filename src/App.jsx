@@ -1505,7 +1505,9 @@ function App({ user, initialServerData, onLogout }) {
                         <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
                       </div>
                     </div>
-                  ))          </div>
+                  ))}
+              </div>
+            </div>
           </>
         )}
 
