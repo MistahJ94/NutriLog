@@ -1,10 +1,10 @@
 :root {
-  --accent: var(--accent);
-  --accent-soft: var(--accent-soft);
-  --accent-dark: var(--accent-dark);
-  --accent-pale: var(--accent-pale);
-  --accent-border: var(--accent-border);
-  --accent-hover: var(--accent-hover);
+  --accent: #6B9080;
+  --accent-soft: #A4C3B2;
+  --accent-dark: #5a7a6d;
+  --accent-pale: #EAF4F4;
+  --accent-border: #d4e8e8;
+  --accent-hover: #f8faf9;
 }
 
 :root[data-theme="blue"] {
