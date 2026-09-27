@@ -6,7 +6,7 @@ const postgres = require("postgres")
 
 const PORT = Number(process.env.PORT || 3001)
 const DATABASE_URL = process.env.DATABASE_URL
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173"
+const CORS_ORIGIN = String(process.env.CORS_ORIGIN || "").trim() || null
 const PRODUCTION = process.env.NODE_ENV === "production"
 const COOKIE_SECURE = process.env.COOKIE_SECURE !== "false"
 
@@ -384,9 +384,11 @@ async function serveStatic(res, pathname) {
 }
 
 const server = http.createServer(async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", CORS_ORIGIN)
-  res.setHeader("Access-Control-Allow-Credentials", "true")
-  res.setHeader("Vary", "Origin")
+  if (CORS_ORIGIN) {
+    res.setHeader("Access-Control-Allow-Origin", CORS_ORIGIN)
+    res.setHeader("Access-Control-Allow-Credentials", "true")
+    res.setHeader("Vary", "Origin")
+  }
   res.setHeader("X-Content-Type-Options", "nosniff")
   res.setHeader("X-Frame-Options", "DENY")
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -394,12 +396,16 @@ const server = http.createServer(async (req, res) => {
   if (PRODUCTION) res.setHeader("Strict-Transport-Security", "max-age=31536000")
 
   if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": CORS_ORIGIN,
-      "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS"
-    })
+    if (CORS_ORIGIN) {
+      res.writeHead(204, {
+        "Access-Control-Allow-Origin": CORS_ORIGIN,
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS"
+      })
+    } else {
+      res.writeHead(204)
+    }
     return res.end()
   }
 
