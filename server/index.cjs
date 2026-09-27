@@ -308,7 +308,13 @@ const server = http.createServer(async (req, res) => {
     const authHandled = await authApi(req, res, pathname)
     if (authHandled !== false) return
 
-    if (req.method === "PUT" && pathname === "/api/sync") {\n      const user = await userFromRequest(req)\n      if (!user) return send(res, 401, { error: "Authentication required" })\n      return replaceUserData(res, user, await readBody(req))\n    }\n\n    if (pathname.startsWith("/api/")) {
+    if (req.method === "PUT" && pathname === "/api/sync") {
+      const user = await userFromRequest(req)
+      if (!user) return send(res, 401, { error: "Authentication required" })
+      return replaceUserData(res, user, await readBody(req))
+    }
+
+    if (pathname.startsWith("/api/")) {
       const user = await userFromRequest(req)
       if (!user) return send(res, 401, { error: "Authentication required" })
       const handled = await protectedApi(req, res, pathname, user)
