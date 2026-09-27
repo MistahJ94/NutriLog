@@ -45,6 +45,7 @@ export const api = {
     smtp: () => request('/admin/smtp'),
     saveSmtp: settings => json('PUT', '/admin/smtp', settings),
     testSmtp: settings => json('POST', '/admin/smtp/test', settings),
+    disableSmtp: () => request('/admin/smtp', { method: 'DELETE' }),
   },
 
   goals: {
