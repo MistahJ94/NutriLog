@@ -46,7 +46,9 @@ cat <<EOF >/etc/nutrilog/nutrilog.env
 NODE_ENV=production
 PORT=3001
 DATABASE_URL=postgresql://nutrilog:${DB_PASSWORD}@127.0.0.1:5432/nutrilog
-CORS_ORIGIN=http://127.0.0.1:3001
+# Leave empty for the normal same-origin deployment. Set to an exact frontend
+# origin only when the API is intentionally called cross-origin.
+CORS_ORIGIN=
 DB_POOL_SIZE=10
 # Set to true after HTTPS is configured through NPM.
 COOKIE_SECURE=false
