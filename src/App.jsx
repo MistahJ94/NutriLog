@@ -1284,7 +1284,7 @@ function App({ user, initialServerData, onLogout }) {
                     placeholder="e.g., 165"
                     min="0"
                     required
-                  />
+                   step="0.01"/>
                 </div>
 
                 <div className="form-group">
@@ -1296,7 +1296,7 @@ function App({ user, initialServerData, onLogout }) {
                     onChange={handleFoodFormChange}
                     placeholder="e.g., 31"
                     min="0"
-                  />
+                   step="0.01"/>
                 </div>
 
                 <div className="form-group">
@@ -1308,7 +1308,7 @@ function App({ user, initialServerData, onLogout }) {
                     onChange={handleFoodFormChange}
                     placeholder="e.g., 0"
                     min="0"
-                  />
+                   step="0.01"/>
                 </div>
 
                 <div className="form-group">
@@ -1320,7 +1320,7 @@ function App({ user, initialServerData, onLogout }) {
                     onChange={handleFoodFormChange}
                     placeholder="e.g., 3.6"
                     min="0"
-                  />
+                   step="0.01"/>
                 </div>
 
                 <button type="submit" className="btn btn-primary">
