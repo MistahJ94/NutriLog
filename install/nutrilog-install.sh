@@ -3,6 +3,18 @@
 # NutriLog in-container installer
 # Called by the Proxmox build framework after the LXC is created.
 
+set -euo pipefail
+
+# Safety guard: this script installs packages, PostgreSQL, and system services.
+# Never allow it to run directly on a Proxmox host or another environment.
+VIRT="$(systemd-detect-virt 2>/dev/null || true)"
+if [[ "$VIRT" != "lxc" ]]; then
+  echo "ERROR: NutriLog's in-container installer must run inside a Proxmox LXC."
+  echo "Detected virtualization environment: ${VIRT:-none}"
+  echo "Use the repository-root install.sh from the Proxmox host instead."
+  exit 1
+fi
+
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
