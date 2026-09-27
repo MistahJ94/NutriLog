@@ -857,6 +857,7 @@ function App({ user, initialServerData, onLogout }) {
                       </div>
                     )}
                   </div>
+                )}
 
                 <button 
                   type="submit" 
