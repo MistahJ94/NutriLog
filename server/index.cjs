@@ -243,6 +243,10 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", CORS_ORIGIN)
   res.setHeader("Access-Control-Allow-Credentials", "true")
   res.setHeader("Vary", "Origin")
+  res.setHeader("X-Content-Type-Options", "nosniff")
+  res.setHeader("X-Frame-Options", "DENY")
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
