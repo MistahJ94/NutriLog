@@ -4,7 +4,6 @@ import { api } from './services'
 const blankGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65, fiber: 25 }
 
 const AuthScreen = ({ onAuthenticated }) => {
-  const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -15,9 +14,7 @@ const AuthScreen = ({ onAuthenticated }) => {
     setBusy(true)
     setError('')
     try {
-      const result = mode === 'login'
-        ? await api.auth.login(email, password)
-        : await api.auth.register(email, password)
+      const result = await api.auth.login(email, password)
       await onAuthenticated(result.user)
     } catch (err) {
       setError(err.message)
@@ -31,16 +28,53 @@ const AuthScreen = ({ onAuthenticated }) => {
       <div className="auth-card">
         <div className="auth-logo">🥗</div>
         <h1>NutriLog</h1>
-        <p>{mode === 'login' ? 'Sign in to your nutrition tracker' : 'Create your NutriLog account'}</p>
+        <p>Sign in to your nutrition tracker</p>
         <form onSubmit={submit}>
           <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></label>
-          <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
+          <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete="current-password" /></label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}</button>
+          <button className="btn btn-primary" disabled={busy}>{busy ? 'Please wait…' : 'Sign In'}</button>
         </form>
-        <button className="auth-switch" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}>
-          {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
-        </button>
+      </div>
+    </div>
+  )
+}
+
+const SetupScreen = ({ onAuthenticated }) => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async event => {
+    event.preventDefault()
+    if (password !== confirm) return setError('Passwords do not match')
+    setBusy(true)
+    setError('')
+    try {
+      const result = await api.auth.setup(email, password)
+      await onAuthenticated(result.user)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="auth-screen">
+      <div className="auth-card">
+        <div className="auth-logo">🥗</div>
+        <h1>NutriLog Setup</h1>
+        <p>Create the first administrator account. This setup is only available while no users exist.</p>
+        <form onSubmit={submit}>
+          <label>Administrator Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></label>
+          <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" /></label>
+          <label>Confirm Password<input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required minLength={8} autoComplete="new-password" /></label>
+          {error && <div className="auth-error">{error}</div>}
+          <button className="btn btn-primary" disabled={busy}>{busy ? 'Creating administrator…' : 'Create Administrator'}</button>
+        </form>
       </div>
     </div>
   )
@@ -89,6 +123,7 @@ const loadServerData = async userId => {
 export default function AuthGate({ App }) {
   const [user, setUser] = useState(null)
   const [ready, setReady] = useState(false)
+  const [setupRequired, setSetupRequired] = useState(false)
   const [data, setData] = useState(null)
 
   const authenticated = async currentUser => {
@@ -99,8 +134,14 @@ export default function AuthGate({ App }) {
   }
 
   useEffect(() => {
-    api.auth.me()
-      .then(async result => {
+    api.setup()
+      .then(async setup => {
+        setSetupRequired(Boolean(setup.setupRequired))
+        if (setup.setupRequired) {
+          setReady(true)
+          return
+        }
+        const result = await api.auth.me()
         if (result.user) await authenticated(result.user)
         else setReady(true)
       })
@@ -108,6 +149,7 @@ export default function AuthGate({ App }) {
   }, [])
 
   if (!ready) return <div className="auth-loading">Loading NutriLog…</div>
+  if (setupRequired && !user) return <SetupScreen onAuthenticated={authenticated} />
   if (!user) return <AuthScreen onAuthenticated={authenticated} />
   return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} />
 }
