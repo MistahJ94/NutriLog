@@ -247,6 +247,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("X-Frame-Options", "DENY")
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+  if (PRODUCTION) res.setHeader("Strict-Transport-Security", "max-age=31536000")
 
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
