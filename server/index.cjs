@@ -310,7 +310,7 @@ async function protectedApi(req, res, pathname, user) {
       return body[field] ?? null
     })
     const placeholders = config.fields.map((_, i) => "$" + (i + 2)).join(", ")
-    const query = "INSERT INTO " + config.table + " (" + config.fields.join(", ") + ") VALUES ($1, " + placeholders + ") RETURNING " + config.select
+    const query = "INSERT INTO " + config.table + " (user_id, " + config.fields.join(", ") + ") VALUES ($1, " + placeholders + ") RETURNING " + config.select
     const rows = await sql.unsafe(query, [user.id, ...values])
     return send(res, 201, { item: rows[0] })
   }
