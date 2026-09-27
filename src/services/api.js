@@ -29,6 +29,10 @@ export const api = {
     login: (email, password) => json('POST', '/auth/login', { email, password }),
     setup: (email, password) => json('POST', '/auth/setup', { email, password }),
     logout: () => request('/auth/logout', { method: 'POST' }),
+    changePassword: (currentPassword, newPassword) => json('POST', '/auth/change-password', { currentPassword, newPassword }),
+    revokeOtherSessions: () => json('POST', '/auth/revoke-other-sessions', {}),
+    forgotPassword: email => json('POST', '/auth/forgot-password', { email }),
+    resetPassword: (token, newPassword) => json('POST', '/auth/reset-password', { token, newPassword }),
   },
 
   admin: {
@@ -38,6 +42,10 @@ export const api = {
     deleteUser: id => request('/admin/users/' + id, { method: 'DELETE' }),
     revokeSessions: id => request('/admin/users/' + id + '/sessions/revoke', { method: 'POST' }),
     resetPassword: (id, password) => json('POST', '/admin/users/' + id + '/password', { password }),
+    smtp: () => request('/admin/smtp'),
+    saveSmtp: settings => json('PUT', '/admin/smtp', settings),
+    testSmtp: settings => json('POST', '/admin/smtp/test', settings),
+    disableSmtp: () => request('/admin/smtp', { method: 'DELETE' }),
   },
 
   goals: {

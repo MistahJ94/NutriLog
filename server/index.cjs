@@ -79,6 +79,109 @@ const sessionCookie = token =>
 const validEmail = email => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validPassword = password => typeof password === "string" && password.length >= 8 && password.length <= 128
 const validRole = role => role === "admin" || role === "user"
+const cryptoKey = crypto.createHash("sha256").update(DATABASE_URL + "|nutrilog-settings-v1").digest()
+const encryptSecret = value => {
+  const iv = crypto.randomBytes(12)
+  const cipher = crypto.createCipheriv("aes-256-gcm", cryptoKey, iv)
+  const encrypted = Buffer.concat([cipher.update(String(value || ""), "utf8"), cipher.final()])
+  return "v1:" + iv.toString("base64url") + ":" + cipher.getAuthTag().toString("base64url") + ":" + encrypted.toString("base64url")
+}
+const decryptSecret = value => {
+  try {
+    const [version, iv, tag, encrypted] = String(value || "").split(":")
+    if (version !== "v1") return ""
+    const decipher = crypto.createDecipheriv("aes-256-gcm", cryptoKey, Buffer.from(iv, "base64url"))
+    decipher.setAuthTag(Buffer.from(tag, "base64url"))
+    return Buffer.concat([decipher.update(Buffer.from(encrypted, "base64url")), decipher.final()]).toString("utf8")
+  } catch { return "" }
+}
+const normalizeSmtpSettings = body => ({
+  host: String(body.host || "").trim(),
+  port: Number(body.port || 587),
+  security: ["starttls", "ssl", "none"].includes(body.security) ? body.security : "starttls",
+  username: String(body.username || "").trim(),
+  password: String(body.password || ""),
+  fromEmail: String(body.fromEmail || "").trim().toLowerCase(),
+  fromName: String(body.fromName || "NutriLog").trim() || "NutriLog",
+  publicUrl: String(body.publicUrl || "").trim().replace(/\/$/, "")
+})
+const smtpSettingsValid = settings =>
+  settings.host.length > 0 &&
+  Number.isInteger(settings.port) && settings.port >= 1 && settings.port <= 65535 &&
+  validEmail(settings.fromEmail) &&
+  settings.publicUrl.length > 0 && /^https?:\/\//i.test(settings.publicUrl)
+
+const sendSmtpEmail = async (settings, to, subject, body) => {
+  if (!smtpSettingsValid(settings)) throw new Error("SMTP settings are incomplete")
+  const net = require("node:net"), tls = require("node:tls")
+  const secure = settings.security === "ssl" || settings.port === 465
+  let socket = await new Promise((resolve, reject) => {
+    const s = secure
+      ? tls.connect({ host: settings.host, port: settings.port, servername: settings.host }, () => resolve(s))
+      : net.createConnection({ host: settings.host, port: settings.port }, () => resolve(s))
+    s.once("error", reject)
+  })
+  const command = (value, codes) => new Promise((resolve, reject) => {
+    let buffer = ""
+    const onData = chunk => {
+      buffer += chunk.toString()
+      const lines = buffer.split("\r\n")
+      buffer = lines.pop()
+      for (const line of lines) if (/^\d{3} /.test(line)) {
+        const code = Number(line.slice(0, 3))
+        socket.off("data", onData)
+        if (!codes.includes(code)) reject(new Error("SMTP command rejected (" + code + ")"))
+        else resolve()
+        return
+      }
+    }
+    socket.on("data", onData)
+    socket.once("error", reject)
+    socket.write(value + "\r\n")
+  })
+  try {
+    await new Promise((resolve, reject) => {
+      const onData = chunk => {
+        if (/^220 /.test(chunk.toString())) { socket.off("data", onData); resolve() }
+      }
+      socket.on("data", onData)
+      socket.once("error", reject)
+    })
+    await command("EHLO nutrilog", [250])
+    if (!secure && settings.security === "starttls") {
+      await command("STARTTLS", [220])
+      socket = await new Promise((resolve, reject) => {
+        const tlsSocket = tls.connect({ socket, servername: settings.host }, () => resolve(tlsSocket))
+        tlsSocket.once("error", reject)
+      })
+      await command("EHLO nutrilog", [250])
+    }
+    if (settings.username) {
+      await command("AUTH LOGIN", [334])
+      await command(Buffer.from(settings.username).toString("base64"), [334])
+      await command(Buffer.from(settings.password).toString("base64"), [235])
+    }
+    const formattedFrom = settings.fromName + " <" + settings.fromEmail + ">"
+    await command("MAIL FROM:<" + settings.fromEmail + ">", [250])
+    await command("RCPT TO:<" + to + ">", [250, 251])
+    await command("DATA", [354])
+    const message = "From: " + formattedFrom + "\r\nTo: " + to + "\r\nSubject: " + subject + "\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body + "\r\n"
+    socket.write(message.replace(/^\./gm, "..") + "\r\n.\r\n")
+    await new Promise((resolve, reject) => {
+      const onData = chunk => {
+        if (/^250 /.test(chunk.toString())) { socket.off("data", onData); resolve() }
+      }
+      socket.on("data", onData)
+      socket.once("error", reject)
+    })
+  } finally { socket.end() }
+}
+
+const sendPasswordResetEmail = async (settings, email, token) => {
+  const url = settings.publicUrl + "/?reset=" + encodeURIComponent(token)
+  await sendSmtpEmail(settings, email, "NutriLog password reset",
+    "Someone requested a NutriLog password reset.\r\n\r\nReset your password within 30 minutes:\r\n" + url + "\r\n\r\nIf you did not request this, you can safely ignore this email.")
+}
 const authAttempts = new Map()
 const authAllowed = req => {
   const key = req.socket.remoteAddress || "unknown"
@@ -163,6 +266,41 @@ async function authApi(req, res, pathname) {
     return send(res, 200, { user }, { "Set-Cookie": sessionCookie(await createSession(user.id)) })
   }
 
+  if (req.method === "POST" && pathname === "/api/auth/change-password") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); if(!authAllowed(req))return send(res,429,{error:"Too many authentication attempts. Try again later."}); const body=await readBody(req); if(!validPassword(body.newPassword))return send(res,400,{error:"Password must be 8-128 characters"}); const row=(await sql.unsafe("SELECT password_hash FROM users WHERE id=$1 AND is_active=TRUE",[user.id]))[0]; if(!row||!(await verifyPassword(body.currentPassword,row.password_hash)))return send(res,401,{error:"Current password is incorrect"}); await sql.unsafe("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2",[await hashPassword(body.newPassword),user.id]); const current=parseCookies(req.headers.cookie).nutrilog_session; await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
+  if (req.method === "POST" && pathname === "/api/auth/revoke-other-sessions") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); const current=parseCookies(req.headers.cookie).nutrilog_session; await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
+  if (req.method === "POST" && pathname === "/api/auth/forgot-password") {
+    if (!authAllowed(req)) return send(res, 429, { error: "Too many requests. Try again later." })
+    const body = await readBody(req)
+    const email = String(body.email || "").trim().toLowerCase()
+    const generic = { message: "If an account exists for that email, a password reset link has been sent." }
+    if (!validEmail(email)) return send(res, 200, generic)
+    const row = (await sql.unsafe("SELECT id FROM users WHERE email=$1 AND is_active=TRUE", [email]))[0]
+    if (!row) return send(res, 200, generic)
+    const smtpRows = await sql.unsafe("SELECT host,port,security,username,password_encrypted,from_email,from_name,public_url FROM smtp_settings WHERE id=TRUE")
+    const smtp = smtpRows[0]
+    if (!smtp) return send(res, 200, generic)
+    const settings = {
+      host: smtp.host,
+      port: Number(smtp.port),
+      security: smtp.security || "starttls",
+      username: smtp.username || "",
+      password: decryptSecret(smtp.password_encrypted),
+      fromEmail: smtp.from_email,
+      fromName: smtp.from_name,
+      publicUrl: smtp.public_url
+    }
+    if (!smtpSettingsValid(settings)) return send(res, 200, generic)
+    const token = crypto.randomBytes(32).toString("base64url")
+    await sql.unsafe("DELETE FROM password_reset_tokens WHERE user_id=$1 OR expires_at<=NOW()", [row.id])
+    await sql.unsafe("INSERT INTO password_reset_tokens(token_hash,user_id,expires_at) VALUES($1,$2,NOW()+INTERVAL '30 minutes')", [tokenHash(token), row.id])
+    try {
+      await sendPasswordResetEmail(settings, email, token)
+    } catch (err) {
+      console.error("Password reset email failed:", err.message)
+    }
+    return send(res, 200, generic)
+  }
+  if (req.method === "POST" && pathname === "/api/auth/reset-password") { if(!authAllowed(req))return send(res,429,{error:"Too many requests. Try again later."}); const body=await readBody(req); if(!validPassword(body.newPassword)||typeof body.token!=="string")return send(res,400,{error:"A valid reset token and password (8-128 characters) are required"}); const rows=await sql.unsafe("SELECT user_id FROM password_reset_tokens WHERE token_hash=$1 AND expires_at>NOW()",[tokenHash(body.token)]); if(!rows.length)return send(res,400,{error:"This password reset link is invalid or has expired."}); await sql.unsafe("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2",[await hashPassword(body.newPassword),rows[0].user_id]); await sql.unsafe("DELETE FROM sessions WHERE user_id=$1",[rows[0].user_id]); await sql.unsafe("DELETE FROM password_reset_tokens WHERE user_id=$1",[rows[0].user_id]); return send(res,200,{ok:true}) }
   if (req.method === "POST" && pathname === "/api/auth/logout") {
     const token = parseCookies(req.headers.cookie).nutrilog_session
     if (token) await sql.unsafe("DELETE FROM sessions WHERE token_hash = $1", [tokenHash(token)])
@@ -192,6 +330,49 @@ const resources = {
 
 async function adminApi(req, res, pathname, user) {
   if (!(await isAdmin(user))) return send(res, 403, { error: "Administrator access required" })
+
+  if (req.method === "GET" && pathname === "/api/admin/smtp") {
+    const rows = await sql.unsafe("SELECT host, port, security, username, password_encrypted, from_email, from_name, public_url, updated_at FROM smtp_settings WHERE id=TRUE")
+    const settings = rows[0]
+    return send(res, 200, { configured: Boolean(settings), settings: settings ? {
+      host: settings.host, port: Number(settings.port), security: settings.security || "starttls",
+      username: settings.username || "", fromEmail: settings.from_email,
+      fromName: settings.from_name, publicUrl: settings.public_url,
+      hasPassword: Boolean(decryptSecret(settings.password_encrypted)), updatedAt: settings.updated_at
+    } : null })
+  }
+
+  if (req.method === "PUT" && pathname === "/api/admin/smtp") {
+    const body = await readBody(req)
+    const settings = normalizeSmtpSettings(body)
+    if (!smtpSettingsValid(settings)) return send(res, 400, { error: "SMTP host, valid port, from email, and a valid public URL are required" })
+    const existing = (await sql.unsafe("SELECT password_encrypted FROM smtp_settings WHERE id=TRUE"))[0]
+    if (!settings.password && existing) settings.password = decryptSecret(existing.password_encrypted)
+    await sql.unsafe("INSERT INTO smtp_settings (id, host, port, security, username, password_encrypted, from_email, from_name, public_url, updated_at) VALUES (TRUE,$1,$2,$3,$4,$5,$6,$7,$8,NOW()) ON CONFLICT (id) DO UPDATE SET host=EXCLUDED.host,port=EXCLUDED.port,security=EXCLUDED.security,username=EXCLUDED.username,password_encrypted=EXCLUDED.password_encrypted,from_email=EXCLUDED.from_email,from_name=EXCLUDED.from_name,public_url=EXCLUDED.public_url,updated_at=NOW()", [settings.host, settings.port, settings.security, settings.username, encryptSecret(settings.password), settings.fromEmail, settings.fromName, settings.publicUrl])
+    return send(res, 200, { ok: true })
+  }
+
+  if (req.method === "DELETE" && pathname === "/api/admin/smtp") {
+    await sql.unsafe("DELETE FROM smtp_settings WHERE id=TRUE")
+    return send(res, 200, { ok: true })
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/smtp/test") {
+    const body = await readBody(req)
+    const settings = normalizeSmtpSettings(body)
+    const existing = (await sql.unsafe("SELECT password_encrypted FROM smtp_settings WHERE id=TRUE"))[0]
+    if (!settings.password && existing) settings.password = decryptSecret(existing.password_encrypted)
+    if (!smtpSettingsValid(settings)) return send(res, 400, { error: "Complete the SMTP settings before testing" })
+    const to = String(body.testEmail || "").trim().toLowerCase()
+    if (!validEmail(to)) return send(res, 400, { error: "A valid test email address is required" })
+    try {
+      await sendSmtpEmail(settings, to, "NutriLog SMTP test", "This is a test email from NutriLog.\r\n\r\nSMTP configuration is working.")
+      return send(res, 200, { ok: true })
+    } catch (err) {
+      console.error("SMTP test failed:", err.message)
+      return send(res, 502, { error: "SMTP test failed: " + err.message })
+    }
+  }
 
   if (req.method === "GET" && pathname === "/api/admin/users") {
     const rows = await sql.unsafe("SELECT id, email, role, is_active, created_at, updated_at FROM users ORDER BY created_at ASC")
