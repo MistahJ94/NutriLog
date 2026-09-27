@@ -126,6 +126,8 @@ function App({ user, initialServerData, onLogout }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
   const [theme, setTheme] = useState(() => localStorage.getItem('nutrilog-theme') || 'green')
+  const [mode, setMode] = useState(() => localStorage.getItem('nutrilog-mode') || 'light')
+  const [customAccent, setCustomAccent] = useState(() => localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
   
   // Ref for click outside detection
   const quickLogSearchRef = useRef(null)
@@ -191,8 +193,12 @@ function App({ user, initialServerData, onLogout }) {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    document.documentElement.dataset.mode = mode
+    document.documentElement.style.setProperty('--custom-accent', customAccent)
     localStorage.setItem('nutrilog-theme', theme)
-  }, [theme])
+    localStorage.setItem('nutrilog-mode', mode)
+    localStorage.setItem('nutrilog-custom-accent', customAccent)
+  }, [theme, mode, customAccent])
 
   // Load data through the application storage service.
   useEffect(() => {
@@ -1459,25 +1465,41 @@ function App({ user, initialServerData, onLogout }) {
             <div className="section theme-settings">
               <h3>Appearance</h3>
               <p className="settings-description">Choose a color scheme for this browser. Your choice is saved locally on this device.</p>
-              <div className="theme-options">
-                {[
-                  { id: 'green', label: 'Sage' },
-                  { id: 'blue', label: 'Ocean' },
-                  { id: 'purple', label: 'Berry' },
-                  { id: 'orange', label: 'Citrus' },
-                  { id: 'dark', label: 'Dark' }
-                ].map(option => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={`theme-option theme-option-${option.id} ${theme === option.id ? 'selected' : ''}`}
-                    onClick={() => setTheme(option.id)}
-                    aria-pressed={theme === option.id}
-                  >
-                    <span className="theme-swatch" />
-                    <span>{option.label}</span>
-                  </button>
-                ))}
+              <div className="appearance-controls">
+                <div className="appearance-group">
+                  <span className="appearance-label">Mode</span>
+                  <div className="mode-toggle" role="group" aria-label="Color mode">
+                    <button type="button" className={mode === 'light' ? 'selected' : ''} onClick={() => setMode('light')}>☀ Light</button>
+                    <button type="button" className={mode === 'dark' ? 'selected' : ''} onClick={() => setMode('dark')}>☾ Dark</button>
+                  </div>
+                </div>
+                <div className="appearance-group">
+                  <span className="appearance-label">Accent color</span>
+                  <div className="theme-options">
+                    {[
+                      { id: 'green', label: 'Sage' },
+                      { id: 'blue', label: 'Ocean' },
+                      { id: 'purple', label: 'Berry' },
+                      { id: 'orange', label: 'Citrus' },
+                      { id: 'teal', label: 'Teal' },
+                      { id: 'red', label: 'Ruby' },
+                      { id: 'pink', label: 'Rose' },
+                      { id: 'indigo', label: 'Indigo' },
+                      { id: 'yellow', label: 'Gold' },
+                      { id: 'slate', label: 'Slate' }
+                    ].map(option => (
+                      <button key={option.id} type="button" className={`theme-option theme-option-${option.id} ${theme === option.id ? 'selected' : ''}`} onClick={() => setTheme(option.id)} aria-pressed={theme === option.id}>
+                        <span className="theme-swatch" />
+                        <span>{option.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <label className="custom-color-picker">
+                    <span>Custom</span>
+                    <input type="color" value={customAccent} onChange={e => { setCustomAccent(e.target.value); setTheme('custom') }} aria-label="Choose custom accent color" />
+                    <span className="custom-color-value">{customAccent.toUpperCase()}</span>
+                  </label>
+                </div>
               </div>
             </div>
 
