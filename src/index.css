@@ -2206,3 +2206,97 @@ body {
     min-height: 150px !important;
   }
 }
+
+
+/* Planner theme cleanup */
+.planner-container .goal-display-item {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface, #fafaf8));
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+.planner-container .goal-display-item.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-soft) 100%);
+  color: #fff;
+  border-color: transparent;
+}
+.planner-container .goal-icon {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-dark);
+}
+.planner-container .goal-display-item.primary .goal-icon {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+}
+.planner-container .goal-label,
+.planner-container .goal-value {
+  color: inherit;
+}
+.planner-container .macro-breakdown {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface, #fafaf8));
+  border-color: var(--accent-border);
+}
+.planner-container .macro-breakdown h4,
+.planner-container .breakdown-label {
+  color: var(--text);
+}
+.planner-container .breakdown-bar {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-alt, #f1f3f1));
+}
+.planner-container .breakdown-fill.protein {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%);
+}
+.planner-container .breakdown-fill.carbs {
+  background: linear-gradient(90deg, var(--accent-soft) 0%, var(--accent-pale) 100%);
+}
+.planner-container .breakdown-fill.fat {
+  background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent-soft) 100%);
+}
+.planner-container .goal-presets {
+  border-top-color: var(--accent-border);
+}
+.planner-container .goal-presets h4 {
+  color: var(--text);
+}
+.planner-container .preset-btn {
+  background: var(--accent-pale);
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+.planner-container .preset-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface, #fafaf8));
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+/* Direct widget-style tracker resizing */
+.tracker-stats-grid .tracker-card-resize-handle {
+  width: 34px;
+  height: 34px;
+  right: 5px;
+  bottom: 5px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface, #fff));
+  color: var(--accent-dark);
+  cursor: nwse-resize;
+  touch-action: none;
+  user-select: none;
+}
+.tracker-stats-grid .tracker-card-resize-handle:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.tracker-stats-grid .tracker-card-size-wide,
+.tracker-stats-grid .tracker-card-size-large {
+  grid-column: span 2 !important;
+}
+.tracker-stats-grid .tracker-card-size-tall,
+.tracker-stats-grid .tracker-card-size-large {
+  grid-row: span 2 !important;
+}
+:root[data-mode="dark"] .planner-container .macro-breakdown {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface-raised));
+}
+:root[data-mode="dark"] .planner-container .goal-display-item {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
+}
