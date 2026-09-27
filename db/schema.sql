@@ -8,3 +8,7 @@ CREATE TABLE IF NOT EXISTS meals (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 CREATE INDEX IF NOT EXISTS meals_user_id_idx ON meals(user_id);
 CREATE TABLE IF NOT EXISTS log_entries (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, entry_type TEXT NOT NULL CHECK (entry_type IN ('food','meal')), name TEXT NOT NULL, calories NUMERIC(10,2) NOT NULL DEFAULT 0, protein NUMERIC(10,2) NOT NULL DEFAULT 0, carbs NUMERIC(10,2) NOT NULL DEFAULT 0, fat NUMERIC(10,2) NOT NULL DEFAULT 0, fiber NUMERIC(10,2) NOT NULL DEFAULT 0, foods JSONB, consumed_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE INDEX IF NOT EXISTS log_entries_user_date_idx ON log_entries(user_id, consumed_at DESC);
+
+CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
