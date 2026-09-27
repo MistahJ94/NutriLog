@@ -442,6 +442,157 @@ async function adminApi(req, res, pathname, user) {
   return send(res, 405, { error: "Method not allowed" })
 }
 
+const ACTIVITY_METS = {
+  walking: { light: 2.8, moderate: 3.5, vigorous: 4.5 },
+  running: { light: 6, moderate: 8, vigorous: 11 },
+  cycling: { light: 4, moderate: 6.8, vigorous: 10 },
+  swimming: { light: 5, moderate: 7, vigorous: 9 },
+  elliptical: { light: 4, moderate: 5.5, vigorous: 7 },
+  rowing: { light: 4, moderate: 7, vigorous: 10 },
+  weight_training: { light: 3.5, moderate: 5, vigorous: 6 },
+  yoga: { light: 2.5, moderate: 3, vigorous: 4 },
+  hiking: { light: 4, moderate: 6, vigorous: 7.5 },
+  sports: { light: 4, moderate: 6, vigorous: 8 },
+  dancing: { light: 3, moderate: 5, vigorous: 7 },
+  other: { light: 3, moderate: 5, vigorous: 7 }
+}
+
+const ACTIVITY_FACTORS = {
+  sedentary: 1.2,
+  lightly_active: 1.375,
+  moderately_active: 1.55,
+  very_active: 1.725,
+  extremely_active: 1.9
+}
+
+const normalizeHealthProfile = body => ({
+  age: Math.max(13, Math.min(120, Math.round(numberValue(body.age)))),
+  sex: ['male','female','unspecified'].includes(body.sex) ? body.sex : 'unspecified',
+  heightCm: Math.max(50, Math.min(250, numberValue(body.heightCm))),
+  currentWeightKg: Math.max(20, Math.min(500, numberValue(body.currentWeightKg))),
+  goalWeightKg: Math.max(20, Math.min(500, numberValue(body.goalWeightKg))),
+  activityLevel: Object.prototype.hasOwnProperty.call(ACTIVITY_FACTORS, body.activityLevel) ? body.activityLevel : 'moderately_active',
+  goalType: ['maintain','lose','gain'].includes(body.goalType) ? body.goalType : 'maintain',
+  desiredRateLbs: Math.max(0, Math.min(2, numberValue(body.desiredRateLbs)))
+})
+
+const calculateHealthRecommendations = profile => {
+  const { age, sex, heightCm, currentWeightKg, goalWeightKg, activityLevel, goalType, desiredRateLbs } = profile
+  let bmr = 10 * currentWeightKg + 6.25 * heightCm - 5 * age
+  if (sex === 'male') bmr += 5
+  else if (sex === 'female') bmr -= 161
+  else bmr -= 78
+  const maintenance = Math.round(bmr * ACTIVITY_FACTORS[activityLevel])
+  const weeklyRate = goalType === 'lose' ? desiredRateLbs : goalType === 'gain' ? desiredRateLbs : 0
+  const dailyAdjustment = Math.round((weeklyRate * 3500) / 7)
+  const calories = Math.max(1200, maintenance + (goalType === 'lose' ? -dailyAdjustment : goalType === 'gain' ? dailyAdjustment : 0))
+  const goalWeight = goalWeightKg || currentWeightKg
+  const protein = Math.round(Math.max(0.8, Math.min(2.2, 1.6)) * goalWeight)
+  const fat = Math.round((calories * 0.25) / 9)
+  const fiber = Math.round((calories / 1000) * 14)
+  const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4))
+  const weightChangeKg = goalWeight - currentWeightKg
+  const weeks = goalType === 'lose' && desiredRateLbs > 0
+    ? Math.abs(weightChangeKg * 2.20462) / desiredRateLbs
+    : goalType === 'gain' && desiredRateLbs > 0
+      ? Math.abs(weightChangeKg * 2.20462) / desiredRateLbs
+      : null
+  const bmi = heightCm > 0 ? currentWeightKg / ((heightCm / 100) ** 2) : null
+  return {
+    bmr: Math.round(bmr),
+    maintenanceCalories: maintenance,
+    suggestedCalories: calories,
+    protein,
+    carbs,
+    fat,
+    fiber,
+    bmi: bmi ? Number(bmi.toFixed(1)) : null,
+    weightToChangeLbs: Number((weightChangeKg * 2.20462).toFixed(1)),
+    estimatedWeeks: weeks ? Number(weeks.toFixed(1)) : null
+  }
+}
+
+const activityCalories = (activityType, intensity, durationMinutes, weightKg) => {
+  const type = ACTIVITY_METS[activityType] || ACTIVITY_METS.other
+  const met = type[intensity] || type.moderate
+  return Math.max(0, Math.round(met * 3.5 * weightKg / 200 * durationMinutes))
+}
+
+async function healthApi(req, res, pathname, user) {
+  if (pathname === "/api/health-profile") {
+    if (req.method === "GET") {
+      const rows = await sql.unsafe("SELECT user_id, age, sex, height_cm, current_weight_kg, goal_weight_kg, activity_level, goal_type, desired_rate_lbs, created_at, updated_at FROM health_profiles WHERE user_id=$1", [user.id])
+      const profile = rows[0]
+      if (!profile) return send(res, 200, { profile: null, recommendations: null })
+      const normalized = {
+        age: Number(profile.age), sex: profile.sex, heightCm: Number(profile.height_cm),
+        currentWeightKg: Number(profile.current_weight_kg), goalWeightKg: Number(profile.goal_weight_kg),
+        activityLevel: profile.activity_level, goalType: profile.goal_type, desiredRateLbs: Number(profile.desired_rate_lbs)
+      }
+      return send(res, 200, { profile: normalized, recommendations: calculateHealthRecommendations(normalized) })
+    }
+    if (req.method === "PUT") {
+      const p = normalizeHealthProfile(await readBody(req))
+      if (!p.age || !p.heightCm || !p.currentWeightKg || !p.goalWeightKg) return send(res, 400, { error: "Age, height, current weight, and goal weight are required" })
+      const rows = await sql.unsafe("INSERT INTO health_profiles (user_id,age,sex,height_cm,current_weight_kg,goal_weight_kg,activity_level,goal_type,desired_rate_lbs) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(user_id) DO UPDATE SET age=EXCLUDED.age,sex=EXCLUDED.sex,height_cm=EXCLUDED.height_cm,current_weight_kg=EXCLUDED.current_weight_kg,goal_weight_kg=EXCLUDED.goal_weight_kg,activity_level=EXCLUDED.activity_level,goal_type=EXCLUDED.goal_type,desired_rate_lbs=EXCLUDED.desired_rate_lbs,updated_at=NOW() RETURNING user_id,age,sex,height_cm,current_weight_kg,goal_weight_kg,activity_level,goal_type,desired_rate_lbs", [user.id,p.age,p.sex,p.heightCm,p.currentWeightKg,p.goalWeightKg,p.activityLevel,p.goalType,p.desiredRateLbs])
+      const row=rows[0]
+      const normalized={age:Number(row.age),sex:row.sex,heightCm:Number(row.height_cm),currentWeightKg:Number(row.current_weight_kg),goalWeightKg:Number(row.goal_weight_kg),activityLevel:row.activity_level,goalType:row.goal_type,desiredRateLbs:Number(row.desired_rate_lbs)}
+      return send(res,200,{profile:normalized,recommendations:calculateHealthRecommendations(normalized)})
+    }
+    return send(res,405,{error:"Method not allowed"})
+  }
+
+  if (pathname === "/api/activities") {
+    if (req.method === "GET") {
+      const rows=await sql.unsafe("SELECT id,activity_type,duration_minutes,intensity,calories_burned,calories_source,activity_date,notes,created_at FROM activities WHERE user_id=$1 ORDER BY activity_date DESC,created_at DESC",[user.id])
+      return send(res,200,{activities:rows})
+    }
+    if (req.method === "POST") {
+      const body=await readBody(req)
+      const activityType=String(body.activityType||"other")
+      const intensity=["light","moderate","vigorous"].includes(body.intensity)?body.intensity:"moderate"
+      const duration=Math.max(0,Math.min(1440,numberValue(body.durationMinutes)))
+      const source=["estimated","manual","device"].includes(body.caloriesSource)?body.caloriesSource:"estimated"
+      const date=/^\d{4}-\d{2}-\d{2}$/.test(String(body.activityDate||""))?body.activityDate:new Date().toISOString().slice(0,10)
+      const profile=(await sql.unsafe("SELECT current_weight_kg FROM health_profiles WHERE user_id=$1",[user.id]))[0]
+      const weightKg=Number(profile?.current_weight_kg||70)
+      const calories=source==="estimated"?activityCalories(activityType,intensity,duration,weightKg):Math.max(0,numberValue(body.caloriesBurned))
+      if (!activityType || duration<=0 || calories<0) return send(res,400,{error:"Activity type and duration are required"})
+      const rows=await sql.unsafe("INSERT INTO activities (user_id,activity_type,duration_minutes,intensity,calories_burned,calories_source,activity_date,notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,activity_type,duration_minutes,intensity,calories_burned,calories_source,activity_date,notes,created_at",[user.id,activityType,duration,intensity,calories,source,date,String(body.notes||"").trim()])
+      return send(res,201,{activity:rows[0]})
+    }
+    return send(res,405,{error:"Method not allowed"})
+  }
+
+  const activityDelete=pathname.match(/^\/api\/activities\/([0-9a-f-]+)$/i)
+  if (activityDelete && req.method==="DELETE") {
+    const rows=await sql.unsafe("DELETE FROM activities WHERE user_id=$1 AND id=$2 RETURNING id",[user.id,activityDelete[1]])
+    return rows.length?send(res,200,{ok:true}):send(res,404,{error:"Not found"})
+  }
+
+  if (pathname === "/api/weight") {
+    if (req.method==="GET") {
+      const rows=await sql.unsafe("SELECT id,weight_kg,recorded_at,created_at FROM weight_entries WHERE user_id=$1 ORDER BY recorded_at DESC,created_at DESC",[user.id])
+      return send(res,200,{entries:rows})
+    }
+    if (req.method==="POST") {
+      const body=await readBody(req), weightKg=numberValue(body.weightKg)
+      if (weightKg<20 || weightKg>500) return send(res,400,{error:"Weight must be between 20 and 500 kg"})
+      const date=/^\d{4}-\d{2}-\d{2}$/.test(String(body.recordedAt||""))?body.recordedAt:new Date().toISOString().slice(0,10)
+      const rows=await sql.unsafe("INSERT INTO weight_entries (user_id,weight_kg,recorded_at) VALUES ($1,$2,$3) RETURNING id,weight_kg,recorded_at,created_at",[user.id,weightKg,date])
+      await sql.unsafe("UPDATE health_profiles SET current_weight_kg=$1,updated_at=NOW() WHERE user_id=$2",[weightKg,user.id])
+      return send(res,201,{entry:rows[0]})
+    }
+    return send(res,405,{error:"Method not allowed"})
+  }
+  const weightDelete=pathname.match(/^\/api\/weight\/([0-9a-f-]+)$/i)
+  if(weightDelete&&req.method==="DELETE"){
+    const rows=await sql.unsafe("DELETE FROM weight_entries WHERE user_id=$1 AND id=$2 RETURNING id",[user.id,weightDelete[1]])
+    return rows.length?send(res,200,{ok:true}):send(res,404,{error:"Not found"})
+  }
+  return false
+}
+
 async function protectedApi(req, res, pathname, user) {
   if (pathname === "/api/goals") {
     if (req.method === "GET") {
