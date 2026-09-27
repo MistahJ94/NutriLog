@@ -1834,3 +1834,20 @@ body {
 :root[data-mode="dark"] .mode-toggle button.selected { background:var(--accent-pale); color:var(--accent-soft); border-color:var(--accent); }
 :root[data-mode="dark"] .custom-color-picker { color:var(--text-muted); }
 
+/* Health & Activity */
+.health-grid,.activity-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.health-page,.activity-page{display:flex;flex-direction:column;gap:20px}
+.section h3{display:flex;align-items:center;gap:8px}
+.recommendation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.recommendation-grid>div{padding:14px;border:1px solid var(--accent-border);border-radius:10px;background:var(--accent-pale);display:flex;flex-direction:column;gap:4px}
+.recommendation-grid strong{font-size:.8rem;color:#667}
+.recommendation-grid span{font-size:1.15rem;font-weight:700}
+.activity-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.activity-stats>div{background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.activity-stats span{font-size:.9rem;color:#667}.activity-stats strong{font-size:1.8rem}
+.activity-list,.weight-history{display:flex;flex-direction:column;gap:8px}
+.activity-row,.weight-history>div{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--accent-border)}
+.activity-row>div{flex:1;display:flex;flex-direction:column;gap:3px}.activity-row span{font-size:.85rem;color:#777}
+.weight-action{display:flex;align-items:flex-end}.info-box{display:flex;align-items:flex-start;gap:8px}
+@media(max-width:800px){.health-grid,.activity-grid,.activity-stats{grid-template-columns:1fr}.recommendation-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.recommendation-grid{grid-template-columns:1fr}}
