@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main"
+# NutriLog Proxmox LXC installer
+# Uses the Community Scripts core for the LXC framework while explicitly
+# pointing the framework at this repository for NutriLog-specific files.
+
+COMMUNITY_SCRIPTS_URL="https://raw.githubusercontent.com/MistahJ94/NutriLog/main"
+export COMMUNITY_SCRIPTS_URL
+
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
-
-# NutriLog Proxmox LXC installer
-# Based on the Community Scripts container model.
-# NutriLog application code and installer remain under the MIT-compatible project license.
 
 APP="NutriLog"
 var_tags="${var_tags:-health;fitness;nutrition}"
