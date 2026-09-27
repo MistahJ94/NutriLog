@@ -850,7 +850,7 @@ body {
 
 .goals-overview h3 {
   font-size: 1.3rem;
-  color: #2d3436;
+  color: var(--text, #2d3436);
   font-weight: 600;
   margin-bottom: 10px;
 }
