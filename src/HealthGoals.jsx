@@ -16,6 +16,12 @@ const empty = {
   activityLevel: 'moderately_active', goalType: 'lose', desiredRateLbs: '1'
 }
 
+const formatDate = value => {
+  const raw = String(value || '').slice(0, 10)
+  const date = new Date(raw + 'T12:00:00')
+  return Number.isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleDateString()
+}
+
 const calculate = p => {
   const age=Number(p.age), heightCm=(Number(p.heightFt)*30.48)+(Number(p.heightIn)*2.54)
   const weightKg=Number(p.weightLb)*KG_PER_LB, goalKg=Number(p.goalWeightLb)*KG_PER_LB
@@ -69,7 +75,7 @@ export default function HealthGoals() {
     <div className="section">
       <h3><Scale size={20}/> Weight Tracking</h3>
       <div className="form-row"><div className="form-group"><label>Current weight (lb)<input type="number" min="44" step=".1" value={weight} onChange={e=>setWeight(e.target.value)} placeholder="e.g. 215.4"/></label></div><div className="form-group weight-action"><button className="btn btn-primary" onClick={saveWeight} disabled={!weight||weightSaving}>Log Weight</button></div></div>
-      <div className="weight-history">{weights.slice(0,10).map(w=><div key={w.id}><span>{new Date(w.recorded_at+'T12:00:00').toLocaleDateString()}</span><strong>{(Number(w.weight_kg)/KG_PER_LB).toFixed(1)} lb</strong></div>)}{!weights.length&&<p>No weight entries yet.</p>}</div>
+      <div className="weight-history">{weights.slice(0,10).map(w=><div key={w.id}><span>{formatDate(w.recorded_at)}</span><strong>{(Number(w.weight_kg)/KG_PER_LB).toFixed(1)} lb</strong></div>)}{!weights.length&&<p>No weight entries yet.</p>}</div>
     </div>
   </div>
 }
