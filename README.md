@@ -100,3 +100,18 @@ This allows offline functionality to remain available while providing a path to 
 ## License
 
 MIT License
+
+## Platform foundation
+
+The development branch now includes the initial PostgreSQL data model in `db/schema.sql`. The schema is designed around a per-user ownership model for goals, foods, meals, and log entries so multi-user support can be added without redesigning the data model.
+
+The frontend remains local-first during this phase. The database schema is intentionally separated from the existing localStorage implementation so the migration to an API can happen incrementally.
+
+### Planned backend sequence
+
+1. Authentication and account/session handling
+2. PostgreSQL repository/API layer
+3. User-scoped CRUD for foods, meals, goals, and log entries
+4. Local-first synchronization and conflict handling
+5. Proxmox LXC installer and the `update` command
+6. Reverse-proxy deployment under JonDomain
