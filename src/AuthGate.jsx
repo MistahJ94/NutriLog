@@ -4,40 +4,17 @@ import { api } from './services'
 const blankGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65, fiber: 25 }
 
 const AuthScreen = ({ onAuthenticated }) => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-
-  const submit = async event => {
-    event.preventDefault()
-    setBusy(true)
-    setError('')
-    try {
-      const result = await api.auth.login(email, password)
-      await onAuthenticated(result.user)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="auth-screen">
-      <div className="auth-card">
-        <div className="auth-logo">🥗</div>
-        <h1>NutriLog</h1>
-        <p>Sign in to your nutrition tracker</p>
-        <form onSubmit={submit}>
-          <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></label>
-          <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete="current-password" /></label>
-          {error && <div className="auth-error">{error}</div>}
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Please wait…' : 'Sign In'}</button>
-        </form>
-      </div>
-    </div>
-  )
+  const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const [forgot,setForgot]=useState(false); const [message,setMessage]=useState('')
+  const submit=async event=>{event.preventDefault();setBusy(true);setError('');setMessage('');try{const result=await api.auth.login(email,password);await onAuthenticated(result.user)}catch(err){setError(err.message)}finally{setBusy(false)}}
+  const requestReset=async event=>{event.preventDefault();setBusy(true);setError('');setMessage('');try{const result=await api.auth.forgotPassword(email);setMessage(result.message)}catch(err){setError(err.message)}finally{setBusy(false)}}
+  if(forgot)return <div className="auth-screen"><div className="auth-card"><div className="auth-logo">🥗</div><h1>Reset Password</h1><p>Enter your account email to request a password reset.</p><form onSubmit={requestReset}><label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label>{error&&<div className="auth-error">{error}</div>}{message&&<div className="auth-message">{message}</div>}<button className="btn btn-primary" disabled={busy}>{busy?'Ple
+const ResetPasswordScreen = ({ token }) => {
+  const [password,setPassword]=useState(''); const [confirm,setConfirm]=useState(''); const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const [done,setDone]=useState(false)
+  const submit=async e=>{e.preventDefault();if(password!==confirm)return setError('Passwords do not match');setBusy(true);setError('');try{await api.auth.resetPassword(token,password);setDone(true)}catch(err){setError(err.message)}finally{setBusy(false)}}
+  return <div className="auth-screen"><div className="auth-card"><div className="auth-logo">🥗</div><h1>Set New Password</h1>{done?<><p>Your password has been reset. You can now sign in.</p><button className="btn btn-primary" onClick={()=>{window.location.href=window.location.pathname}}>Back to Sign In</button></>:<form onSubmit={submit}><label>New Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={8} maxLength={128} autoComplete="new-password"/></label><label>Confirm Password<input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} required minLength={8} maxLength={128} autoComplete="new-password"/></label>{error&&<div className="auth-error">{error}</div>}<button className="btn btn-primary" disabled={busy}>{busy?'Resetting…':'Reset Password'}</button></form>}</div></div>
+}
+ase wait…':'Send Reset Link'}</button></form><button className="btn btn-secondary" style={{marginTop:12,width:'100%'}} onClick={()=>{setForgot(false);setError('');setMessage('')}}>Back to Sign In</button></div></div>
+  return <div className="auth-screen"><div className="auth-card"><div className="auth-logo">🥗</div><h1>NutriLog</h1><p>Sign in to your nutrition tracker</p><form onSubmit={submit}><label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={8} autoComplete="current-password"/></label>{error&&<div className="auth-error">{error}</div>}<button className="btn btn-primary" disabled={busy}>{busy?'Please wait…':'Sign In'}</button></form><button type="button" className="auth-link" onClick={()=>{setForgot(true);setError('')}}>Forgot password?</button></div></div>
 }
 
 const SetupScreen = ({ onAuthenticated }) => {
