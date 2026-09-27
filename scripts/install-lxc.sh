@@ -23,7 +23,7 @@ if ! command -v node >/dev/null 2>&1 || [[ "$(node -p 'process.versions.node.spl
   apt-get install -y nodejs
 fi
 
-id "${APP_USER}" >/dev/null 2>&1 || useradd --system --home "${APP_DIR}" --shell /usr/sbin/nologin "${APP_USER}"
+id "${APP_USER}" >/dev/null 2>&1 || useradd --system --user-group --home "${APP_DIR}" --shell /usr/sbin/nologin "${APP_USER}"
 mkdir -p "${APP_DIR}" "${ETC_DIR}"
 chown "${APP_USER}:${APP_USER}" "${APP_DIR}"
 
