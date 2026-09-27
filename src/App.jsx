@@ -1516,6 +1516,7 @@ function App({ user, initialServerData, onLogout }) {
 
 
             </div>
+            </div>
           </>
         )}
 
