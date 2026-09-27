@@ -51,9 +51,11 @@ const parseCookies = value => Object.fromEntries(
 
 const tokenHash = token => crypto.createHash("sha256").update(token).digest("hex")
 
+const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 }
+
 const hashPassword = password => new Promise((resolve, reject) => {
   const salt = crypto.randomBytes(16)
-  crypto.scrypt(password, salt, 64, { N: 32768, r: 8, p: 3 }, (err, derived) => {
+  crypto.scrypt(password, salt, 64, SCRYPT_OPTIONS, (err, derived) => {
     if (err) return reject(err)
     resolve("scrypt$" + salt.toString("base64url") + "$" + derived.toString("base64url"))
   })
@@ -63,7 +65,7 @@ const verifyPassword = (password, stored) => new Promise((resolve, reject) => {
   const parts = String(stored || "").split("$")
   if (parts.length !== 3 || parts[0] !== "scrypt") return resolve(false)
   const expected = Buffer.from(parts[2], "base64url")
-  crypto.scrypt(password, Buffer.from(parts[1], "base64url"), expected.length, { N: 16384, r: 8, p: 1 }, (err, derived) => {
+  crypto.scrypt(password, Buffer.from(parts[1], "base64url"), expected.length, SCRYPT_OPTIONS, (err, derived) => {
     if (err) return reject(err)
     resolve(crypto.timingSafeEqual(expected, derived))
   })
@@ -209,7 +211,7 @@ async function protectedApi(req, res, pathname, user) {
       return body[field] ?? null
     })
     const placeholders = config.fields.map((_, i) => "$" + (i + 2)).join(", ")
-    const query = "INSERT INTO " + config.table + " (user_id, " + config.fields.join(", ") + ") VALUES ($1, " + placeholders + ") RETURNING " + config.select
+    const query = "INSERT INTO " + config.table + " (" + config.fields.join(", ") + ") VALUES ($1, " + placeholders + ") RETURNING " + config.select
     const rows = await sql.unsafe(query, [user.id, ...values])
     return send(res, 201, { item: rows[0] })
   }
