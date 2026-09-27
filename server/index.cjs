@@ -136,7 +136,7 @@ async function authApi(req, res, pathname) {
   if (req.method === "POST" && pathname === "/api/auth/logout") {
     const token = parseCookies(req.headers.cookie).nutrilog_session
     if (token) await sql.unsafe("DELETE FROM sessions WHERE token_hash = $1", [tokenHash(token)])
-    return send(res, 200, { ok: true }, { "Set-Cookie": "nutrilog_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0" })
+    return send(res, 200, { ok: true }, { "Set-Cookie": "nutrilog_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0" })
   }
 
   return false
