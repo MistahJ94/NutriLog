@@ -160,7 +160,8 @@ function App({ user, initialServerData, onLogout }) {
       servingSize: foodFormData.servingSize || '1 serving'
     }
     try {
-      const newFood = user ? (await api.foods.create(draft)).item : { ...draft, id: Date.now() }
+      const serverFood = user ? (await api.foods.create(draft)).item : null
+      const newFood = serverFood ? { ...draft, ...serverFood, id: serverFood.id, servingSize: serverFood.serving_size || draft.servingSize, calories: Number(serverFood.calories), protein: Number(serverFood.protein), carbs: Number(serverFood.carbs), fat: Number(serverFood.fat), fiber: Number(serverFood.fiber) } : { ...draft, id: Date.now() }
       setSavedFoods(prev => [newFood, ...prev])
       setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingSize: '' })
     } catch (error) {
@@ -184,7 +185,7 @@ function App({ user, initialServerData, onLogout }) {
   }
 
   const handleAddFoodToMeal = (foodId) => {
-    const food = savedFoods.find(f => f.id === parseInt(foodId))
+    const food = savedFoods.find(f => String(f.id) === String(foodId))
     if (!food) return
 
     setMealFormData(prev => ({
