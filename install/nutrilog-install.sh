@@ -48,6 +48,7 @@ PORT=3001
 DATABASE_URL=postgresql://nutrilog:${DB_PASSWORD}@127.0.0.1:5432/nutrilog
 CORS_ORIGIN=http://127.0.0.1:3001
 DB_POOL_SIZE=10
+COOKIE_SECURE=true
 EOF
 chmod 640 /etc/nutrilog/nutrilog.env
 
