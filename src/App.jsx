@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload } from 'lucide-react'
+import { storage, api, normalizeServerData, searchUsdaFoods as searchUsdaFoodsApi, mapUsdaFood, calculateMealTotals } from './services'
 
-function App() {
+function App({ user, initialServerData, onLogout }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
   
@@ -71,71 +72,29 @@ function App() {
     showSuggestions: false
   })
 
-  // Load data from localStorage on mount
+  // Load data through the application storage service.
   useEffect(() => {
-    const loadedSavedFoods = localStorage.getItem('savedFoods')
-    const loadedSavedMeals = localStorage.getItem('savedMeals')
-    const loadedLogEntries = localStorage.getItem('logEntries')
-    const savedGoal = localStorage.getItem('dailyGoal')
-    const savedMacroGoals = localStorage.getItem('macroGoals')
-    
-    if (loadedSavedFoods) {
-      setSavedFoods(JSON.parse(loadedSavedFoods))
-    }
-    if (loadedSavedMeals) {
-      setSavedMeals(JSON.parse(loadedSavedMeals))
-    }
-    if (loadedLogEntries) {
-      setLogEntries(JSON.parse(loadedLogEntries))
-    }
-    if (savedGoal) {
-      const goal = parseInt(savedGoal)
-      setDailyGoal(goal)
-      setGoalInput(goal)
-    }
-    if (savedMacroGoals) {
-      const goals = JSON.parse(savedMacroGoals)
-      setMacroGoals(goals)
-      setMacroGoalsInput(goals)
-      // Sync dailyGoal with macroGoals.calories
-      setDailyGoal(goals.calories)
-      setGoalInput(goals.calories)
-    }
-    
-    // Mark initial load as complete
+    const local = storage.load()
+    const data = initialServerData ? normalizeServerData(initialServerData) : local
+    setSavedFoods(data.savedFoods)
+    setSavedMeals(data.savedMeals)
+    setLogEntries(data.logEntries)
+    const goals = data.macroGoals || local.macroGoals
+    const calories = Number(goals?.calories || local.dailyGoal || 2000)
+    setDailyGoal(calories)
+    setGoalInput(calories)
+    setMacroGoals(goals)
+    setMacroGoalsInput(goals)
     setIsInitialLoadComplete(true)
-  }, [])
+  }, [initialServerData])
 
-  // Save to localStorage whenever data changes (after initial load)
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('savedFoods', JSON.stringify(savedFoods))
-    }
-  }, [savedFoods, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('savedMeals', JSON.stringify(savedMeals))
-    }
-  }, [savedMeals, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('logEntries', JSON.stringify(logEntries))
-    }
-  }, [logEntries, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('dailyGoal', dailyGoal.toString())
-    }
-  }, [dailyGoal, isInitialLoadComplete])
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      localStorage.setItem('macroGoals', JSON.stringify(macroGoals))
-    }
-  }, [macroGoals, isInitialLoadComplete])
+  // Persist state through the storage service. This adapter can later be
+  // replaced by the authenticated API without changing the UI components.
+  useEffect(() => { if (isInitialLoadComplete) storage.save('foods', savedFoods) }, [savedFoods, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('meals', savedMeals) }, [savedMeals, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('logs', logEntries) }, [logEntries, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('dailyGoal', dailyGoal.toString()) }, [dailyGoal, isInitialLoadComplete])
+  useEffect(() => { if (isInitialLoadComplete) storage.save('macroGoals', macroGoals) }, [macroGoals, isInitialLoadComplete])
 
   // Handle click outside to close suggestions
   useEffect(() => {
@@ -160,20 +119,9 @@ function App() {
 
     setIsSearching(true)
     setUsdaSearchResults([])
-
     try {
-      // Using the public USDA FoodData Central API
-      const apiKey = 'DEMO_KEY' // Users can get their own key from api.data.gov
-      const response = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}&query=${encodeURIComponent(usdaSearchQuery)}&pageSize=10`
-      )
-
-      if (!response.ok) {
-        throw new Error('Search failed')
-      }
-
-      const data = await response.json()
-      setUsdaSearchResults(data.foods || [])
+      const results = await searchUsdaFoodsApi(usdaSearchQuery)
+      setUsdaSearchResults(results)
     } catch (error) {
       console.error('USDA API Error:', error)
       alert('Failed to search foods. Please try again.')
@@ -183,37 +131,8 @@ function App() {
   }
 
   const selectUsdaFood = (food) => {
-    // Extract nutrients from the USDA food data
-    const nutrients = food.foodNutrients || []
-    
-    const getnutrient = (nutrientId) => {
-      const nutrient = nutrients.find(n => n.nutrientId === nutrientId)
-      return nutrient ? Math.round(nutrient.value) : 0
-    }
-
-    // Nutrient IDs in USDA database:
-    // 1008 = Energy (kcal)
-    // 1003 = Protein
-    // 1005 = Carbohydrates
-    // 1004 = Total Fat
-    
-    const calories = getnutrient(1008)
-    const protein = getnutrient(1003)
-    const carbs = getnutrient(1005)
-    const fat = getnutrient(1004)
-
-    // Auto-fill the form
-    setFoodFormData({
-      name: food.description || '',
-      calories: calories.toString(),
-      protein: protein.toString(),
-      carbs: carbs.toString(),
-      fat: fat.toString(),
-      fiber: '0',
-      servingSize: food.servingSize ? `${food.servingSize} ${food.servingSizeUnit || 'g'}` : '100g'
-    })
-
-    // Close search modal
+    const mapped = mapUsdaFood(food)
+    setFoodFormData(mapped)
     setShowUsdaSearch(false)
     setUsdaSearchQuery('')
     setUsdaSearchResults([])
@@ -225,15 +144,13 @@ function App() {
     setFoodFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSaveFood = (e) => {
+  const handleSaveFood = async (e) => {
     e.preventDefault()
     if (!foodFormData.name || !foodFormData.calories) {
       alert('Please enter at least food name and calories')
       return
     }
-
-    const newFood = {
-      id: Date.now(),
+    const draft = {
       name: foodFormData.name,
       calories: parseInt(foodFormData.calories) || 0,
       protein: parseInt(foodFormData.protein) || 0,
@@ -242,13 +159,23 @@ function App() {
       fiber: parseInt(foodFormData.fiber) || 0,
       servingSize: foodFormData.servingSize || '1 serving'
     }
-
-    setSavedFoods(prev => [newFood, ...prev])
-    setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingSize: '' })
+    try {
+      const serverFood = user ? (await api.foods.create(draft)).item : null
+      const newFood = serverFood ? { ...draft, ...serverFood, id: serverFood.id, servingSize: serverFood.serving_size || draft.servingSize, calories: Number(serverFood.calories), protein: Number(serverFood.protein), carbs: Number(serverFood.carbs), fat: Number(serverFood.fat), fiber: Number(serverFood.fiber) } : { ...draft, id: Date.now() }
+      setSavedFoods(prev => [newFood, ...prev])
+      setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingSize: '' })
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
-  const handleDeleteFood = (id) => {
-    setSavedFoods(prev => prev.filter(food => food.id !== id))
+  const handleDeleteFood = async (id) => {
+    try {
+      if (user) await api.foods.remove(id)
+      setSavedFoods(prev => prev.filter(food => food.id !== id))
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
   // Meal Builder Handlers
@@ -258,7 +185,7 @@ function App() {
   }
 
   const handleAddFoodToMeal = (foodId) => {
-    const food = savedFoods.find(f => f.id === parseInt(foodId))
+    const food = savedFoods.find(f => String(f.id) === String(foodId))
     if (!food) return
 
     setMealFormData(prev => ({
@@ -283,37 +210,30 @@ function App() {
     }))
   }
 
-  const calculateMealTotals = (foods) => {
-    return foods.reduce((totals, food) => ({
-      calories: totals.calories + (food.calories * food.quantity),
-      protein: totals.protein + (food.protein * food.quantity),
-      carbs: totals.carbs + (food.carbs * food.quantity),
-      fat: totals.fat + (food.fat * food.quantity),
-      fiber: totals.fiber + ((food.fiber || 0) * food.quantity)
-    }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
-  }
-
-  const handleSaveMeal = (e) => {
+  const handleSaveMeal = async (e) => {
     e.preventDefault()
     if (!mealFormData.name || mealFormData.selectedFoods.length === 0) {
       alert('Please enter a meal name and add at least one food')
       return
     }
-
     const totals = calculateMealTotals(mealFormData.selectedFoods)
-    const newMeal = {
-      id: Date.now(),
-      name: mealFormData.name,
-      foods: mealFormData.selectedFoods,
-      ...totals
+    const draft = { name: mealFormData.name, foods: mealFormData.selectedFoods, ...totals }
+    try {
+      const newMeal = user ? (await api.meals.create(draft)).item : { ...draft, id: Date.now() }
+      setSavedMeals(prev => [newMeal, ...prev])
+      setMealFormData({ name: '', selectedFoods: [] })
+    } catch (error) {
+      alert(error.message)
     }
-
-    setSavedMeals(prev => [newMeal, ...prev])
-    setMealFormData({ name: '', selectedFoods: [] })
   }
 
-  const handleDeleteMeal = (id) => {
-    setSavedMeals(prev => prev.filter(meal => meal.id !== id))
+  const handleDeleteMeal = async (id) => {
+    try {
+      if (user) await api.meals.remove(id)
+      setSavedMeals(prev => prev.filter(meal => meal.id !== id))
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
   // Tracker Handlers
@@ -357,18 +277,30 @@ function App() {
     return { foods: filteredFoods, meals: filteredMeals }
   }
 
-  const handleQuickLog = (e) => {
+  const createLogEntry = async (entry) => {
+    const saved = user ? (await api.logs.create(entry)).item : null
+    return saved ? {
+      id: saved.id,
+      type: saved.entry_type,
+      name: saved.name,
+      calories: Number(saved.calories),
+      protein: Number(saved.protein),
+      carbs: Number(saved.carbs),
+      fat: Number(saved.fat),
+      fiber: Number(saved.fiber),
+      foods: Array.isArray(saved.foods) ? saved.foods : [],
+      timestamp: saved.consumed_at,
+    } : { ...entry, id: Date.now() }
+  }
+
+  const handleQuickLog = async (e) => {
     e.preventDefault()
     if (!quickLogForm.selectedItem) {
       alert('Please select a food or meal')
       return
     }
-
-    // Use the selected date but with current time
     const selectedDate = new Date(quickLogForm.date + 'T' + new Date().toTimeString().split(' ')[0])
-
-    const newEntry = {
-      id: Date.now(),
+    const draft = {
       type: quickLogForm.itemType,
       name: quickLogForm.selectedItem.name,
       calories: quickLogForm.selectedItem.calories,
@@ -376,78 +308,74 @@ function App() {
       carbs: quickLogForm.selectedItem.carbs,
       fat: quickLogForm.selectedItem.fat,
       fiber: quickLogForm.selectedItem.fiber || 0,
-      timestamp: selectedDate.toISOString()
+      timestamp: selectedDate.toISOString(),
+      ...(quickLogForm.itemType === 'meal' ? { foods: quickLogForm.selectedItem.foods } : {})
     }
-
-    if (quickLogForm.itemType === 'meal') {
-      newEntry.foods = quickLogForm.selectedItem.foods
+    try {
+      const newEntry = await createLogEntry(draft)
+      setLogEntries(prev => [newEntry, ...prev])
+      setQuickLogForm({ selectedItem: null, itemType: '', date: new Date().toISOString().split('T')[0], searchQuery: '', showSuggestions: false })
+    } catch (error) {
+      alert(error.message)
     }
-
-    setLogEntries(prev => [newEntry, ...prev])
-    setQuickLogForm({ 
-      selectedItem: null,
-      itemType: '',
-      date: new Date().toISOString().split('T')[0], // Reset to today
-      searchQuery: '',
-      showSuggestions: false
-    })
   }
 
-  const handleLogSavedFood = (food) => {
-    const newEntry = {
-      id: Date.now(),
-      type: 'food',
-      name: food.name,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat,
-      fiber: food.fiber || 0,
-      timestamp: new Date().toISOString()
-    }
-    setLogEntries(prev => [newEntry, ...prev])
+  const handleLogSavedFood = async (food) => {
+    try {
+      const newEntry = await createLogEntry({
+        type: 'food', name: food.name, calories: food.calories, protein: food.protein,
+        carbs: food.carbs, fat: food.fat, fiber: food.fiber || 0, timestamp: new Date().toISOString()
+      })
+      setLogEntries(prev => [newEntry, ...prev])
+    } catch (error) { alert(error.message) }
   }
 
-  const handleLogMeal = (meal) => {
-    const newEntry = {
-      id: Date.now(),
-      type: 'meal',
-      name: meal.name,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      fiber: meal.fiber || 0,
-      foods: meal.foods,
-      timestamp: new Date().toISOString()
-    }
-    setLogEntries(prev => [newEntry, ...prev])
+  const handleLogMeal = async (meal) => {
+    try {
+      const newEntry = await createLogEntry({
+        type: 'meal', name: meal.name, calories: meal.calories, protein: meal.protein,
+        carbs: meal.carbs, fat: meal.fat, fiber: meal.fiber || 0, foods: meal.foods, timestamp: new Date().toISOString()
+      })
+      setLogEntries(prev => [newEntry, ...prev])
+    } catch (error) { alert(error.message) }
   }
 
-  const handleDeleteLogEntry = (id) => {
-    setLogEntries(prev => prev.filter(entry => entry.id !== id))
+  const handleDeleteLogEntry = async (id) => {
+    try {
+      if (user) await api.logs.remove(id)
+      setLogEntries(prev => prev.filter(entry => entry.id !== id))
+    } catch (error) { alert(error.message) }
   }
 
-  const handleSetGoal = () => {
+  const handleSetGoal = async () => {
     if (goalInput > 0) {
       setDailyGoal(goalInput)
+      if (user) {
+        try { await api.goals.save({ ...macroGoals, calories: Number(goalInput) }) }
+        catch (error) { alert(error.message) }
+      }
     }
   }
 
   // Planner/Goals Handlers
+
   const handleMacroGoalsChange = (e) => {
     const { name, value } = e.target
     setMacroGoalsInput(prev => ({ ...prev, [name]: parseInt(value) || 0 }))
   }
 
-  const handleSaveMacroGoals = (e) => {
+  const handleSaveMacroGoals = async (e) => {
     e.preventDefault()
-    setMacroGoals(macroGoalsInput)
-    // Sync dailyGoal with calories
-    setDailyGoal(macroGoalsInput.calories)
-    setGoalInput(macroGoalsInput.calories)
-    alert('Goals saved successfully!')
+    try {
+      if (user) await api.goals.save(macroGoalsInput)
+      setMacroGoals(macroGoalsInput)
+      setDailyGoal(macroGoalsInput.calories)
+      setGoalInput(macroGoalsInput.calories)
+      alert('Goals saved successfully!')
+    } catch (error) { alert(error.message) }
   }
+
+
 
   // Calculate totals from log entries
   const totalCalories = logEntries.reduce((sum, entry) => sum + entry.calories, 0)
@@ -514,7 +442,7 @@ function App() {
 
   // Import/Export Handlers
   const handleExportData = () => {
-    const exportData = {
+    const exportData = storage.exportData({
       version: '1.0',
       exportDate: new Date().toISOString(),
       data: {
@@ -524,14 +452,14 @@ function App() {
         macroGoals,
         dailyGoal
       }
-    }
+    })
 
     const dataStr = JSON.stringify(exportData, null, 2)
     const dataBlob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `macro-tracker-backup-${new Date().toISOString().split('T')[0]}.json`
+    link.download = `nutrilog-backup-${new Date().toISOString().split('T')[0]}.json`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -543,52 +471,61 @@ function App() {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const importedData = JSON.parse(e.target.result)
-        
-        // Validate the data structure
         if (!importedData.data) {
           alert('Invalid backup file format')
           return
         }
 
-        const { savedFoods: importedFoods, savedMeals: importedMeals, logEntries: importedLogs, macroGoals: importedGoals, dailyGoal: importedDailyGoal } = importedData.data
+        const {
+          savedFoods: importedFoods = [],
+          savedMeals: importedMeals = [],
+          logEntries: importedLogs = [],
+          macroGoals: importedGoals = macroGoals,
+          dailyGoal: importedDailyGoal = importedGoals?.calories || dailyGoal
+        } = importedData.data
 
-        // Confirm before importing
-        const confirmMessage = `This will import:\n- ${importedFoods?.length || 0} foods\n- ${importedMeals?.length || 0} meals\n- ${importedLogs?.length || 0} log entries\n- Macro goals\n\nThis will replace your current data. Continue?`
-        
-        if (confirm(confirmMessage)) {
-          if (importedFoods) setSavedFoods(importedFoods)
-          if (importedMeals) setSavedMeals(importedMeals)
-          if (importedLogs) setLogEntries(importedLogs)
-          if (importedGoals) {
-            setMacroGoals(importedGoals)
-            setMacroGoalsInput(importedGoals)
-          }
-          if (importedDailyGoal) {
-            setDailyGoal(importedDailyGoal)
-            setGoalInput(importedDailyGoal)
-          }
-          
-          alert('Data imported successfully!')
+        const confirmMessage = `This will import:\n- ${importedFoods.length} foods\n- ${importedMeals.length} meals\n- ${importedLogs.length} log entries\n- Macro goals\n\nThis will replace your current data. Continue?`
+
+        if (!confirm(confirmMessage)) return
+
+        if (user) {
+          await api.sync.replace({
+            goals: importedGoals,
+            foods: importedFoods,
+            meals: importedMeals,
+            logs: importedLogs,
+          })
         }
+
+        setSavedFoods(importedFoods)
+        setSavedMeals(importedMeals)
+        setLogEntries(importedLogs)
+        setMacroGoals(importedGoals)
+        setMacroGoalsInput(importedGoals)
+        setDailyGoal(importedDailyGoal)
+        setGoalInput(importedDailyGoal)
+        alert('Data imported successfully!')
       } catch (error) {
         console.error('Import error:', error)
-        alert('Failed to import data. Please check the file format.')
+        alert(error.message || 'Failed to import data. Please check the file format.')
       }
     }
     reader.readAsText(file)
-    
-    // Reset the input so the same file can be imported again if needed
     event.target.value = ''
   }
 
   return (
     <div className="app">
       <div className="header">
-        <h1>🔥 Macro Tracker</h1>
-        <p>Track your daily nutrition and reach your goals</p>
+        <h1>🥗 NutriLog</h1>
+        <p>Track your nutrition, macros, and daily goals</p>
+        <div className="account-bar">
+          <span>Signed in as <strong>{user?.email}</strong></span>
+          <button className="account-logout" onClick={onLogout}>Sign out</button>
+        </div>
         
         {/* Tab Navigation */}
         <div className="tab-navigation">

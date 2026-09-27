@@ -1,25 +1,27 @@
 {
-  "name": "macro-tracker",
-  "version": "1.0.0",
-  "description": "A modern macro tracking application",
-  "homepage": "https://ize.github.io/macro-tracker",
+  "name": "nutrilog",
+  "version": "0.1.0",
+  "description": "Self-hosted, privacy-focused nutrition and macro tracking platform",
+  "homepage": "https://github.com/MistahJ94/NutriLog",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "start": "node server/index.cjs",
+    "start:api": "node server/index.cjs",
+    "check": "node --check server/index.cjs",
+    "check:build": "npm run check && npm run build"
   },
   "dependencies": {
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
-    "gh-pages": "^6.3.0",
     "vite": "^5.0.8"
   }
 }

@@ -1,0 +1,22 @@
+[Unit]
+Description=NutriLog self-hosted nutrition platform
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=nutrilog
+Group=nutrilog
+WorkingDirectory=/opt/nutrilog
+EnvironmentFile=/etc/nutrilog/nutrilog.env
+ExecStart=/usr/bin/node /opt/nutrilog/server/index.cjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/nutrilog
+
+[Install]
+WantedBy=multi-user.target

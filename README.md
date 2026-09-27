@@ -2,138 +2,158 @@
 
 A modern, privacy-focused nutrition and macro tracking platform for managing daily nutrition, foods, meals, and personal goals.
 
-NutriLog is designed with an **offline-first foundation** while being built to expand into a scalable, multi-user web platform with accounts, cloud synchronization, and cross-device access.
+NutriLog is being developed as a **self-hosted, offline-capable, multi-user platform**. The application now has database-backed accounts, authenticated sessions, user-scoped API storage, local browser caching, legacy local-data migration, and a Debian LXC deployment path.
 
-## ✨ Features
+## Current Features
 
-### 📊 Tracker
+- 📊 Daily calorie and macro tracking
+- 🎯 Custom calorie, protein, carbohydrate, fat, and fiber goals
+- 🥑 Personal food database
+- 🔍 USDA FoodData Central search
+- 🍽️ Meal builder and saved meals
+- 📅 Historical daily logs
+- 💾 JSON import/export backups
+- 📱 Responsive desktop and mobile UI
+- ⚡ React + Vite
+- 🔒 Local-first data storage in the current release
 
-* ✨ **Modern UI** - Clean interface with smooth animations and visual feedback
-* 📊 **Real-Time Statistics** - Track calories, protein, carbohydrates, fat, and fiber
-* 🎯 **Macro Progress** - Visual progress toward daily nutrition goals
-* ⚡ **Quick Add** - Quickly log foods with manual entry
-* 🚀 **Quick Access** - One-click logging from saved foods and meals
-* 📝 **Daily Log** - View everything logged throughout the day
-* 🕐 **Timestamps** - Track when foods and meals were added
-* 🗑️ **Easy Management** - Remove incorrectly logged items
+## Platform
 
-### 🎯 Planner
+NutriLog is being structured so the current UI can evolve without being tied directly to browser storage.
 
-* 🎯 **Custom Goals** - Set personalized calorie and macro targets
-* 📊 **Macro Breakdown** - Visualize your daily calorie distribution
-* 🔄 **Quick Presets** - Balanced, High Protein, and Low Carb presets
-* 🌾 **Fiber Tracking** - Set and monitor daily fiber goals
-* 💡 **Smart Hints** - See calorie contributions from individual macros
-* 💾 **Persistent Goals** - Goals remain available across sessions
+- 👤 User accounts and authentication
+- 🗄️ PostgreSQL-backed storage
+- 🌐 Node.js backend API
+- 👥 User-scoped multi-user isolation
+- ☁️ Cross-device synchronization through the self-hosted API
+- 📱 Local browser cache for responsive/offline viewing
+- 🔐 Secure session management
+- 🖥️ Self-hosted Proxmox LXC deployment
+- 🔄 Simple in-container updates using the `update` command
 
-### 🥑 Foods
+## Proxmox
 
-* 🔍 **USDA Food Search** - Search the USDA FoodData Central database
-* 🗄️ **Personal Food Database** - Save frequently eaten foods
-* 📏 **Serving Sizes** - Define custom serving sizes
-* 🔢 **Complete Nutrition Data** - Track calories, protein, carbohydrates, fat, and other nutritional information
-* ➕ **Quick Logging** - Add saved foods directly to your daily tracker
-* ✏️ **Easy Management** - Edit or delete saved foods
-* 🎯 **Automatic Data Entry** - USDA search results populate nutritional information automatically
+The target deployment is a dedicated Linux Container (LXC) on Proxmox VE.
 
-### 🍽️ Meals
+```text
+Proxmox VE
+   │
+   └── NutriLog LXC
+        ├── Web application
+        ├── API
+        ├── Database
+        ├── Persistent data
+        └── /usr/bin/update
+```
 
-* 🎯 **Meal Builder** - Create custom meals using saved foods
-* 🔢 **Quantity Control** - Adjust the quantity of individual ingredients
-* 📊 **Automatic Calculations** - Nutrition totals are calculated automatically
-* 💾 **Saved Meals** - Save frequently eaten meals for quick access
-* 🍳 **Meal Templates** - Create reusable breakfast, lunch, dinner, and other meal templates
-* ⚡ **One-Click Logging** - Add an entire saved meal to your daily tracker
+The deployment includes an installer modeled around the Proxmox helper-script experience. Once installed, updates will be performed from inside the LXC with:
 
-## 🔐 Privacy & Data
+```bash
+update
+```
 
-NutriLog is designed with privacy and user ownership in mind.
+The update process will preserve application configuration, database contents, and user data while updating the application and applying required database migrations.
 
-The current version uses local browser storage for data persistence, allowing NutriLog to operate without requiring an account or external database.
+## Development
 
-The architecture is being developed to support future functionality including:
-
-* 👤 User accounts
-* 🔐 Authentication
-* ☁️ Cloud synchronization
-* 💻 Cross-device access
-* 📱 Offline-first synchronization
-* 🗄️ Centralized database storage
-* 👥 Multi-user support
-
-The goal is to allow users to retain control of their nutrition data while providing the convenience of accessing it across multiple devices.
-
-## 📱 Responsive Design
-
-NutriLog is designed to work across:
-
-* 💻 Desktop
-* 💻 Laptop
-* 📱 Mobile
-* 📲 Tablet
-
-The interface adapts to different screen sizes while maintaining the same core functionality.
-
-## 🚀 Getting Started
-
-### Installation
-
-Clone the repository and install the required dependencies:
+### Install
 
 ```bash
 npm install
 ```
 
-### Development
-
-Start the local development server:
+### Run locally
 
 ```bash
 npm run dev
 ```
 
-Open your browser and navigate to:
+Open `http://localhost:5173`.
 
-```text
-http://localhost:5173
+#### Production server
+
+Build the frontend and run the combined API/static server:
+
+```bash
+npm run build
+npm start
 ```
 
-### Production Build
+The server expects `DATABASE_URL` and listens on port `3001` by default.
 
-Create a production build:
+## Build
 
 ```bash
 npm run build
 ```
 
-## 📖 How to Use
+## Architecture Direction
 
-### 🎯 Setting Your Goals
+The application is intentionally moving away from direct UI-to-localStorage coupling.
 
-1. Navigate to the **Planner** tab.
-2. Choose a preset or create custom goals.
-3. Set your target calories.
-4. Set your protein, carbohydrate, fat, and fiber goals.
-5. Review the calorie breakdown.
-6. Save your goals.
+```text
+                    NutriLog UI
+                         │
+                         ▼
+                  Application Layer
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+        Local Storage          NutriLog API
+              │                     │
+              │                PostgreSQL
+              │                     │
+              └──────── Sync ───────┘
+```
 
-Your goals will be used throughout NutriLog to calculate your daily progress.
+This allows offline functionality to remain available while providing a path to authenticated, multi-user, cross-device operation.
 
-### 🥑 Building Your Food Database
+## License
 
-1. Navigate to the **Foods** tab.
-2. Search the USDA FoodData Central database or enter a food manually.
-3. Select a food from the search results.
-4. Review the nutritional information.
-5. Adjust the serving size if necessary.
-6. Save the food to your personal database.
+MIT License
 
-Frequently eaten foods can then be accessed quickly from the Tracker and Meal Builder.
+## Platform foundation
 
-### 🍽️ Creating Meals
+The PostgreSQL data model in `db/schema.sql` uses a per-user ownership model for goals, foods, meals, and log entries. The browser keeps a local cache, while authenticated create/delete/goal operations are persisted through the API.
 
-1. Navigate to the **Meals** tab.
-2. Enter a meal name.
-3. Select foods
+### Platform status
+
+The platform foundation is implemented on this development branch:
+
+1. Authentication and HTTP-only session handling
+2. PostgreSQL schema and user-scoped API CRUD
+3. Local browser cache synchronized through authenticated mutations
+4. Legacy localStorage migration into the first authenticated account
+5. Debian-based Proxmox LXC installer
+6. `/usr/bin/update` maintenance command
+7. systemd service for the NutriLog API and production web application
+
+For public deployment, place NutriLog behind HTTPS such as Nginx Proxy Manager. The application itself should not be exposed directly to the Internet on port 3001.
 
 
+
+### Proxmox LXC deployment
+
+The intended production target is a dedicated Debian-based LXC. The installer is:
+
+```bash
+bash scripts/install-lxc.sh
+```
+
+After installation, updates are performed with:
+
+```bash
+update
+```
+
+The update workflow fetches the `main` branch, installs dependencies, applies the PostgreSQL schema, rebuilds the application, and restarts the systemd service. Database credentials live outside the repository in `/etc/nutrilog/nutrilog.env`.
+
+### Security notes
+
+- Authentication uses server-side sessions stored as SHA-256 token hashes in PostgreSQL.
+- Passwords are hashed with Node.js `scrypt` using per-password salts.
+- Session cookies are HTTP-only and SameSite protected; production cookies also use Secure.
+- Authentication attempts are rate limited in-process.
+- PostgreSQL is intended to remain bound to localhost in the LXC.
+- The application should be published through HTTPS/reverse proxy rather than exposing port 3001 directly.
+- Do not commit `.env` files, database credentials, or session secrets.
