@@ -84,6 +84,18 @@ export const api = {
       serving_unit: food.servingUnit,
       source: food.source || 'custom',
     }),
+    update: (id, food) => json('PUT', '/foods/' + id, {
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      fiber: food.fiber,
+      serving_size: food.servingSize,
+      serving_amount: food.servingAmount,
+      serving_unit: food.servingUnit,
+      source: food.source || 'custom',
+    }),
     remove: id => request('/foods/' + id, { method: 'DELETE' }),
   },
 
