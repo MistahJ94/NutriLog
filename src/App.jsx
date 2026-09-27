@@ -195,7 +195,7 @@ function App({ user, initialServerData, onLogout }) {
         order: Array.isArray(saved?.order) ? saved.order : ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber']
       }
     } catch {
-      return { template: 'balanced', columns: 3, customize: false, cards: {}, order: ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber'] }
+      return { template: 'custom', columns: 3, customize: false, cards: {}, order: ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber'] }
     }
   })
   const [draggingTrackerCard, setDraggingTrackerCard] = useState(null)
@@ -640,26 +640,6 @@ function App({ user, initialServerData, onLogout }) {
     { id: 'fiber', label: 'Fiber', value: `${totalFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: fiberProgress, className: 'warning' }
   ]
 
-  const trackerTemplates = {
-    balanced: { label: 'Balanced', columns: 3, cards: {} },
-    calories: { label: 'Calories Focus', columns: 3, cards: { calories: { size: 'wide' }, remaining: { size: 'normal' } } },
-    compact: { label: 'Compact', columns: 4, cards: {} },
-    dashboard: { label: 'Dashboard', columns: 3, cards: { calories: { size: 'large' }, protein: { size: 'wide' }, carbs: { size: 'wide' } } }
-  }
-
-  const applyTrackerTemplate = key => {
-    const template = trackerTemplates[key]
-    if (!template) return
-    setTrackerLayout(prev => ({
-      ...prev,
-      template: key,
-      columns: template.columns,
-      customize: false,
-      cards: { ...template.cards },
-      order: ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber']
-    }))
-  }
-
   const updateTrackerCard = (id, field, value) => {
     setTrackerLayout(prev => ({
       ...prev,
@@ -990,26 +970,12 @@ function App({ user, initialServerData, onLogout }) {
               </div>
             </div>
 
-            <div className="tracker-template-picker">
-              {Object.entries(trackerTemplates).map(([key, template]) => (
-                <button type="button" key={key} className={`tracker-template ${trackerLayout.template === key ? 'selected' : ''}`} onClick={() => applyTrackerTemplate(key)}>
-                  <span className="tracker-template-title">{template.label}</span>
-                  <span className={`tracker-template-preview columns-${template.columns}`}>
-                    {trackerCards.map(card => {
-                      const size = template.cards?.[card.id]?.size || 'normal'
-                      return <span key={card.id} className={`tracker-template-mini tracker-mini-${size}`}></span>
-                    })}
-                  </span>
-                </button>
-              ))}
-            </div>
-
             {trackerLayout.customize && (
               <div className="tracker-customizer section">
                 <div className="tracker-customizer-intro">
                   <div>
                     <h3>Customize Dashboard</h3>
-                    <p>Drag cards to reorder them. Click a visual size to resize a card.</p>
+                    <p>Drag cards to reorder them, or use the resize controls on the cards below.</p>
                   </div>
                   <div className="tracker-column-picker">
                     {[2,3,4].map(columns => (
@@ -1054,7 +1020,7 @@ function App({ user, initialServerData, onLogout }) {
               </div>
             )}
 
-            <div className="stats-grid tracker-stats-grid" style={{ '--tracker-columns': trackerLayout.columns }}>
+            <div className="stats-grid tracker-stats-grid" style={{ '--tracker-columns': trackerLayout.columns || 3 }}>
               {orderedTrackerCards.map(card => {
                 const config = trackerLayout.cards[card.id] || {}
                 return (
