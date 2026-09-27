@@ -1,81 +1,53 @@
 #!/usr/bin/env bash
-set -euo pipefail
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main"
+_cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
+source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 
-APP_DIR="/opt/nutrilog"
-ETC_DIR="/etc/nutrilog"
-REPO_URL="https://github.com/MistahJ94/NutriLog.git"
-BRANCH="main"
-DB_NAME="nutrilog"
-DB_USER="nutrilog"
-DB_PASSWORD="$(openssl rand -hex 24)"
-APP_USER="nutrilog"
+# NutriLog Proxmox LXC installer
+# Based on the Community Scripts container model.
+# NutriLog application code and installer remain under the MIT-compatible project license.
 
-if [[ "${EUID}" -ne 0 ]]; then echo "Run as root."; exit 1; fi
-if [[ -f /etc/os-release ]]; then . /etc/os-release; else echo "Unsupported OS."; exit 1; fi
-if [[ "${ID}" != "debian" && "${ID_LIKE:-}" != *debian* ]]; then echo "NutriLog installer currently targets Debian-based LXCs."; exit 1; fi
+APP="NutriLog"
+var_tags="${var_tags:-health;fitness;nutrition}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-8}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_arm64="${var_arm64:-yes}"
+var_unprivileged="${var_unprivileged:-1}"
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y ca-certificates curl git openssl postgresql postgresql-client
+header_info "$APP"
+variables
+color
+catch_errors
 
-if ! command -v node >/dev/null 2>&1 || [[ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]]; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  apt-get install -y nodejs
-fi
+function update_script() {
+  header_info
+  check_container_storage
+  check_container_resources
 
-id "${APP_USER}" >/dev/null 2>&1 || useradd --system --user-group --home "${APP_DIR}" --shell /usr/sbin/nologin "${APP_USER}"
-mkdir -p "${APP_DIR}" "${ETC_DIR}"
-chown "${APP_USER}:${APP_USER}" "${APP_DIR}"
+  if [[ ! -d /opt/nutrilog ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
 
-systemctl enable --now postgresql
+  msg_info "Updating ${APP}"
+  if command -v update >/dev/null 2>&1; then
+    $STD update
+  else
+    msg_error "NutriLog update command is missing!"
+    exit 1
+  fi
+  msg_ok "Updated successfully!"
+  exit
+}
 
-sudo -u postgres psql -v ON_ERROR_STOP=1 <<SQL
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${DB_USER}') THEN
-    CREATE ROLE ${DB_USER} LOGIN PASSWORD '${DB_PASSWORD}';
-  ELSE
-    ALTER ROLE ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';
-  END IF;
-END
-$$;
-SELECT 'CREATE DATABASE ${DB_NAME} OWNER ${DB_USER}'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB_NAME}')\gexec
-SQL
+start
+build_container
+description
 
-if [[ -d "${APP_DIR}/.git" ]]; then
-  git -C "${APP_DIR}" fetch --prune origin
-  git -C "${APP_DIR}" checkout --quiet "${BRANCH}"
-  git -C "${APP_DIR}" reset --hard "origin/${BRANCH}"
-else
-  rm -rf "${APP_DIR}"
-  git clone --branch "${BRANCH}" --single-branch "${REPO_URL}" "${APP_DIR}"
-fi
-chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}"
-
-cat > "${ETC_DIR}/nutrilog.env" <<EOF
-NODE_ENV=production
-PORT=3001
-DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}
-CORS_ORIGIN=http://127.0.0.1:3001
-DB_POOL_SIZE=10
-EOF
-chown root:${APP_USER} "${ETC_DIR}/nutrilog.env"
-chmod 640 "${ETC_DIR}/nutrilog.env"
-
-psql "postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}" -v ON_ERROR_STOP=1 -f "${APP_DIR}/db/schema.sql"
-
-cd "${APP_DIR}"
-runuser -u "${APP_USER}" -- npm ci
-runuser -u "${APP_USER}" -- npm run build
-
-install -m 0755 "${APP_DIR}/scripts/update.sh" /usr/bin/update
-install -m 0644 "${APP_DIR}/deploy/nutrilog.service" /etc/systemd/system/nutrilog.service
-
-systemctl daemon-reload
-systemctl enable --now nutrilog
-
-echo
-echo "NutriLog installed."
-echo "Application: http://127.0.0.1:3001"
-echo "Update command: update"
+msg_ok "Completed successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:3001${CL}"
