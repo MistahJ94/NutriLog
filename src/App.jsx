@@ -97,48 +97,6 @@ function AdminPanel({ user }) {
     finally { setSmtpTesting(false) }
   }
 
-  const trackerCards = [
-    { id: 'calories', label: "Today's Calories", value: totalCalories, subtext: `of ${macroGoals.calories} kcal`, progress, className: 'primary' },
-    { id: 'remaining', label: 'Remaining', value: remaining, subtext: `kcal ${remaining < 0 ? 'over' : 'left'}`, className: 'success' },
-    { id: 'protein', label: 'Protein', value: `${totalProtein}g`, subtext: `of ${macroGoals.protein}g`, progress: proteinProgress },
-    { id: 'carbs', label: 'Carbs', value: `${totalCarbs}g`, subtext: `of ${macroGoals.carbs}g`, progress: carbsProgress },
-    { id: 'fat', label: 'Fat', value: `${totalFat}g`, subtext: `of ${macroGoals.fat}g`, progress: fatProgress },
-    { id: 'fiber', label: 'Fiber', value: `${totalFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: fiberProgress, className: 'warning' }
-  ]
-
-  const trackerTemplates = {
-    balanced: { label: 'Balanced', columns: 3, cards: {} },
-    calories: { label: 'Calories Focus', columns: 3, cards: { calories: { size: 'wide' }, remaining: { size: 'normal' } } },
-    compact: { label: 'Compact', columns: 4, cards: {} },
-    dashboard: { label: 'Dashboard', columns: 3, cards: { calories: { size: 'large' }, protein: { size: 'wide' }, carbs: { size: 'wide' } } }
-  }
-
-  const applyTrackerTemplate = key => {
-    const template = trackerTemplates[key]
-    setTrackerLayout({ template: key, columns: template.columns, customize: false, cards: template.cards })
-  }
-
-  const updateTrackerCard = (id, field, value) => {
-    setTrackerLayout(prev => ({
-      ...prev,
-      template: 'custom',
-      cards: { ...prev.cards, [id]: { ...(prev.cards[id] || {}), [field]: value } }
-    }))
-  }
-
-  const visibleFoods = savedFoods
-    .filter(food => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase()))
-    .sort((a, b) => {
-      if (foodSort === 'az') return a.name.localeCompare(b.name)
-      if (foodSort === 'za') return b.name.localeCompare(a.name)
-      const getTime = food => {
-        const value = food.created_at || food.createdAt || food.id
-        const time = new Date(value).getTime()
-        return Number.isFinite(time) ? time : 0
-      }
-      return foodSort === 'oldest' ? getTime(a) - getTime(b) : getTime(b) - getTime(a)
-    })
-
   return (
     <div className="settings-container">
       <div className="planner-intro">
@@ -347,7 +305,49 @@ function App({ user, initialServerData, onLogout }) {
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    return () => {
+    const trackerCards = [
+    { id: 'calories', label: "Today's Calories", value: totalCalories, subtext: `of ${macroGoals.calories} kcal`, progress, className: 'primary' },
+    { id: 'remaining', label: 'Remaining', value: remaining, subtext: `kcal ${remaining < 0 ? 'over' : 'left'}`, className: 'success' },
+    { id: 'protein', label: 'Protein', value: `${totalProtein}g`, subtext: `of ${macroGoals.protein}g`, progress: proteinProgress },
+    { id: 'carbs', label: 'Carbs', value: `${totalCarbs}g`, subtext: `of ${macroGoals.carbs}g`, progress: carbsProgress },
+    { id: 'fat', label: 'Fat', value: `${totalFat}g`, subtext: `of ${macroGoals.fat}g`, progress: fatProgress },
+    { id: 'fiber', label: 'Fiber', value: `${totalFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: fiberProgress, className: 'warning' }
+  ]
+
+  const trackerTemplates = {
+    balanced: { label: 'Balanced', columns: 3, cards: {} },
+    calories: { label: 'Calories Focus', columns: 3, cards: { calories: { size: 'wide' }, remaining: { size: 'normal' } } },
+    compact: { label: 'Compact', columns: 4, cards: {} },
+    dashboard: { label: 'Dashboard', columns: 3, cards: { calories: { size: 'large' }, protein: { size: 'wide' }, carbs: { size: 'wide' } } }
+  }
+
+  const applyTrackerTemplate = key => {
+    const template = trackerTemplates[key]
+    setTrackerLayout({ template: key, columns: template.columns, customize: false, cards: template.cards })
+  }
+
+  const updateTrackerCard = (id, field, value) => {
+    setTrackerLayout(prev => ({
+      ...prev,
+      template: 'custom',
+      cards: { ...prev.cards, [id]: { ...(prev.cards[id] || {}), [field]: value } }
+    }))
+  }
+
+  const visibleFoods = savedFoods
+    .filter(food => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase()))
+    .sort((a, b) => {
+      if (foodSort === 'az') return a.name.localeCompare(b.name)
+      if (foodSort === 'za') return b.name.localeCompare(a.name)
+      const getTime = food => {
+        const value = food.created_at || food.createdAt || food.id
+        const time = new Date(value).getTime()
+        return Number.isFinite(time) ? time : 0
+      }
+      return foodSort === 'oldest' ? getTime(a) - getTime(b) : getTime(b) - getTime(a)
+    })
+
+  return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
