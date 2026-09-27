@@ -1463,6 +1463,22 @@ function App({ user, initialServerData, onLogout }) {
               <p>Manage your data with import and export options</p>
             </div>
 
+            <div className="section">
+              <h3>Account Security</h3>
+              <p className="settings-description">Manage your password and active NutriLog sessions.</p>
+              <form onSubmit={async e => { e.preventDefault(); const form=e.currentTarget; const current=form.currentPassword.value; const next=form.newPassword.value; const confirm=form.confirmPassword.value; if(next!==confirm)return alert('New passwords do not match.'); try{await api.auth.changePassword(current,next); form.reset(); alert('Password changed. All other sessions were signed out.')}catch(err){alert(err.message)} }} className="settings-form">
+                <div className="form-group"><label>Current Password<input name="currentPassword" type="password" required autoComplete="current-password" /></label></div>
+                <div className="form-group"><label>New Password<input name="newPassword" type="password" required minLength={8} maxLength={128} autoComplete="new-password" /></label></div>
+                <div className="form-group"><label>Confirm New Password<input name="confirmPassword" type="password" required minLength={8} maxLength={128} autoComplete="new-password" /></label></div>
+                <button className="btn btn-primary" type="submit"><KeyRound size={18} />Change Password</button>
+              </form>
+              <div style={{marginTop:24}}>
+                <h4>Other Devices</h4>
+                <p style={{color:'#666',marginBottom:12}}>Sign out every other active session while keeping this device signed in.</p>
+                <button className="btn btn-secondary" onClick={async()=>{try{await api.auth.revokeOtherSessions();alert('All other sessions were revoked.')}catch(err){alert(err.message)}}}><RefreshCw size={18}/>Sign Out Other Devices</button>
+              </div>
+            </div>
+
             <div className="section theme-settings">
               <h3>Appearance</h3>
               <p className="settings-description">Choose a color scheme for this browser. Your choice is saved locally on this device.</p>
