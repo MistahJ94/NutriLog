@@ -22,6 +22,9 @@ NutriLog is designed around a simple goal: keep nutrition data under the operato
 - 👥 Multi-user accounts with per-user data isolation
 - 🛡️ Administrator account and user management
 - 🔑 Administrator password resets and session revocation
+- 🔐 User self-service password changes
+- 📱 Sign out of other active sessions
+- ✉️ Optional email password-reset recovery
 - 🚫 Account enable/disable controls
 - 🌐 Cross-device access through the self-hosted API
 - 💾 Browser-side caching for responsive/offline-capable use
@@ -51,6 +54,8 @@ Administrators can manage users from the application, including:
 - Delete users
 
 Administrators cannot disable, demote, or delete their own account through the admin interface.
+
+Users can change their own password and revoke other active sessions from Settings. Optional SMTP configuration enables email-based password recovery with single-use, 30-minute reset tokens. If SMTP is not configured, administrators can continue to reset passwords from the administrator interface.
 
 ## 🏗️ Architecture
 
@@ -210,6 +215,8 @@ Important settings include:
 - `DB_POOL_SIZE` — PostgreSQL connection pool size.
 - `COOKIE_SECURE` — set to `true` when authentication is served over HTTPS.
 - `CORS_ORIGIN` — optional. Leave empty or unset for the normal same-origin deployment. Set it to the exact frontend origin only when the API is intentionally used cross-origin.
+- `PUBLIC_URL` — public NutriLog URL used in password-reset emails.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_SECURE` — optional SMTP settings for email password recovery.
 
 For a standard NutriLog deployment behind a reverse proxy, the frontend and API are served from the same origin, so `CORS_ORIGIN` does not need to be configured.
 
