@@ -268,7 +268,38 @@ async function authApi(req, res, pathname) {
 
   if (req.method === "POST" && pathname === "/api/auth/change-password") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); if(!authAllowed(req))return send(res,429,{error:"Too many authentication attempts. Try again later."}); const body=await readBody(req); if(!validPassword(body.newPassword))return send(res,400,{error:"Password must be 8-128 characters"}); const row=(await sql.unsafe("SELECT password_hash FROM users WHERE id=$1 AND is_active=TRUE",[user.id]))[0]; if(!row||!(await verifyPassword(body.currentPassword,row.password_hash)))return send(res,401,{error:"Current password is incorrect"}); await sql.unsafe("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2",[await hashPassword(body.newPassword),user.id]); const current=parseCookies(req.headers.cookie).nutrilog_session; await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
   if (req.method === "POST" && pathname === "/api/auth/revoke-other-sessions") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); const current=parseCookies(req.headers.cookie).nutrilog_session; await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
-  if (req.method === "POST" && pathname === "/api/auth/forgot-password") { if(!authAllowed(req))return send(res,429,{error:"Too many requests. Try again later."}); const body=await readBody(req); const email=String(body.email||"").trim().toLowerCase(); const generic={message:"If an account exists for that email, a password reset link has been sent."}; if(!validEmail(email))return send(res,200,generic); const row=(await sql.unsafe("SELECT id FROM users WHERE email=$1 AND is_active=TRUE",[email]))[0]; if(!row||!SMTP_HOST||!SMTP_FROM||!PUBLIC_URL)return send(res,200,generic); const token=crypto.randomBytes(32).toString("base64url"); await sql.unsafe("DELETE FROM password_reset_tokens WHERE user_id=$1 OR expires_at<=NOW()",[row.id]); await sql.unsafe("INSERT INTO password_reset_tokens(token_hash,user_id,expires_at) VALUES($1,$2,NOW()+INTERVAL '30 minutes')",[tokenHash(token),row.id]); try{await sendPasswordResetEmail(settings,email,token)}catch(err){console.error("Password reset email failed:",err.message)} return send(res,200,generic) }
+  if (req.method === "POST" && pathname === "/api/auth/forgot-password") {
+    if (!authAllowed(req)) return send(res, 429, { error: "Too many requests. Try again later." })
+    const body = await readBody(req)
+    const email = String(body.email || "").trim().toLowerCase()
+    const generic = { message: "If an account exists for that email, a password reset link has been sent." }
+    if (!validEmail(email)) return send(res, 200, generic)
+    const row = (await sql.unsafe("SELECT id FROM users WHERE email=$1 AND is_active=TRUE", [email]))[0]
+    if (!row) return send(res, 200, generic)
+    const smtpRows = await sql.unsafe("SELECT host,port,security,username,password_encrypted,from_email,from_name,public_url FROM smtp_settings WHERE id=TRUE")
+    const smtp = smtpRows[0]
+    if (!smtp) return send(res, 200, generic)
+    const settings = {
+      host: smtp.host,
+      port: Number(smtp.port),
+      security: smtp.security || "starttls",
+      username: smtp.username || "",
+      password: decryptSecret(smtp.password_encrypted),
+      fromEmail: smtp.from_email,
+      fromName: smtp.from_name,
+      publicUrl: smtp.public_url
+    }
+    if (!smtpSettingsValid(settings)) return send(res, 200, generic)
+    const token = crypto.randomBytes(32).toString("base64url")
+    await sql.unsafe("DELETE FROM password_reset_tokens WHERE user_id=$1 OR expires_at<=NOW()", [row.id])
+    await sql.unsafe("INSERT INTO password_reset_tokens(token_hash,user_id,expires_at) VALUES($1,$2,NOW()+INTERVAL '30 minutes')", [tokenHash(token), row.id])
+    try {
+      await sendPasswordResetEmail(settings, email, token)
+    } catch (err) {
+      console.error("Password reset email failed:", err.message)
+    }
+    return send(res, 200, generic)
+  }
   if (req.method === "POST" && pathname === "/api/auth/reset-password") { if(!authAllowed(req))return send(res,429,{error:"Too many requests. Try again later."}); const body=await readBody(req); if(!validPassword(body.newPassword)||typeof body.token!=="string")return send(res,400,{error:"A valid reset token and password (8-128 characters) are required"}); const rows=await sql.unsafe("SELECT user_id FROM password_reset_tokens WHERE token_hash=$1 AND expires_at>NOW()",[tokenHash(body.token)]); if(!rows.length)return send(res,400,{error:"This password reset link is invalid or has expired."}); await sql.unsafe("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2",[await hashPassword(body.newPassword),rows[0].user_id]); await sql.unsafe("DELETE FROM sessions WHERE user_id=$1",[rows[0].user_id]); await sql.unsafe("DELETE FROM password_reset_tokens WHERE user_id=$1",[rows[0].user_id]); return send(res,200,{ok:true}) }
   if (req.method === "POST" && pathname === "/api/auth/logout") {
     const token = parseCookies(req.headers.cookie).nutrilog_session
