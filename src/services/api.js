@@ -22,11 +22,22 @@ const json = (method, path, body) => request(path, {
 export const api = {
   health: () => request('/health'),
 
+  setup: () => request('/setup'),
   auth: {
     me: () => request('/auth/me'),
     register: (email, password) => json('POST', '/auth/register', { email, password }),
     login: (email, password) => json('POST', '/auth/login', { email, password }),
+    setup: (email, password) => json('POST', '/auth/setup', { email, password }),
     logout: () => request('/auth/logout', { method: 'POST' }),
+  },
+
+  admin: {
+    users: () => request('/admin/users'),
+    createUser: (email, password, role = 'user') => json('POST', '/admin/users', { email, password, role }),
+    updateUser: (id, changes) => json('PUT', '/admin/users/' + id, changes),
+    deleteUser: id => request('/admin/users/' + id, { method: 'DELETE' }),
+    revokeSessions: id => request('/admin/users/' + id + '/sessions/revoke', { method: 'POST' }),
+    resetPassword: (id, password) => json('POST', '/admin/users/' + id + '/password', { password }),
   },
 
   goals: {
