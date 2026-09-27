@@ -1,6 +1,6 @@
 # 🥗 NutriLog
 
-A self-hosted nutrition and macro tracking platform for managing daily nutrition, foods, meals, and personal goals across multiple users and devices.
+A self-hosted nutrition and macro tracking platform for managing daily nutrition, foods, meals, personal goals, and user accounts across multiple devices.
 
 **Live deployment:** https://nutrilog.jondomain.com
 
@@ -11,10 +11,14 @@ NutriLog is designed around a simple goal: keep nutrition data under the operato
 - 📊 Daily calorie and macro tracking
 - 🎯 Custom calorie, protein, carbohydrate, fat, and fiber goals
 - 🥑 Personal food database
-- 🔍 USDA FoodData Central search
 - 🍽️ Meal builder and saved meals
+- 📏 Explicit serving amounts and serving units for foods and meals
+- 🔢 Fractional serving quantities when logging nutrition
+- 🧮 Nutrition totals automatically scale with the quantity consumed
 - 📅 Historical daily logs
 - 💾 JSON import/export backups
+- 🎨 Light and dark appearance modes
+- 🌈 Multiple accent color presets plus a custom color picker
 - 📱 Responsive desktop and mobile UI
 - ⚡ React + Vite frontend
 - 👤 User accounts and authentication
@@ -51,6 +55,41 @@ Administrators can manage users from the application, including:
 - Delete users
 
 Administrators cannot disable, demote, or delete their own account through the admin interface.
+
+## 🍽️ Nutrition & Serving Sizes
+
+Foods store an explicit serving amount and serving unit. Nutrition values entered for a food represent one serving.
+
+When logging a food or meal, the user can enter the number of servings consumed, including fractional quantities such as `0.5`, `1.5`, or `2.5`. NutriLog previews and stores the resulting nutrition totals based on the quantity consumed.
+
+For example:
+
+```text
+Serving: 100 g
+Calories: 165
+Servings consumed: 2.5
+Total calories: 412.5
+```
+
+## 🎨 Appearance
+
+NutriLog provides browser-local appearance settings under Settings:
+
+- Light mode
+- Dark mode
+- Sage
+- Ocean
+- Berry
+- Citrus
+- Teal
+- Ruby
+- Rose
+- Indigo
+- Gold
+- Slate
+- Custom accent color
+
+Appearance preferences are stored locally in the user's browser, allowing each device/browser to maintain its own appearance settings.
 
 ## 🏗️ Architecture
 
@@ -257,13 +296,17 @@ The platform foundation is implemented on `main`, including:
 2. First-run administrator setup
 3. Administrator user management
 4. PostgreSQL schema and user-scoped API storage
-5. Local browser caching
-6. Cross-device authenticated API access
-7. Legacy local-data migration
-8. Proxmox LXC installation
-9. systemd production service
-10. `/usr/bin/update` maintenance workflow
-11. Application health checking
+5. Food and meal serving-size support
+6. Quantity-based nutrition logging
+7. Local browser caching
+8. Cross-device authenticated API access
+9. Legacy local-data migration
+10. Responsive desktop/mobile interface
+11. Appearance modes and accent customization
+12. Proxmox LXC installation
+13. systemd production service
+14. `/usr/bin/update` maintenance workflow
+15. Application health checking
 
 NutriLog is actively being developed. Nutrition features and the user experience will continue to evolve while the self-hosted platform foundation remains the core deployment model.
 
