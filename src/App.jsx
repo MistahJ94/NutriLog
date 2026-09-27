@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
+import HealthGoals from './HealthGoals'
+import ActivityBoard from './ActivityBoard'
 import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition } from './services'
 
 function AdminPanel({ user }) {
@@ -306,11 +308,11 @@ function App({ user, initialServerData, onLogout }) {
     }
     const draft = {
       name: foodFormData.name,
-      calories: parseInt(foodFormData.calories) || 0,
-      protein: parseInt(foodFormData.protein) || 0,
-      carbs: parseInt(foodFormData.carbs) || 0,
-      fat: parseInt(foodFormData.fat) || 0,
-      fiber: parseInt(foodFormData.fiber) || 0,
+      calories: parseFloat(foodFormData.calories) || 0,
+      protein: parseFloat(foodFormData.protein) || 0,
+      carbs: parseFloat(foodFormData.carbs) || 0,
+      fat: parseFloat(foodFormData.fat) || 0,
+      fiber: parseFloat(foodFormData.fiber) || 0,
       servingSize: `${foodFormData.servingAmount || 1} ${foodFormData.servingUnit || 'serving'}`,
       servingAmount: Number(foodFormData.servingAmount) || 1,
       servingUnit: foodFormData.servingUnit || 'serving'
@@ -715,6 +717,20 @@ function App({ user, initialServerData, onLogout }) {
           >
             <UtensilsCrossed size={20} />
             Meals
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'goals' ? 'active' : ''}`}
+            onClick={() => setActiveTab('goals')}
+          >
+            <Target size={20} />
+            Goals
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
+            onClick={() => setActiveTab('activity')}
+          >
+            <TrendingUp size={20} />
+            Activity
           </button>
           <button 
             className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
@@ -1268,7 +1284,7 @@ function App({ user, initialServerData, onLogout }) {
                     placeholder="e.g., 165"
                     min="0"
                     required
-                  />
+                   step="0.01"/>
                 </div>
 
                 <div className="form-group">
@@ -1280,7 +1296,7 @@ function App({ user, initialServerData, onLogout }) {
                     onChange={handleFoodFormChange}
                     placeholder="e.g., 31"
                     min="0"
-                  />
+                   step="0.01"/>
                 </div>
 
                 <div className="form-group">
@@ -1292,7 +1308,7 @@ function App({ user, initialServerData, onLogout }) {
                     onChange={handleFoodFormChange}
                     placeholder="e.g., 0"
                     min="0"
-                  />
+                   step="0.01"/>
                 </div>
 
                 <div className="form-group">
@@ -1304,7 +1320,7 @@ function App({ user, initialServerData, onLogout }) {
                     onChange={handleFoodFormChange}
                     placeholder="e.g., 3.6"
                     min="0"
-                  />
+                   step="0.01"/>
                 </div>
 
                 <button type="submit" className="btn btn-primary">
@@ -1509,7 +1525,11 @@ function App({ user, initialServerData, onLogout }) {
           </div>
         )}
 
-        {/* SETTINGS TAB */}
+        {activeTab === 'goals' && <HealthGoals />}
+
+        {activeTab === 'activity' && <ActivityBoard />}
+
+                {/* SETTINGS TAB */}
         {activeTab === 'settings' && (
           <div className="settings-container">
             <div className="planner-intro">

@@ -48,6 +48,23 @@ export const api = {
     disableSmtp: () => request('/admin/smtp', { method: 'DELETE' }),
   },
 
+  health: {
+    get: () => request('/health-profile'),
+    save: profile => json('PUT', '/health-profile', profile),
+  },
+
+  activities: {
+    list: () => request('/activities'),
+    create: activity => json('POST', '/activities', activity),
+    remove: id => request('/activities/' + id, { method: 'DELETE' }),
+  },
+
+  weight: {
+    list: () => request('/weight'),
+    create: entry => json('POST', '/weight', entry),
+    remove: id => request('/weight/' + id, { method: 'DELETE' }),
+  },
+
   goals: {
     get: () => request('/goals'),
     save: goals => json('PUT', '/goals', goals),

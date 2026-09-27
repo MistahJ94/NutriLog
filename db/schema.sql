@@ -34,3 +34,33 @@ CREATE TABLE IF NOT EXISTS smtp_settings (
   public_url TEXT NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE TABLE IF NOT EXISTS health_profiles (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  age INTEGER,
+  sex TEXT NOT NULL DEFAULT 'unspecified' CHECK (sex IN ('male','female','unspecified')),
+  height_cm NUMERIC(6,2),
+  current_weight_kg NUMERIC(8,2),
+  goal_weight_kg NUMERIC(8,2),
+  activity_level TEXT NOT NULL DEFAULT 'moderately_active' CHECK (activity_level IN ('sedentary','lightly_active','moderately_active','very_active','extremely_active')),
+  goal_type TEXT NOT NULL DEFAULT 'maintain' CHECK (goal_type IN ('maintain','lose','gain')),
+  desired_rate_lbs NUMERIC(5,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  activity_type TEXT NOT NULL, duration_minutes NUMERIC(8,2) NOT NULL DEFAULT 0,
+  intensity TEXT NOT NULL DEFAULT 'moderate' CHECK (intensity IN ('light','moderate','vigorous')),
+  calories_burned NUMERIC(10,2) NOT NULL DEFAULT 0,
+  calories_source TEXT NOT NULL DEFAULT 'estimated' CHECK (calories_source IN ('estimated','manual','device')),
+  activity_date DATE NOT NULL DEFAULT CURRENT_DATE, notes TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS activities_user_date_idx ON activities(user_id, activity_date DESC, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS weight_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  weight_kg NUMERIC(8,2) NOT NULL, recorded_at DATE NOT NULL DEFAULT CURRENT_DATE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS weight_entries_user_date_idx ON weight_entries(user_id, recorded_at DESC, created_at DESC);
+
