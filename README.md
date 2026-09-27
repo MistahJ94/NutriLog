@@ -1,52 +1,84 @@
-# 🔥 Macro Tracker
+# 🥗 NutriLog
 
-A modern, beautiful web application for tracking your daily macros and nutrition with a comprehensive food database and meal builder.
+A modern, privacy-focused nutrition and macro tracking platform for managing daily nutrition, foods, meals, and personal goals.
 
-Check live at [https://mauricioize.dev/macro-tracker/](https://mauricioize.dev/macro-tracker/).
+NutriLog is designed with an **offline-first foundation** while being built to expand into a scalable, multi-user web platform with accounts, cloud synchronization, and cross-device access.
 
-## Features
+## ✨ Features
 
-### 🔥 Tracker Tab
-- ✨ **Beautiful Modern UI** - Gradient backgrounds and smooth animations
-- 📊 **Real-time Statistics** - Track calories, protein, carbs, fat, and fiber
-- 🎯 **Macro Progress** - Visual progress bars for each macro goal
-- ⚡ **Quick Add** - Instantly log foods with manual entry
-- 🚀 **Quick Access** - One-click logging from saved foods and meals
-- 📝 **Today's Log** - View all entries with timestamps
+### 📊 Tracker
 
-### 📋 Planner Tab
-- 🎯 **Custom Goals** - Set personalized targets for calories and macros
-- 📊 **Macro Breakdown** - Visual breakdown of your calorie distribution
-- 🔄 **Quick Presets** - Choose from Balanced, High Protein, or Low Carb presets
-- 🌾 **Fiber Tracking** - Set and monitor daily fiber goals
-- 💡 **Smart Hints** - See calorie contributions from each macro as you set goals
-- 💾 **Auto-Save** - Goals persist across sessions
+* ✨ **Modern UI** - Clean interface with smooth animations and visual feedback
+* 📊 **Real-Time Statistics** - Track calories, protein, carbohydrates, fat, and fiber
+* 🎯 **Macro Progress** - Visual progress toward daily nutrition goals
+* ⚡ **Quick Add** - Quickly log foods with manual entry
+* 🚀 **Quick Access** - One-click logging from saved foods and meals
+* 📝 **Daily Log** - View everything logged throughout the day
+* 🕐 **Timestamps** - Track when foods and meals were added
+* 🗑️ **Easy Management** - Remove incorrectly logged items
 
-### ☕ Foods Tab
-- 🔍 **USDA Food Search** - Search the official USDA FoodData Central database
-- 🗄️ **Food Database** - Create and save your frequently eaten foods
-- 📏 **Serving Sizes** - Track serving size for each food
-- 🔢 **Complete Macros** - Store calories, protein, carbs, and fat
-- ➕ **Quick Logging** - Add saved foods to your tracker with one click
-- ✏️ **Easy Management** - Edit and delete saved foods
-- 🎯 **Auto-Fill** - Search results automatically fill the form with accurate nutritional data
+### 🎯 Planner
 
-### 🍽️ Meals Tab
-- 🎯 **Meal Builder** - Create custom meals from your saved foods
-- 🔢 **Quantity Control** - Set quantities for each food in a meal
-- 📊 **Auto-Calculate** - Meal totals calculated automatically
-- 💾 **Save Favorites** - Save your regular meals for quick logging
-- 🍳 **Meal Templates** - Build breakfast, lunch, dinner templates
+* 🎯 **Custom Goals** - Set personalized calorie and macro targets
+* 📊 **Macro Breakdown** - Visualize your daily calorie distribution
+* 🔄 **Quick Presets** - Balanced, High Protein, and Low Carb presets
+* 🌾 **Fiber Tracking** - Set and monitor daily fiber goals
+* 💡 **Smart Hints** - See calorie contributions from individual macros
+* 💾 **Persistent Goals** - Goals remain available across sessions
 
-### 💾 General Features
-- 📱 **Responsive Design** - Works great on all devices
-- 💿 **Local Storage** - All data persists between sessions
-- 🔒 **Privacy First** - Data never leaves your device
-- ⚡ **Fast & Lightweight** - Built with React and Vite
+### 🥑 Foods
 
-## Getting Started
+* 🔍 **USDA Food Search** - Search the USDA FoodData Central database
+* 🗄️ **Personal Food Database** - Save frequently eaten foods
+* 📏 **Serving Sizes** - Define custom serving sizes
+* 🔢 **Complete Nutrition Data** - Track calories, protein, carbohydrates, fat, and other nutritional information
+* ➕ **Quick Logging** - Add saved foods directly to your daily tracker
+* ✏️ **Easy Management** - Edit or delete saved foods
+* 🎯 **Automatic Data Entry** - USDA search results populate nutritional information automatically
+
+### 🍽️ Meals
+
+* 🎯 **Meal Builder** - Create custom meals using saved foods
+* 🔢 **Quantity Control** - Adjust the quantity of individual ingredients
+* 📊 **Automatic Calculations** - Nutrition totals are calculated automatically
+* 💾 **Saved Meals** - Save frequently eaten meals for quick access
+* 🍳 **Meal Templates** - Create reusable breakfast, lunch, dinner, and other meal templates
+* ⚡ **One-Click Logging** - Add an entire saved meal to your daily tracker
+
+## 🔐 Privacy & Data
+
+NutriLog is designed with privacy and user ownership in mind.
+
+The current version uses local browser storage for data persistence, allowing NutriLog to operate without requiring an account or external database.
+
+The architecture is being developed to support future functionality including:
+
+* 👤 User accounts
+* 🔐 Authentication
+* ☁️ Cloud synchronization
+* 💻 Cross-device access
+* 📱 Offline-first synchronization
+* 🗄️ Centralized database storage
+* 👥 Multi-user support
+
+The goal is to allow users to retain control of their nutrition data while providing the convenience of accessing it across multiple devices.
+
+## 📱 Responsive Design
+
+NutriLog is designed to work across:
+
+* 💻 Desktop
+* 💻 Laptop
+* 📱 Mobile
+* 📲 Tablet
+
+The interface adapts to different screen sizes while maintaining the same core functionality.
+
+## 🚀 Getting Started
 
 ### Installation
+
+Clone the repository and install the required dependencies:
 
 ```bash
 npm install
@@ -54,83 +86,54 @@ npm install
 
 ### Development
 
+Start the local development server:
+
 ```bash
 npm run dev
 ```
 
-Open your browser and navigate to `http://localhost:5173`
+Open your browser and navigate to:
 
-### Build for Production
+```text
+http://localhost:5173
+```
+
+### Production Build
+
+Create a production build:
 
 ```bash
 npm run build
 ```
 
-## How to Use
+## 📖 How to Use
 
-### Setting Your Goals
-1. Navigate to the **Planner** tab
-2. **Option A: Use Quick Presets**
-   - Click on "Balanced", "High Protein", or "Low Carb" preset
-   - Review the auto-filled values
-   - Click "Save Goals"
-3. **Option B: Set Custom Goals**
-   - Enter your target calories
-   - Set your desired protein, carbs, fat, and fiber goals
-   - See real-time calorie breakdown as you adjust
-   - Click "Save Goals"
-4. Goals are automatically synced across all tabs
+### 🎯 Setting Your Goals
 
-### Setting Up Your Food Database
-1. Navigate to the **Foods** tab
-2. **Option A: Search USDA Database** (Recommended)
-   - Click "Search USDA Food Database"
-   - Enter a food name (e.g., "chicken breast", "apple")
-   - Browse results and click on the food you want
-   - The form will auto-fill with accurate nutritional data
-   - Adjust if needed and click "Save Food"
-3. **Option B: Enter Manually**
-   - Fill in the food name, serving size, and nutritional information
-   - Click "Save Food" to add it to your database
-4. Repeat for all your commonly eaten foods
+1. Navigate to the **Planner** tab.
+2. Choose a preset or create custom goals.
+3. Set your target calories.
+4. Set your protein, carbohydrate, fat, and fiber goals.
+5. Review the calorie breakdown.
+6. Save your goals.
 
-### Creating Meals
-1. Navigate to the **Meals** tab
-2. Enter a meal name (e.g., "Breakfast", "Post-Workout")
-3. Select foods from your database using the dropdown
-4. Adjust quantities for each food
-5. View the automatically calculated totals
-6. Click "Save Meal" to add it to your meal library
+Your goals will be used throughout NutriLog to calculate your daily progress.
 
-### Tracking Your Daily Intake
-1. Navigate to the **Tracker** tab
-2. Set your daily calorie goal
-3. Log items by:
-   - **Quick Add**: Manually enter food details
-   - **From Saved Foods**: One-click add from your food database
-   - **From Saved Meals**: One-click add complete meals
-4. Monitor your progress in real-time
-5. View all entries in "Today's Log"
-6. Delete any entries by mistake
+### 🥑 Building Your Food Database
 
-### Tips for Best Results
-- Pre-populate your food database with frequently eaten items
-- Create meal templates for your regular meals
-- Set a realistic daily calorie goal
-- Track everything you eat for accurate totals
+1. Navigate to the **Foods** tab.
+2. Search the USDA FoodData Central database or enter a food manually.
+3. Select a food from the search results.
+4. Review the nutritional information.
+5. Adjust the serving size if necessary.
+6. Save the food to your personal database.
 
-## Technologies Used
+Frequently eaten foods can then be accessed quickly from the Tracker and Meal Builder.
 
-- **React 18** - Modern UI library
-- **Vite** - Lightning-fast build tool
-- **Lucide React** - Beautiful icons
-- **Local Storage** - Data persistence
+### 🍽️ Creating Meals
 
-## Data Storage
+1. Navigate to the **Meals** tab.
+2. Enter a meal name.
+3. Select foods
 
-All data is stored locally in your browser's localStorage. Your information never leaves your device, ensuring complete privacy.
-
-## License
-
-MIT License - feel free to use this project however you'd like!
 
