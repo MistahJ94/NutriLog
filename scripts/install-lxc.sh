@@ -66,8 +66,8 @@ chmod 640 "${ETC_DIR}/nutrilog.env"
 psql "postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}" -v ON_ERROR_STOP=1 -f "${APP_DIR}/db/schema.sql"
 
 cd "${APP_DIR}"
-sudo -u "${APP_USER}" npm ci
-sudo -u "${APP_USER}" npm run build
+runuser -u "${APP_USER}" -- npm ci
+runuser -u "${APP_USER}" -- npm run build
 
 install -m 0755 "${APP_DIR}/scripts/update.sh" /usr/bin/update
 install -m 0644 "${APP_DIR}/deploy/nutrilog.service" /etc/systemd/system/nutrilog.service
