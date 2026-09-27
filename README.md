@@ -1,10 +1,12 @@
 # 🥗 NutriLog
 
-A modern, privacy-focused nutrition and macro tracking platform for managing daily nutrition, foods, meals, and personal goals.
+A self-hosted nutrition and macro tracking platform for managing daily nutrition, foods, meals, and personal goals across multiple users and devices.
 
-NutriLog is being developed as a **self-hosted, offline-capable, multi-user platform**. The application now has database-backed accounts, authenticated sessions, user-scoped API storage, local browser caching, legacy local-data migration, and a Debian LXC deployment path.
+**Live deployment:** https://nutrilog.jondomain.com
 
-## Current Features
+NutriLog is designed around a simple goal: keep nutrition data under the operator's control while providing the convenience of a modern web application. It combines a browser-friendly local cache with an authenticated PostgreSQL-backed API so users can access their data across devices.
+
+## ✨ Current Features
 
 - 📊 Daily calorie and macro tracking
 - 🎯 Custom calorie, protein, carbohydrate, fat, and fiber goals
@@ -14,47 +16,148 @@ NutriLog is being developed as a **self-hosted, offline-capable, multi-user plat
 - 📅 Historical daily logs
 - 💾 JSON import/export backups
 - 📱 Responsive desktop and mobile UI
-- ⚡ React + Vite
-- 🔒 Local-first data storage in the current release
-
-## Platform
-
-NutriLog is being structured so the current UI can evolve without being tied directly to browser storage.
-
+- ⚡ React + Vite frontend
 - 👤 User accounts and authentication
-- 🗄️ PostgreSQL-backed storage
-- 🌐 Node.js backend API
-- 👥 User-scoped multi-user isolation
-- ☁️ Cross-device synchronization through the self-hosted API
-- 📱 Local browser cache for responsive/offline viewing
-- 🔐 Secure session management
-- 🖥️ Self-hosted Proxmox LXC deployment
-- 🔄 Simple in-container updates using the `update` command
+- 🔐 HTTP-only server-side sessions
+- 👥 Multi-user accounts with per-user data isolation
+- 🛡️ Administrator account and user management
+- 🔑 Administrator password resets and session revocation
+- 🚫 Account enable/disable controls
+- 🌐 Cross-device access through the self-hosted API
+- 💾 Browser-side caching for responsive/offline-capable use
+- 🔄 Legacy local-data migration into an authenticated account
+- 🐘 PostgreSQL database
+- 🖥️ Dedicated Proxmox LXC deployment
+- ⚙️ systemd-managed production service
+- 🔄 Simple in-container updates with the `update` command
 
-## Proxmox
+## 🔐 Authentication & User Management
 
-The target deployment is a dedicated Linux Container (LXC) on Proxmox VE.
+NutriLog supports a private, multi-user deployment rather than relying on public registration indefinitely.
+
+### First-run setup
+
+When a fresh database has no users, NutriLog provides an initial administrator setup flow. Once the first administrator is created, public registration is disabled.
+
+Administrators can manage users from the application, including:
+
+- Create users
+- Create additional administrators
+- Enable or disable accounts
+- Promote users to administrators
+- Demote administrators to regular users
+- Reset user passwords
+- Revoke user sessions
+- Delete users
+
+Administrators cannot disable, demote, or delete their own account through the admin interface.
+
+## 🏗️ Architecture
+
+NutriLog uses a hybrid local-cache/API architecture:
+
+```text
+                    NutriLog Web UI
+                           │
+                           ▼
+                   Application Layer
+                     /           \
+                    /             \
+             Browser Cache      NutriLog API
+                    │                │
+                    │           PostgreSQL
+                    │                │
+                    └──── Sync ──────┘
+```
+
+The API is responsible for authentication, user ownership, persistent data, and cross-device synchronization. The browser maintains local cached data so the UI remains responsive and can support offline-capable viewing.
+
+### Production layout
+
+```text
+Internet
+   │
+   ▼
+Cloudflare
+   │
+   ▼
+Nginx Proxy Manager
+   │ HTTPS
+   ▼
+NutriLog LXC
+   ├── React/Vite application
+   ├── Node.js API :3001
+   ├── PostgreSQL :5432 (localhost)
+   └── systemd nutrilog.service
+```
+
+For public deployments, NutriLog should be placed behind HTTPS through a reverse proxy such as Nginx Proxy Manager. PostgreSQL should remain private to the LXC.
+
+## 🖥️ Proxmox LXC Deployment
+
+The intended production target is a dedicated Debian-based Linux Container (LXC) on Proxmox VE.
+
+The repository includes a Proxmox helper-script-style deployment path:
 
 ```text
 Proxmox VE
    │
    └── NutriLog LXC
-        ├── Web application
-        ├── API
-        ├── Database
-        ├── Persistent data
+        ├── Node.js 20
+        ├── PostgreSQL 17
+        ├── NutriLog application
+        ├── systemd service
         └── /usr/bin/update
 ```
 
-The deployment includes an installer modeled around the Proxmox helper-script experience. Once installed, updates will be performed from inside the LXC with:
+### Install
+
+From the **Proxmox host**, run:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/MistahJ94/NutriLog/main/install.sh)"
+```
+
+The installer creates the dedicated LXC and installs the application, PostgreSQL, Node.js, and systemd service.
+
+The in-container installer includes a safety check so it will not run directly on a Proxmox host.
+
+### Update
+
+Enter the NutriLog LXC and run:
 
 ```bash
 update
 ```
 
-The update process will preserve application configuration, database contents, and user data while updating the application and applying required database migrations.
+The update workflow:
 
-## Development
+1. Checks the current application version and commit.
+2. Checks GitHub for a newer `main` commit.
+3. Reports the previous and new versions when an update is available.
+4. Updates the application source.
+5. Installs the exact dependency lockfile with `npm ci`.
+6. Applies the PostgreSQL schema.
+7. Builds the frontend.
+8. Removes development dependencies.
+9. Restarts the systemd service.
+10. Performs an application health check.
+
+If no update is available, the command exits without changing the running application.
+
+Application configuration and database credentials are kept outside the Git repository in:
+
+```text
+/etc/nutrilog/nutrilog.env
+```
+
+## 🛠️ Development
+
+### Requirements
+
+- Node.js 20+
+- PostgreSQL 17
+- npm
 
 ### Install
 
@@ -68,9 +171,13 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open:
 
-#### Production server
+```text
+http://localhost:5173
+```
+
+### Production server
 
 Build the frontend and run the combined API/static server:
 
@@ -79,83 +186,69 @@ npm run build
 npm start
 ```
 
-The server expects `DATABASE_URL` and listens on port `3001` by default.
+The production server listens on port `3001` by default and expects `DATABASE_URL`.
 
-## Build
+### Build/check
 
 ```bash
+npm run check
 npm run build
 ```
 
-## Architecture Direction
+## 🔒 Security
 
-The application is intentionally moving away from direct UI-to-localStorage coupling.
+NutriLog is designed for private, self-hosted deployments.
+
+- Passwords use Node.js `scrypt` with per-password salts.
+- Authentication uses server-side sessions.
+- Session tokens are stored as SHA-256 hashes in PostgreSQL rather than plaintext.
+- Session cookies are HTTP-only and SameSite protected.
+- Secure cookies can be enabled when the application is served over HTTPS.
+- Authentication attempts are rate limited in-process.
+- Security-related HTTP headers are applied by the API server.
+- User-owned data is scoped by authenticated user ID.
+- PostgreSQL is intended to remain bound to localhost inside the LXC.
+- Port 3001 should not be forwarded directly from the Internet.
+- Public deployments should use HTTPS through a reverse proxy.
+- Database credentials, environment files, and session secrets must never be committed to Git.
+
+## 📁 Repository Layout
 
 ```text
-                    NutriLog UI
-                         │
-                         ▼
-                  Application Layer
-                         │
-              ┌──────────┴──────────┐
-              ▼                     ▼
-        Local Storage          NutriLog API
-              │                     │
-              │                PostgreSQL
-              │                     │
-              └──────── Sync ───────┘
+NutriLog/
+├── ct/
+│   └── nutrilog.sh              # Proxmox LXC definition
+├── db/
+│   └── schema.sql               # PostgreSQL schema/migrations
+├── install/
+│   └── nutrilog-install.sh      # In-container installer
+├── scripts/
+│   └── update.sh                # /usr/bin/update source
+├── server/
+│   └── index.cjs                # Node.js API/static server
+├── src/                         # React frontend
+├── install.sh                   # Public Proxmox installer
+└── README.md
 ```
 
-This allows offline functionality to remain available while providing a path to authenticated, multi-user, cross-device operation.
+## 📌 Platform Status
 
-## License
+The platform foundation is implemented on `main`, including:
+
+1. User authentication and HTTP-only session handling
+2. First-run administrator setup
+3. Administrator user management
+4. PostgreSQL schema and user-scoped API storage
+5. Local browser caching
+6. Cross-device authenticated API access
+7. Legacy local-data migration
+8. Proxmox LXC installation
+9. systemd production service
+10. `/usr/bin/update` maintenance workflow
+11. Application health checking
+
+NutriLog is actively being developed. Nutrition features and the user experience will continue to evolve while the self-hosted platform foundation remains the core deployment model.
+
+## 📄 License
 
 MIT License
-
-## Platform foundation
-
-The PostgreSQL data model in `db/schema.sql` uses a per-user ownership model for goals, foods, meals, and log entries. The browser keeps a local cache, while authenticated create/delete/goal operations are persisted through the API.
-
-### Platform status
-
-The platform foundation is implemented on `main`:
-
-1. Authentication and HTTP-only session handling
-2. PostgreSQL schema and user-scoped API CRUD
-3. Local browser cache synchronized through authenticated mutations
-4. Legacy localStorage migration into the first authenticated account
-5. Debian-based Proxmox LXC installer
-6. `/usr/bin/update` maintenance command
-7. systemd service for the NutriLog API and production web application
-
-For public deployment, place NutriLog behind HTTPS such as Nginx Proxy Manager. The application itself should not be exposed directly to the Internet on port 3001.
-
-
-
-### Proxmox LXC deployment
-
-The intended production target is a dedicated Debian 13-based LXC on Proxmox VE. From the Proxmox host, the installer follows the Proxmox helper-script model and creates the LXC, configures its resources, installs NutriLog, PostgreSQL, Node.js, and the systemd service.
-
-Run the public installer with:
-
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/MistahJ94/NutriLog/main/install.sh)"
-```
-
-After installation, enter the LXC and updates are performed with:
-
-```bash
-update
-```
-
-The update workflow fetches the `main` branch, installs dependencies, applies the PostgreSQL schema, rebuilds the application, and restarts the systemd service. Database credentials live outside the repository in `/etc/nutrilog/nutrilog.env`.
-
-### Security notes
-
-- Authentication uses server-side sessions stored as SHA-256 token hashes in PostgreSQL.
-- Passwords are hashed with Node.js `scrypt` using per-password salts.
-- Session cookies are HTTP-only and SameSite protected; production cookies also use Secure.
-- Authentication attempts are rate limited in-process.
-- PostgreSQL is intended to remain bound to localhost in the LXC.
-- The application should be published through HTTPS/reverse proxy rather than exposing port 3001 directly.
-- Do not commit `.env` files, database credentials, or session secrets.
