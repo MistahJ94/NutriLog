@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
-import { storage, api, normalizeServerData, searchUsdaFoods as searchUsdaFoodsApi, mapUsdaFood, calculateMealTotals } from './services'
+import { storage, api, normalizeServerData, calculateMealTotals } from './services'
 
 function AdminPanel({ user }) {
   const [users, setUsers] = useState([])
@@ -125,6 +125,7 @@ function AdminPanel({ user }) {
 function App({ user, initialServerData, onLogout }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
+  const [theme, setTheme] = useState(() => localStorage.getItem('nutrilog-theme') || 'green')
   
   // Ref for click outside detection
   const quickLogSearchRef = useRef(null)
@@ -162,12 +163,6 @@ function App({ user, initialServerData, onLogout }) {
     fiber: 25
   })
   
-  // USDA API Search
-  const [usdaSearchQuery, setUsdaSearchQuery] = useState('')
-  const [usdaSearchResults, setUsdaSearchResults] = useState([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [showUsdaSearch, setShowUsdaSearch] = useState(false)
-  
   // Form states
   const [foodFormData, setFoodFormData] = useState({
     name: '',
@@ -191,6 +186,11 @@ function App({ user, initialServerData, onLogout }) {
     searchQuery: '',
     showSuggestions: false
   })
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('nutrilog-theme', theme)
+  }, [theme])
 
   // Load data through the application storage service.
   useEffect(() => {
@@ -229,34 +229,6 @@ function App({ user, initialServerData, onLogout }) {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
-
-  // USDA API Search Handlers
-  const searchUsdaFoods = async () => {
-    if (!usdaSearchQuery.trim()) {
-      alert('Please enter a search term')
-      return
-    }
-
-    setIsSearching(true)
-    setUsdaSearchResults([])
-    try {
-      const results = await searchUsdaFoodsApi(usdaSearchQuery)
-      setUsdaSearchResults(results)
-    } catch (error) {
-      console.error('USDA API Error:', error)
-      alert('Failed to search foods. Please try again.')
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const selectUsdaFood = (food) => {
-    const mapped = mapUsdaFood(food)
-    setFoodFormData(mapped)
-    setShowUsdaSearch(false)
-    setUsdaSearchQuery('')
-    setUsdaSearchResults([])
-  }
 
   // Food Database Handlers
   const handleFoodFormChange = (e) => {
@@ -481,16 +453,25 @@ function App({ user, initialServerData, onLogout }) {
 
   const handleMacroGoalsChange = (e) => {
     const { name, value } = e.target
-    setMacroGoalsInput(prev => ({ ...prev, [name]: parseInt(value) || 0 }))
+    setMacroGoalsInput(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSaveMacroGoals = async (e) => {
     e.preventDefault()
+    const fields = ['calories', 'protein', 'carbs', 'fat', 'fiber']
+    const hasInvalidGoal = fields.some(field => macroGoalsInput[field] === '' || !Number.isFinite(Number(macroGoalsInput[field])) || Number(macroGoalsInput[field]) < 0)
+    if (hasInvalidGoal) {
+      alert('Please enter a valid value for every goal.')
+      return
+    }
+
+    const numericGoals = Object.fromEntries(fields.map(field => [field, Number(macroGoalsInput[field])]))
     try {
-      if (user) await api.goals.save(macroGoalsInput)
-      setMacroGoals(macroGoalsInput)
-      setDailyGoal(macroGoalsInput.calories)
-      setGoalInput(macroGoalsInput.calories)
+      if (user) await api.goals.save(numericGoals)
+      setMacroGoals(numericGoals)
+      setMacroGoalsInput(numericGoals)
+      setDailyGoal(numericGoals.calories)
+      setGoalInput(numericGoals.calories)
       alert('Goals saved successfully!')
     } catch (error) { alert(error.message) }
   }
@@ -638,7 +619,7 @@ function App({ user, initialServerData, onLogout }) {
   }
 
   return (
-    <div className="app">
+    <div className={`app theme-${theme}`}>
       <div className="header">
         <h1>🥗 NutriLog</h1>
         <p>Track your nutrition, macros, and daily goals</p>
@@ -1180,109 +1161,11 @@ function App({ user, initialServerData, onLogout }) {
         {/* FOODS TAB */}
         {activeTab === 'foods' && (
           <>
-            {/* USDA Search Modal */}
-            {showUsdaSearch && (
-              <div className="modal-overlay" onClick={() => setShowUsdaSearch(false)}>
-                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                  <div className="modal-header">
-                    <h2>Search USDA Food Database</h2>
-                    <button 
-                      className="modal-close"
-                      onClick={() => setShowUsdaSearch(false)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                  
-                  <div className="modal-body">
-                    <div className="usda-search-box">
-                      <input
-                        type="text"
-                        value={usdaSearchQuery}
-                        onChange={(e) => setUsdaSearchQuery(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && searchUsdaFoods()}
-                        placeholder="Search for foods... (e.g., chicken breast, apple)"
-                        className="usda-search-input"
-                      />
-                      <button
-                        onClick={searchUsdaFoods}
-                        disabled={isSearching}
-                        className="btn btn-primary"
-                        style={{ width: 'auto' }}
-                      >
-                        {isSearching ? <Loader size={20} className="spinner" /> : <Search size={20} />}
-                        Search
-                      </button>
-                    </div>
-
-                    {isSearching && (
-                      <div className="usda-loading">
-                        <Loader size={32} className="spinner" />
-                        <p>Searching USDA database...</p>
-                      </div>
-                    )}
-
-                    {!isSearching && usdaSearchResults.length > 0 && (
-                      <div className="usda-results">
-                        <p className="usda-results-count">{usdaSearchResults.length} results found</p>
-                        {usdaSearchResults.map((food, index) => {
-                          const nutrients = food.foodNutrients || []
-                          const calories = nutrients.find(n => n.nutrientId === 1008)?.value || 0
-                          const protein = nutrients.find(n => n.nutrientId === 1003)?.value || 0
-                          
-                          return (
-                            <div 
-                              key={index} 
-                              className="usda-result-item"
-                              onClick={() => selectUsdaFood(food)}
-                            >
-                              <div className="usda-result-info">
-                                <h3>{food.description}</h3>
-                                <div className="usda-result-details">
-                                  <span className="usda-brand">{food.brandOwner || food.dataType}</span>
-                                  <span><strong>{Math.round(calories)}</strong> kcal</span>
-                                  {protein > 0 && <span>P: {Math.round(protein)}g</span>}
-                                </div>
-                              </div>
-                              <div className="usda-select-btn">
-                                <Plus size={20} />
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {!isSearching && usdaSearchResults.length === 0 && usdaSearchQuery && (
-                      <div className="empty-state">
-                        <Search size={48} />
-                        <p>No results found. Try a different search term.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="content-grid">
               {/* Create Food Form */}
               <div className="section">
                 <h2>Create Food</h2>
                 
-                {/* USDA Search Button */}
-                <button 
-                  type="button"
-                  className="btn-usda-search"
-                  onClick={() => setShowUsdaSearch(true)}
-                >
-                  <Search size={18} />
-                  Search USDA Food Database
-                </button>
-
-                <div className="form-divider">
-                  <span>or enter manually</span>
-                </div>
-
                 <form onSubmit={handleSaveFood}>
                 <div className="form-group">
                   <label>Food Name *</label>
@@ -1564,6 +1447,31 @@ function App({ user, initialServerData, onLogout }) {
             <div className="planner-intro">
               <h2>Settings</h2>
               <p>Manage your data with import and export options</p>
+            </div>
+
+            <div className="section theme-settings">
+              <h3>Appearance</h3>
+              <p className="settings-description">Choose a color scheme for this browser. Your choice is saved locally on this device.</p>
+              <div className="theme-options">
+                {[
+                  { id: 'green', label: 'Sage' },
+                  { id: 'blue', label: 'Ocean' },
+                  { id: 'purple', label: 'Berry' },
+                  { id: 'orange', label: 'Citrus' },
+                  { id: 'dark', label: 'Dark' }
+                ].map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`theme-option theme-option-${option.id} ${theme === option.id ? 'selected' : ''}`}
+                    onClick={() => setTheme(option.id)}
+                    aria-pressed={theme === option.id}
+                  >
+                    <span className="theme-swatch" />
+                    <span>{option.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="settings-grid">
