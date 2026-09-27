@@ -144,15 +144,13 @@ function App({ user, initialServerData, onLogout }) {
     setFoodFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSaveFood = (e) => {
+  const handleSaveFood = async (e) => {
     e.preventDefault()
     if (!foodFormData.name || !foodFormData.calories) {
       alert('Please enter at least food name and calories')
       return
     }
-
-    const newFood = {
-      id: Date.now(),
+    const draft = {
       name: foodFormData.name,
       calories: parseInt(foodFormData.calories) || 0,
       protein: parseInt(foodFormData.protein) || 0,
@@ -161,13 +159,22 @@ function App({ user, initialServerData, onLogout }) {
       fiber: parseInt(foodFormData.fiber) || 0,
       servingSize: foodFormData.servingSize || '1 serving'
     }
-
-    setSavedFoods(prev => [newFood, ...prev])
-    setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingSize: '' })
+    try {
+      const newFood = user ? (await api.foods.create(draft)).item : { ...draft, id: Date.now() }
+      setSavedFoods(prev => [newFood, ...prev])
+      setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingSize: '' })
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
-  const handleDeleteFood = (id) => {
-    setSavedFoods(prev => prev.filter(food => food.id !== id))
+  const handleDeleteFood = async (id) => {
+    try {
+      if (user) await api.foods.remove(id)
+      setSavedFoods(prev => prev.filter(food => food.id !== id))
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
   // Meal Builder Handlers
@@ -202,27 +209,30 @@ function App({ user, initialServerData, onLogout }) {
     }))
   }
 
-  const handleSaveMeal = (e) => {
+  const handleSaveMeal = async (e) => {
     e.preventDefault()
     if (!mealFormData.name || mealFormData.selectedFoods.length === 0) {
       alert('Please enter a meal name and add at least one food')
       return
     }
-
     const totals = calculateMealTotals(mealFormData.selectedFoods)
-    const newMeal = {
-      id: Date.now(),
-      name: mealFormData.name,
-      foods: mealFormData.selectedFoods,
-      ...totals
+    const draft = { name: mealFormData.name, foods: mealFormData.selectedFoods, ...totals }
+    try {
+      const newMeal = user ? (await api.meals.create(draft)).item : { ...draft, id: Date.now() }
+      setSavedMeals(prev => [newMeal, ...prev])
+      setMealFormData({ name: '', selectedFoods: [] })
+    } catch (error) {
+      alert(error.message)
     }
-
-    setSavedMeals(prev => [newMeal, ...prev])
-    setMealFormData({ name: '', selectedFoods: [] })
   }
 
-  const handleDeleteMeal = (id) => {
-    setSavedMeals(prev => prev.filter(meal => meal.id !== id))
+  const handleDeleteMeal = async (id) => {
+    try {
+      if (user) await api.meals.remove(id)
+      setSavedMeals(prev => prev.filter(meal => meal.id !== id))
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
   // Tracker Handlers
@@ -266,18 +276,30 @@ function App({ user, initialServerData, onLogout }) {
     return { foods: filteredFoods, meals: filteredMeals }
   }
 
-  const handleQuickLog = (e) => {
+  const createLogEntry = async (entry) => {
+    const saved = user ? (await api.logs.create(entry)).item : null
+    return saved ? {
+      id: saved.id,
+      type: saved.entry_type,
+      name: saved.name,
+      calories: Number(saved.calories),
+      protein: Number(saved.protein),
+      carbs: Number(saved.carbs),
+      fat: Number(saved.fat),
+      fiber: Number(saved.fiber),
+      foods: Array.isArray(saved.foods) ? saved.foods : [],
+      timestamp: saved.consumed_at,
+    } : { ...entry, id: Date.now() }
+  }
+
+  const handleQuickLog = async (e) => {
     e.preventDefault()
     if (!quickLogForm.selectedItem) {
       alert('Please select a food or meal')
       return
     }
-
-    // Use the selected date but with current time
     const selectedDate = new Date(quickLogForm.date + 'T' + new Date().toTimeString().split(' ')[0])
-
-    const newEntry = {
-      id: Date.now(),
+    const draft = {
       type: quickLogForm.itemType,
       name: quickLogForm.selectedItem.name,
       calories: quickLogForm.selectedItem.calories,
@@ -285,78 +307,74 @@ function App({ user, initialServerData, onLogout }) {
       carbs: quickLogForm.selectedItem.carbs,
       fat: quickLogForm.selectedItem.fat,
       fiber: quickLogForm.selectedItem.fiber || 0,
-      timestamp: selectedDate.toISOString()
+      timestamp: selectedDate.toISOString(),
+      ...(quickLogForm.itemType === 'meal' ? { foods: quickLogForm.selectedItem.foods } : {})
     }
-
-    if (quickLogForm.itemType === 'meal') {
-      newEntry.foods = quickLogForm.selectedItem.foods
+    try {
+      const newEntry = await createLogEntry(draft)
+      setLogEntries(prev => [newEntry, ...prev])
+      setQuickLogForm({ selectedItem: null, itemType: '', date: new Date().toISOString().split('T')[0], searchQuery: '', showSuggestions: false })
+    } catch (error) {
+      alert(error.message)
     }
-
-    setLogEntries(prev => [newEntry, ...prev])
-    setQuickLogForm({ 
-      selectedItem: null,
-      itemType: '',
-      date: new Date().toISOString().split('T')[0], // Reset to today
-      searchQuery: '',
-      showSuggestions: false
-    })
   }
 
-  const handleLogSavedFood = (food) => {
-    const newEntry = {
-      id: Date.now(),
-      type: 'food',
-      name: food.name,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat,
-      fiber: food.fiber || 0,
-      timestamp: new Date().toISOString()
-    }
-    setLogEntries(prev => [newEntry, ...prev])
+  const handleLogSavedFood = async (food) => {
+    try {
+      const newEntry = await createLogEntry({
+        type: 'food', name: food.name, calories: food.calories, protein: food.protein,
+        carbs: food.carbs, fat: food.fat, fiber: food.fiber || 0, timestamp: new Date().toISOString()
+      })
+      setLogEntries(prev => [newEntry, ...prev])
+    } catch (error) { alert(error.message) }
   }
 
-  const handleLogMeal = (meal) => {
-    const newEntry = {
-      id: Date.now(),
-      type: 'meal',
-      name: meal.name,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      fiber: meal.fiber || 0,
-      foods: meal.foods,
-      timestamp: new Date().toISOString()
-    }
-    setLogEntries(prev => [newEntry, ...prev])
+  const handleLogMeal = async (meal) => {
+    try {
+      const newEntry = await createLogEntry({
+        type: 'meal', name: meal.name, calories: meal.calories, protein: meal.protein,
+        carbs: meal.carbs, fat: meal.fat, fiber: meal.fiber || 0, foods: meal.foods, timestamp: new Date().toISOString()
+      })
+      setLogEntries(prev => [newEntry, ...prev])
+    } catch (error) { alert(error.message) }
   }
 
-  const handleDeleteLogEntry = (id) => {
-    setLogEntries(prev => prev.filter(entry => entry.id !== id))
+  const handleDeleteLogEntry = async (id) => {
+    try {
+      if (user) await api.logs.remove(id)
+      setLogEntries(prev => prev.filter(entry => entry.id !== id))
+    } catch (error) { alert(error.message) }
   }
 
-  const handleSetGoal = () => {
+  const handleSetGoal = async () => {
     if (goalInput > 0) {
       setDailyGoal(goalInput)
+      if (user) {
+        try { await api.goals.save({ ...macroGoals, calories: Number(goalInput) }) }
+        catch (error) { alert(error.message) }
+      }
     }
   }
 
   // Planner/Goals Handlers
+
   const handleMacroGoalsChange = (e) => {
     const { name, value } = e.target
     setMacroGoalsInput(prev => ({ ...prev, [name]: parseInt(value) || 0 }))
   }
 
-  const handleSaveMacroGoals = (e) => {
+  const handleSaveMacroGoals = async (e) => {
     e.preventDefault()
-    setMacroGoals(macroGoalsInput)
-    // Sync dailyGoal with calories
-    setDailyGoal(macroGoalsInput.calories)
-    setGoalInput(macroGoalsInput.calories)
-    alert('Goals saved successfully!')
+    try {
+      if (user) await api.goals.save(macroGoalsInput)
+      setMacroGoals(macroGoalsInput)
+      setDailyGoal(macroGoalsInput.calories)
+      setGoalInput(macroGoalsInput.calories)
+      alert('Goals saved successfully!')
+    } catch (error) { alert(error.message) }
   }
+
+
 
   // Calculate totals from log entries
   const totalCalories = logEntries.reduce((sum, entry) => sum + entry.calories, 0)
