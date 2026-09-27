@@ -175,8 +175,8 @@ async function authApi(req, res, pathname) {
 const resources = {
   foods: {
     table: "foods",
-    fields: ["name","calories","protein","carbs","fat","fiber","serving_size","source"],
-    select: "id, name, calories, protein, carbs, fat, fiber, serving_size, source, created_at, updated_at"
+    fields: ["name","calories","protein","carbs","fat","fiber","serving_size","serving_amount","serving_unit","source"],
+    select: "id, name, calories, protein, carbs, fat, fiber, serving_size, serving_amount, serving_unit, source, created_at, updated_at"
   },
   meals: {
     table: "meals",
@@ -185,8 +185,8 @@ const resources = {
   },
   "log-entries": {
     table: "log_entries",
-    fields: ["entry_type","name","calories","protein","carbs","fat","fiber","foods","consumed_at"],
-    select: "id, entry_type, name, calories, protein, carbs, fat, fiber, foods, consumed_at, created_at"
+    fields: ["entry_type","name","calories","protein","carbs","fat","fiber","foods","quantity","consumed_at"],
+    select: "id, entry_type, name, calories, protein, carbs, fat, fiber, foods, quantity, consumed_at, created_at"
   }
 }
 
@@ -307,6 +307,9 @@ async function protectedApi(req, res, pathname, user) {
       if (field === "foods") return Array.isArray(body[field]) ? JSON.stringify(body[field]) : "[]"
       if (field === "source") return body[field] || "custom"
       if (field === "serving_size") return body[field] || "1 serving"
+      if (field === "serving_amount") return numberValue(body[field] || 1)
+      if (field === "serving_unit") return body[field] || "serving"
+      if (field === "quantity") return numberValue(body[field] || 1)
       return body[field] ?? null
     })
     const placeholders = config.fields.map((_, i) => "$" + (i + 2)).join(", ")
@@ -337,8 +340,8 @@ async function replaceUserData(res, user, body) {
 
     for (const food of foods) {
       await tx.unsafe(
-        "INSERT INTO foods (user_id, name, calories, protein, carbs, fat, fiber, serving_size, source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-        [user.id, food.name, numberValue(food.calories), numberValue(food.protein), numberValue(food.carbs), numberValue(food.fat), numberValue(food.fiber), food.servingSize || food.serving_size || "1 serving", food.source || "custom"]
+        "INSERT INTO foods (user_id, name, calories, protein, carbs, fat, fiber, serving_size, serving_amount, serving_unit, source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+        [user.id, food.name, numberValue(food.calories), numberValue(food.protein), numberValue(food.carbs), numberValue(food.fat), numberValue(food.fiber), food.servingSize || food.serving_size || "1 serving", numberValue(food.servingAmount || food.serving_amount || 1), food.servingUnit || food.serving_unit || "serving", food.source || "custom"]
       )
     }
 
@@ -352,8 +355,8 @@ async function replaceUserData(res, user, body) {
     for (const entry of logs) {
       if (!["food", "meal"].includes(entry.type || entry.entry_type) || !entry.name) continue
       await tx.unsafe(
-        "INSERT INTO log_entries (user_id, entry_type, name, calories, protein, carbs, fat, fiber, foods, consumed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-        [user.id, entry.type || entry.entry_type, entry.name, numberValue(entry.calories), numberValue(entry.protein), numberValue(entry.carbs), numberValue(entry.fat), numberValue(entry.fiber), JSON.stringify(Array.isArray(entry.foods) ? entry.foods : []), entry.timestamp || entry.consumed_at || new Date().toISOString()]
+        "INSERT INTO log_entries (user_id, entry_type, name, calories, protein, carbs, fat, fiber, foods, quantity, consumed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+        [user.id, entry.type || entry.entry_type, entry.name, numberValue(entry.calories), numberValue(entry.protein), numberValue(entry.carbs), numberValue(entry.fat), numberValue(entry.fiber), JSON.stringify(Array.isArray(entry.foods) ? entry.foods : []), numberValue(entry.quantity || 1), entry.timestamp || entry.consumed_at || new Date().toISOString()]
       )
     }
   })
