@@ -55,6 +55,10 @@ export const api = {
     remove: id => request('/meals/' + id, { method: 'DELETE' }),
   },
 
+  sync: {
+    replace: data => json('PUT', '/sync', data),
+  },
+
   logs: {
     list: () => request('/log-entries'),
     create: entry => json('POST', '/log-entries', {
