@@ -1,6 +1,6 @@
 # 🥗 NutriLog
 
-A self-hosted nutrition and macro tracking platform for managing daily nutrition, foods, meals, and personal goals across multiple users and devices.
+A self-hosted nutrition and macro tracking platform for managing daily nutrition, foods, meals, personal goals, and user accounts across multiple devices.
 
 **Live deployment:** https://nutrilog.jondomain.com
 
@@ -11,10 +11,14 @@ NutriLog is designed around a simple goal: keep nutrition data under the operato
 - 📊 Daily calorie and macro tracking
 - 🎯 Custom calorie, protein, carbohydrate, fat, and fiber goals
 - 🥑 Personal food database
-- 🔍 USDA FoodData Central search
 - 🍽️ Meal builder and saved meals
+- 📏 Explicit serving amounts and serving units for foods and meals
+- 🔢 Fractional serving quantities when logging nutrition
+- 🧮 Nutrition totals automatically scale with the quantity consumed
 - 📅 Historical daily logs
 - 💾 JSON import/export backups
+- 🎨 Light and dark appearance modes
+- 🌈 Multiple accent color presets plus a custom color picker
 - 📱 Responsive desktop and mobile UI
 - ⚡ React + Vite frontend
 - 👤 User accounts and authentication
@@ -55,7 +59,68 @@ Administrators can manage users from the application, including:
 
 Administrators cannot disable, demote, or delete their own account through the admin interface.
 
-Users can change their own password and revoke other active sessions from Settings. Administrators can configure SMTP from the Admin → Email & SMTP panel without editing server files. SMTP credentials are stored encrypted on the server, and password recovery uses single-use, 30-minute reset tokens. If SMTP is not configured, administrators can continue to reset passwords from the administrator interface.
+## 🍽️ Nutrition & Serving Sizes
+
+Foods store an explicit serving amount and serving unit. Nutrition values entered for a food represent one serving.
+
+When logging a food or meal, the user can enter the number of servings consumed, including fractional quantities such as `0.5`, `1.5`, or `2.5`. NutriLog previews and stores the resulting nutrition totals based on the quantity consumed.
+
+For example:
+
+```text
+Serving: 100 g
+Calories: 165
+Servings consumed: 2.5
+Total calories: 412.5
+```
+
+## 🎨 Appearance
+
+NutriLog provides browser-local appearance settings under Settings:
+
+- Light mode
+- Dark mode
+- Sage
+- Ocean
+- Berry
+- Citrus
+- Teal
+- Ruby
+- Rose
+- Indigo
+- Gold
+- Slate
+- Custom accent color
+
+Appearance preferences are stored locally in the user's browser, allowing each device/browser to maintain its own appearance settings.
+
+## 🔐 Password Management & Email Recovery
+
+Users can change their own password and revoke other active sessions from Settings.
+
+Password recovery can be enabled through the administrator-controlled SMTP configuration.
+
+Administrators can configure SMTP from the **Admin → Email & SMTP** panel without editing server files.
+
+SMTP settings include:
+
+- SMTP host
+- SMTP port
+- STARTTLS
+- SSL/TLS
+- No encryption
+- SMTP username
+- SMTP password
+- Sender email address
+- Sender name
+- Public application URL
+- Test email address
+
+SMTP credentials are stored encrypted on the server and the SMTP password is never displayed back through the administrator interface.
+
+Password recovery uses single-use, 30-minute reset tokens.
+
+If SMTP is not configured, administrators can continue to reset user passwords from the administrator interface.
 
 ## 🏗️ Architecture
 
@@ -215,7 +280,22 @@ Important settings include:
 - `DB_POOL_SIZE` — PostgreSQL connection pool size.
 - `COOKIE_SECURE` — set to `true` when authentication is served over HTTPS.
 - `CORS_ORIGIN` — optional. Leave empty or unset for the normal same-origin deployment. Set it to the exact frontend origin only when the API is intentionally used cross-origin.
-SMTP and password-recovery email settings are managed from the administrator interface under **Admin → Email & SMTP**. The UI supports SMTP host/port, STARTTLS or SSL/TLS, username/password, sender information, public URL, and a test email. The SMTP password is encrypted before being stored in PostgreSQL.
+
+SMTP and password-recovery email settings are managed from the administrator interface under **Admin → Email & SMTP**.
+
+The SMTP configuration supports:
+
+- SMTP host and port
+- STARTTLS
+- SSL/TLS
+- No encryption
+- SMTP username and password
+- Sender email address
+- Sender name
+- Public application URL
+- Test email address
+
+The SMTP password is encrypted before being stored in PostgreSQL.
 
 For a standard NutriLog deployment behind a reverse proxy, the frontend and API are served from the same origin, so `CORS_ORIGIN` does not need to be configured.
 
@@ -235,24 +315,49 @@ NutriLog is designed for private, self-hosted deployments.
 - Port 3001 should not be forwarded directly from the Internet.
 - Public deployments should use HTTPS through a reverse proxy.
 - Database credentials, environment files, and session secrets must never be committed to Git.
+- Password-reset tokens are stored as hashes and expire after 30 minutes.
+- Password-reset tokens are single-use.
+- Resetting a password revokes existing user sessions.
+- SMTP credentials are encrypted before being stored in PostgreSQL.
 
 ## 📁 Repository Layout
 
 ```text
 NutriLog/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                # GitHub Actions CI
 ├── ct/
-│   └── nutrilog.sh              # Proxmox LXC definition
+│   └── nutrilog.sh               # Proxmox LXC definition
 ├── db/
-│   └── schema.sql               # PostgreSQL schema/migrations
+│   └── schema.sql                # PostgreSQL schema/migrations
 ├── install/
-│   └── nutrilog-install.sh      # In-container installer
+│   └── nutrilog-install.sh       # In-container installer
 ├── scripts/
-│   └── update.sh                # /usr/bin/update source
+│   └── update.sh                 # /usr/bin/update source
 ├── server/
-│   └── index.cjs                # Node.js API/static server
-├── src/                         # React frontend
-├── install.sh                   # Public Proxmox installer
+│   └── index.cjs                 # Node.js API/static server
+├── src/                          # React frontend
+├── install.sh                    # Public Proxmox installer
 └── README.md
+```
+
+## 🧪 Continuous Integration
+
+NutriLog uses GitHub Actions to verify changes submitted through pull requests and changes pushed to `main`.
+
+The CI workflow:
+
+1. Checks out the repository.
+2. Installs Node.js 20.
+3. Installs dependencies with `npm ci`.
+4. Runs the production build.
+
+The project also supports the local validation commands:
+
+```bash
+npm run check
+npm run build
 ```
 
 ## 📌 Platform Status
@@ -263,13 +368,20 @@ The platform foundation is implemented on `main`, including:
 2. First-run administrator setup
 3. Administrator user management
 4. PostgreSQL schema and user-scoped API storage
-5. Local browser caching
-6. Cross-device authenticated API access
-7. Legacy local-data migration
-8. Proxmox LXC installation
-9. systemd production service
-10. `/usr/bin/update` maintenance workflow
-11. Application health checking
+5. Food and meal serving-size support
+6. Quantity-based nutrition logging
+7. Local browser caching
+8. Cross-device authenticated API access
+9. Legacy local-data migration
+10. Responsive desktop/mobile interface
+11. Appearance modes and accent customization
+12. Self-service password management
+13. Password recovery through administrator-managed SMTP
+14. Proxmox LXC installation
+15. systemd production service
+16. `/usr/bin/update` maintenance workflow
+17. Application health checking
+18. GitHub Actions build validation
 
 NutriLog is actively being developed. Nutrition features and the user experience will continue to evolve while the self-hosted platform foundation remains the core deployment model.
 
