@@ -1,7 +1,43 @@
 import { useEffect, useState } from 'react'
-import { api } from './services'
+import { api, getConfiguredServerUrl, setConfiguredServerUrl, clearConfiguredServerUrl, isNutriLogNative } from './services'
 
 const blankGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65, fiber: 25 }
+const ServerConnectionScreen = ({ onConnected }) => {
+  const [serverUrl, setServerUrl] = useState(getConfiguredServerUrl())
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const connect = async event => {
+    event.preventDefault()
+    const value = serverUrl.trim().replace(/\/$/, '')
+    if (!/^https?:\/\//i.test(value)) return setError('Enter a complete server URL beginning with https://')
+    setBusy(true); setError('')
+    try {
+      setConfiguredServerUrl(value)
+      const result = await api.health()
+      if (!result.ok || result.service !== 'nutrilog-api') throw new Error('The server responded, but it is not a compatible NutriLog server.')
+      onConnected()
+    } catch (err) {
+      clearConfiguredServerUrl()
+      setError(err.message || 'Could not connect to that server.')
+    } finally { setBusy(false) }
+  }
+  return (
+    <div className="auth-screen">
+      <div className="auth-card">
+        <div className="auth-logo">🥗</div>
+        <h1>Connect to NutriLog</h1>
+        <p>Enter the address of the NutriLog server you want to use.</p>
+        <form onSubmit={connect}>
+          <label>Server URL<input type="url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://nutrilog.example.com" required autoCapitalize="none" autoCorrect="off" /></label>
+          <p style={{ marginTop: -4, fontSize: '0.85rem', opacity: 0.75 }}>Example only: https://nutrilog.example.com</p>
+          {error && <div className="auth-error">{error}</div>}
+          <button className="btn btn-primary" disabled={busy}>{busy ? 'Testing connection…' : 'Connect'}</button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 
 const AuthScreen = ({ onAuthenticated }) => {
   const [email, setEmail] = useState('')
@@ -182,6 +218,7 @@ const loadServerData = async userId => {
     api.foods.list(),
     api.meals.list(),
     api.logs.list(),
+    api.preferences.get(),
   ])
 
   const emptyServer = !goalsResult.goals && !foodsResult.items.length && !mealsResult.items.length && !logsResult.items.length
@@ -200,6 +237,7 @@ const loadServerData = async userId => {
     foods: foodsResult.items,
     meals: mealsResult.items,
     logs: logsResult.items,
+    preferences: preferencesResult.preferences || null,
   }
 }
 
@@ -208,6 +246,7 @@ export default function AuthGate({ App }) {
   const [ready, setReady] = useState(false)
   const [setupRequired, setSetupRequired] = useState(false)
   const [data, setData] = useState(null)
+  const [serverConnected, setServerConnected] = useState(() => !isNutriLogNative() || Boolean(getConfiguredServerUrl()))
 
   const authenticated = async currentUser => {
     const serverData = await loadServerData(currentUser.id)
@@ -217,6 +256,7 @@ export default function AuthGate({ App }) {
   }
 
   useEffect(() => {
+    if (!serverConnected) return
     api.setup()
       .then(async setup => {
         setSetupRequired(Boolean(setup.setupRequired))
@@ -229,8 +269,9 @@ export default function AuthGate({ App }) {
         else setReady(true)
       })
       .catch(() => setReady(true))
-  }, [])
+  }, [serverConnected])
 
+  if (!serverConnected) return <ServerConnectionScreen onConnected={() => { setServerConnected(true); setReady(false) }} />
   if (!ready) return <div className="auth-loading">Loading NutriLog…</div>
   const resetToken = new URLSearchParams(window.location.search).get('reset')
   if (resetToken && !user) return <ResetPasswordScreen token={resetToken} />
