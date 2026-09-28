@@ -2455,3 +2455,109 @@ body {
     min-height: 172px !important;
   }
 }
+
+
+/* Planner visibility fix */
+.planner-container .goal-display-item {
+  background: var(--accent-pale);
+  border-color: var(--accent-border);
+  color: #2d3436;
+}
+.planner-container .goal-display-item.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-soft) 100%);
+  color: #fff;
+  border-color: transparent;
+}
+.planner-container .goal-icon {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-dark);
+}
+.planner-container .goal-display-item.primary .goal-icon {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+}
+.planner-container .goal-label,
+.planner-container .goal-value {
+  color: inherit;
+}
+.planner-container .macro-breakdown {
+  background: #fff;
+  border-color: var(--accent-border);
+  color: #2d3436;
+}
+.planner-container .macro-breakdown h4,
+.planner-container .breakdown-label {
+  color: #2d3436;
+}
+.planner-container .breakdown-bar {
+  background: #f1f3f1;
+}
+.planner-container .breakdown-fill.protein {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%);
+}
+.planner-container .breakdown-fill.carbs {
+  background: linear-gradient(90deg, var(--accent-soft) 0%, var(--accent-pale) 100%);
+}
+.planner-container .breakdown-fill.fat {
+  background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent-soft) 100%);
+}
+.planner-container .goal-presets {
+  border-top-color: var(--accent-border);
+}
+.planner-container .goal-presets h4 {
+  color: #2d3436;
+}
+.planner-container .preset-btn {
+  background: var(--accent-pale);
+  border-color: var(--accent-border);
+  color: #2d3436;
+}
+.planner-container .preset-btn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+:root[data-theme="dark"] .planner-container .goal-display-item {
+  background: #1E293B;
+  border-color: #475569;
+  color: #F8FAFC;
+}
+:root[data-theme="dark"] .planner-container .goal-display-item.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-soft) 100%);
+  color: #fff;
+  border-color: var(--accent);
+}
+:root[data-theme="dark"] .planner-container .goal-icon {
+  background: rgba(96,165,250,.18);
+  color: #93C5FD;
+}
+:root[data-theme="dark"] .planner-container .goal-display-item.primary .goal-icon {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+}
+:root[data-theme="dark"] .planner-container .macro-breakdown {
+  background: #1E293B;
+  border-color: #475569;
+  color: #F8FAFC;
+}
+:root[data-theme="dark"] .planner-container .macro-breakdown h4,
+:root[data-theme="dark"] .planner-container .breakdown-label {
+  color: #F8FAFC;
+}
+:root[data-theme="dark"] .planner-container .breakdown-bar {
+  background: #0F172A;
+}
+:root[data-theme="dark"] .planner-container .goal-presets h4 {
+  color: #F8FAFC;
+}
+:root[data-theme="dark"] .planner-container .preset-btn {
+  background: #172033;
+  border-color: #475569;
+  color: #F8FAFC;
+}
+:root[data-theme="dark"] .planner-container .preset-btn:hover {
+  background: #334155;
+  border-color: var(--accent);
+  color: #fff;
+}
