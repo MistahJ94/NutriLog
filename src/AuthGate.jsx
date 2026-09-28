@@ -213,7 +213,7 @@ const loadServerData = async userId => {
     }
   })()
 
-  const [goalsResult, foodsResult, mealsResult, logsResult] = await Promise.all([
+  const [goalsResult, foodsResult, mealsResult, logsResult, preferencesResult] = await Promise.all([
     api.goals.get(),
     api.foods.list(),
     api.meals.list(),
