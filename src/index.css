@@ -2345,3 +2345,30 @@ body {
 :root[data-mode="dark"] .main-content .macro-breakdown h4 {
   color: var(--heading-text);
 }
+
+
+/* Theme-aware subtitle and supporting text */
+.main-content .tracker-dashboard-header p,
+.main-content .planner-intro p,
+.main-content .settings-description,
+.main-content .section > p,
+.main-content .section > div > p,
+.main-content .tracker-customizer-intro p {
+  color: var(--muted-text);
+}
+
+:root[data-mode="dark"] .main-content .tracker-dashboard-header p,
+:root[data-mode="dark"] .main-content .planner-intro p,
+:root[data-mode="dark"] .main-content .settings-description,
+:root[data-mode="dark"] .main-content .section > p,
+:root[data-mode="dark"] .main-content .section > div > p,
+:root[data-mode="dark"] .main-content .tracker-customizer-intro p {
+  color: var(--muted-text);
+}
+
+/* Supporting text on accent-colored cards stays light. */
+.main-content .stat-card.primary p,
+.main-content .selected-item-preview p,
+.main-content .recommendation-grid p {
+  color: rgba(255, 255, 255, 0.9);
+}
