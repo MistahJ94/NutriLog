@@ -204,6 +204,8 @@ function App({ user, initialServerData, onLogout }) {
   }
   const [tabOrder, setTabOrder] = useState(() => {
     try {
+      const serverOrder = Array.isArray(initialServerData?.preferences?.tabOrder) ? initialServerData.preferences.tabOrder : null
+      if (serverOrder?.length) return serverOrder
       const key = 'nutrilog-tab-order-' + (user?.id || 'default')
       const saved = JSON.parse(localStorage.getItem(key))
       const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
@@ -217,11 +219,13 @@ function App({ user, initialServerData, onLogout }) {
   const [customizeTabs, setCustomizeTabs] = useState(false)
   const tabDragRef = useRef(null)
   const [draggingTab, setDraggingTab] = useState(null)
-  const [theme, setTheme] = useState(() => localStorage.getItem('nutrilog-theme') || 'green')
-  const [mode, setMode] = useState(() => localStorage.getItem('nutrilog-mode') || 'light')
-  const [customAccent, setCustomAccent] = useState(() => localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
+  const [theme, setTheme] = useState(() => initialServerData?.preferences?.theme || localStorage.getItem('nutrilog-theme') || 'green')
+  const [mode, setMode] = useState(() => initialServerData?.preferences?.mode || localStorage.getItem('nutrilog-mode') || 'light')
+  const [customAccent, setCustomAccent] = useState(() => initialServerData?.preferences?.customAccent || localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
   const [trackerLayout, setTrackerLayout] = useState(() => {
     try {
+      const serverLayout = initialServerData?.preferences?.trackerLayout
+      if (serverLayout && typeof serverLayout === 'object' && Object.keys(serverLayout).length) return { ...serverLayout, customize: false }
       const saved = JSON.parse(localStorage.getItem('nutrilog-tracker-layout'))
       return {
         template: saved?.template || 'balanced',
@@ -318,6 +322,19 @@ function App({ user, initialServerData, onLogout }) {
   useEffect(() => {
     localStorage.setItem('nutrilog-tracker-layout', JSON.stringify(trackerLayout))
   }, [trackerLayout])
+
+  useEffect(() => {
+    if (!isInitialLoadComplete) return
+    const preferences = {
+      theme,
+      mode,
+      customAccent,
+      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order },
+      tabOrder
+    }
+    const timer = setTimeout(() => { api.preferences.save(preferences).catch(() => {}) }, 600)
+    return () => clearTimeout(timer)
+  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete])
 
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
