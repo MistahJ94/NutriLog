@@ -2,8 +2,6 @@
 
 A self-hosted nutrition and macro tracking platform for managing daily nutrition, foods, meals, personal goals, and user accounts across multiple devices.
 
-**Live deployment:** https://nutrilog.jondomain.com
-
 NutriLog is designed around a simple goal: keep nutrition data under the operator's control while providing the convenience of a modern web application. It combines a browser-friendly local cache with an authenticated PostgreSQL-backed API so users can access their data across devices.
 
 ## ✨ Current Features
