@@ -278,5 +278,5 @@ export default function AuthGate({ App }) {
   if (resetToken && !user) return <ResetPasswordScreen token={resetToken} />
   if (setupRequired && !user) return <SetupScreen onAuthenticated={authenticated} />
   if (!user) return <AuthScreen onAuthenticated={authenticated} />
-  return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} />
+  return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} onChangeServer={async () => { await api.auth.logout(); clearConfiguredServerUrl(); setUser(null); setData(null); setReady(false); setServerConnected(false) }} />
 }
