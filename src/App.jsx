@@ -498,7 +498,6 @@ function App({ user, initialServerData, onLogout }) {
   const handleQuickLogDateChange = (e) => {
     setQuickLogForm(prev => ({ ...prev, date: e.target.value }))
   }
-
   // Filter foods and meals based on search query
   const getFilteredSuggestions = () => {
     const query = quickLogForm.searchQuery.toLowerCase()
@@ -709,13 +708,15 @@ function App({ user, initialServerData, onLogout }) {
       const gridStyle = getComputedStyle(grid)
       const gap = parseFloat(gridStyle.columnGap) || 0
       const gridWidth = grid.getBoundingClientRect().width
-      const columns = trackerLayout.columns || 3
+      const computedColumns = gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length
+      const columns = computedColumns || trackerLayout.columns || 3
       const cellWidth = (gridWidth - gap * (columns - 1)) / columns
       if (!Number.isFinite(cellWidth) || cellWidth <= 0) return
 
       const start = trackerSizeDimensions(resizingTrackerCard.startSize)
       const deltaColumns = Math.round((event.clientX - resizingTrackerCard.startX) / (cellWidth + gap))
-      const deltaRows = Math.round((event.clientY - resizingTrackerCard.startY) / 120)
+      const rowHeight = parseFloat(gridStyle.gridAutoRows) || 120
+      const deltaRows = Math.round((event.clientY - resizingTrackerCard.startY) / (rowHeight + gap))
       const nextColumns = Math.max(1, Math.min(2, start.columns + deltaColumns))
       const nextRows = Math.max(1, Math.min(2, start.rows + deltaRows))
       const size = trackerSizeFromDimensions(nextColumns, nextRows)
@@ -997,8 +998,7 @@ function App({ user, initialServerData, onLogout }) {
                         onDragEnd={() => setDraggingTrackerCard(null)}>
                         <div className="tracker-card-editor-head"><span className="tracker-drag-handle">☷</span><strong>{card.label}</strong></div>
                         <div className="tracker-size-choices">
-                          {['normal','wide','tall','large'].map(size => (
-                            <button type="button" key={size} className={config.size === size || (!config.size && size === 'normal') ? 'selected' : ''} onClick={() => updateTrackerCard(card.id, 'size', size)}>
+                          {['normal','wide','tall','large'].map(size => (                            <button type="button" key={size} className={config.size === size || (!config.size && size === 'normal') ? 'selected' : ''} onClick={() => updateTrackerCard(card.id, 'size', size)}>
                               <span className={`tracker-size-preview tracker-size-${size}`}></span><span>{size}</span>
                             </button>
                           ))}
@@ -1497,8 +1497,7 @@ function App({ user, initialServerData, onLogout }) {
                 <div className="food-edit-actions"><button type="submit" className="btn btn-primary">Save Changes</button><button type="button" className="btn btn-secondary" onClick={cancelEditFood}>Cancel</button></div>
               </div>
             </form>
-          </div>
-        )}
+          </div>        )}
 
         {/* MEALS TAB */}
         {activeTab === 'meals' && (
@@ -1826,4 +1825,3 @@ function App({ user, initialServerData, onLogout }) {
 }
 
 export default App
-
