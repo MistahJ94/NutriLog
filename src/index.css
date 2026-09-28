@@ -2300,3 +2300,48 @@ body {
 :root[data-mode="dark"] .planner-container .goal-display-item {
   background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
 }
+
+
+/* Theme-aware tab titles and headings */
+:root {
+  --heading-text: #2d3436;
+  --muted-text: #636e72;
+}
+
+:root[data-mode="dark"] {
+  --heading-text: #F8FAFC;
+  --muted-text: #CBD5E1;
+}
+
+/* Keep headings readable in every tab and every color mode. */
+.main-content h2,
+.main-content h3,
+.main-content h4 {
+  color: var(--heading-text);
+}
+
+/* Headings that sit on accent/colored surfaces remain white. */
+.header h1,
+.header p,
+.date-header h3,
+.selected-item-preview h4,
+.stat-card.primary h2,
+.stat-card.primary h3,
+.stat-card.primary h4,
+.recommendation-grid h2,
+.recommendation-grid h3,
+.recommendation-grid h4 {
+  color: white;
+}
+
+:root[data-mode="dark"] .main-content .section h2,
+:root[data-mode="dark"] .main-content .section h3,
+:root[data-mode="dark"] .main-content .section h4,
+:root[data-mode="dark"] .main-content .planner-intro h2,
+:root[data-mode="dark"] .main-content .tracker-dashboard-header h2,
+:root[data-mode="dark"] .main-content .tracker-customizer h3,
+:root[data-mode="dark"] .main-content .food-info h3,
+:root[data-mode="dark"] .main-content .action-card h4,
+:root[data-mode="dark"] .main-content .macro-breakdown h4 {
+  color: var(--heading-text);
+}
