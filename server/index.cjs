@@ -261,7 +261,8 @@ async function authApi(req, res, pathname) {
     const passwordHash = await hashPassword(body.password)
     const user = (await sql.unsafe("INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, role", [email, passwordHash]))[0]
     await sql.unsafe("INSERT INTO user_goals (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING", [user.id])
-    return send(res, 201, { user }, { "Set-Cookie": sessionCookie(await createSession(user.id)) })
+    const token = await createSession(user.id)
+    return send(res, 201, { user, token }, { "Set-Cookie": sessionCookie(token) })
   }
 
   if (req.method === "POST" && pathname === "/api/auth/login") {
