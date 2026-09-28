@@ -1,7 +1,8 @@
 const isNativeApp = () => Boolean(window.Capacitor?.isNativePlatform?.() || window.location.protocol === 'capacitor:')
-const getServerUrl = () => String(localStorage.getItem('nutrilog-server-url') || '').trim().replace(/\/$/, '')
+const normalizeServerUrl = value => String(value || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '')
+const getServerUrl = () => normalizeServerUrl(localStorage.getItem('nutrilog-server-url') || '')
 export const getConfiguredServerUrl = () => getServerUrl()
-export const setConfiguredServerUrl = value => localStorage.setItem('nutrilog-server-url', String(value || '').trim().replace(/\/$/, ''))
+export const setConfiguredServerUrl = value => localStorage.setItem('nutrilog-server-url', normalizeServerUrl(value))
 export const clearConfiguredServerUrl = () => localStorage.removeItem('nutrilog-server-url')
 export const isNutriLogNative = isNativeApp
 
