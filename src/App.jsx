@@ -697,7 +697,6 @@ function App({ user, initialServerData, onLogout }) {
       startSize: config.size || 'normal'
     })
   }
-
   useEffect(() => {
     if (!resizingTrackerCard) return
 
@@ -715,7 +714,7 @@ function App({ user, initialServerData, onLogout }) {
 
       const start = trackerSizeDimensions(resizingTrackerCard.startSize)
       const deltaColumns = Math.round((event.clientX - resizingTrackerCard.startX) / (cellWidth + gap))
-      const rowHeight = parseFloat(gridStyle.gridAutoRows) || 120
+      const rowHeight = parseFloat(gridStyle.gridAutoRows) || 100
       const deltaRows = Math.round((event.clientY - resizingTrackerCard.startY) / (rowHeight + gap))
       const nextColumns = Math.max(1, Math.min(2, start.columns + deltaColumns))
       const nextRows = Math.max(1, Math.min(2, start.rows + deltaRows))
@@ -736,6 +735,50 @@ function App({ user, initialServerData, onLogout }) {
       window.removeEventListener('pointerup', handlePointerUp)
     }
   }, [resizingTrackerCard, trackerLayout.columns])
+
+  const beginTrackerDrag = (event, cardId) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.currentTarget?.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
+    setDraggingTrackerCard(cardId)
+  }
+
+  useEffect(() => {
+    if (!draggingTrackerCard) return
+
+    const handlePointerMove = event => {
+      const cards = [...document.querySelectorAll('.tracker-stats-grid .stat-card[data-tracker-card-id]')]
+      const target = cards
+        .filter(card => card.dataset.trackerCardId !== draggingTrackerCard)
+        .map(card => {
+          const rect = card.getBoundingClientRect()
+          const dx = event.clientX - (rect.left + rect.width / 2)
+          const dy = event.clientY - (rect.top + rect.height / 2)
+          return { id: card.dataset.trackerCardId, distance: Math.hypot(dx, dy) }
+        })
+        .sort((a, b) => a.distance - b.distance)[0]
+
+      if (!target) return
+
+      setTrackerLayout(prev => {
+        const order = Array.isArray(prev.order) ? [...prev.order] : trackerCards.map(card => card.id)
+        const from = order.indexOf(draggingTrackerCard)
+        const to = order.indexOf(target.id)
+        if (from < 0 || to < 0 || from === to) return prev
+        const [moved] = order.splice(from, 1)
+        order.splice(to, 0, moved)
+        return { ...prev, template: 'custom', order }
+      })
+    }
+
+    const handlePointerUp = () => setDraggingTrackerCard(null)
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [draggingTrackerCard])
 
   const orderedTrackerCards = (trackerLayout.order || trackerCards.map(card => card.id))
     .map(id => trackerCards.find(card => card.id === id))
@@ -973,60 +1016,17 @@ function App({ user, initialServerData, onLogout }) {
             </div>
 
             {trackerLayout.customize && (
-              <div className="tracker-customizer section">
-                <div className="tracker-customizer-intro">
-                  <div>
-                    <h3>Customize Dashboard</h3>
-                    <p>Drag cards to reorder them, or use the resize controls on the cards below.</p>
-                  </div>
-                  <div className="tracker-column-picker">
-                    {[2,3,4].map(columns => (
-                      <button type="button" key={columns} className={trackerLayout.columns === columns ? 'selected' : ''} onClick={() => setTrackerLayout(prev => ({ ...prev, template: 'custom', columns }))}>{columns} columns</button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="tracker-card-editor-grid">
-                  {orderedTrackerCards.map(card => {
-                    const config = trackerLayout.cards[card.id] || {}
-                    return (
-                      <div className={`tracker-card-editor ${draggingTrackerCard === card.id ? 'dragging' : ''}`} key={card.id}
-                        draggable
-                        onDragStart={() => setDraggingTrackerCard(card.id)}
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={() => dropTrackerCard(card.id)}
-                        onDragEnd={() => setDraggingTrackerCard(null)}>
-                        <div className="tracker-card-editor-head"><span className="tracker-drag-handle">☷</span><strong>{card.label}</strong></div>
-                        <div className="tracker-size-choices">
-                          {['normal','wide','tall','large'].map(size => (                            <button type="button" key={size} className={config.size === size || (!config.size && size === 'normal') ? 'selected' : ''} onClick={() => updateTrackerCard(card.id, 'size', size)}>
-                              <span className={`tracker-size-preview tracker-size-${size}`}></span><span>{size}</span>
-                            </button>
-                          ))}
-                        </div>
-                        <div className="tracker-orientation-choices">
-                          {['vertical','horizontal'].map(orientation => (
-                            <button type="button" key={orientation} className={config.orientation === orientation || (!config.orientation && orientation === 'vertical') ? 'selected' : ''} onClick={() => updateTrackerCard(card.id, 'orientation', orientation)}>
-                              {orientation === 'vertical' ? '↕ Vertical' : '↔ Horizontal'}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="tracker-reorder-buttons">
-                          <button type="button" className="btn btn-secondary" onClick={() => moveTrackerCard(card.id, -1)} disabled={orderedTrackerCards[0]?.id === card.id}>↑ Move up</button>
-                          <button type="button" className="btn btn-secondary" onClick={() => moveTrackerCard(card.id, 1)} disabled={orderedTrackerCards[orderedTrackerCards.length - 1]?.id === card.id}>↓ Move down</button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+              <div className="tracker-customizer-inline">
+                <span>↔ Drag the grip on a card to move it</span>
+                <span>↘ Drag the corner to resize it</span>
               </div>
             )}
-
             <div className="stats-grid tracker-stats-grid" style={{ '--tracker-columns': trackerLayout.columns || 3 }}>
               {orderedTrackerCards.map(card => {
                 const config = trackerLayout.cards[card.id] || {}
                 return (
-                  <div key={card.id} className={`stat-card ${card.className || ''} tracker-card-size-${config.size || 'normal'} tracker-card-orientation-${config.orientation || 'vertical'}`}>
-                    <div className="stat-label">{trackerLayout.customize && <span className="tracker-card-drag-dot">⠿</span>}{card.label}</div>
+                  <div key={card.id} data-tracker-card-id={card.id} className={`stat-card ${card.className || ''} tracker-card-size-${config.size || 'normal'} tracker-card-orientation-${config.orientation || 'vertical'} ${draggingTrackerCard === card.id ? 'tracker-card-dragging' : ''}`}>
+                    <div className="stat-label">{trackerLayout.customize && <button type="button" className="tracker-card-drag-dot" aria-label={`Move ${card.label} card`} onPointerDown={event => beginTrackerDrag(event, card.id)}>⠿</button>}{card.label}</div>
                     <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && remaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
                     <div className="stat-subtext">{card.subtext}</div>
                     {card.progress !== undefined && <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%` }}></div></div>}
@@ -1397,8 +1397,7 @@ function App({ user, initialServerData, onLogout }) {
                     value={foodFormData.carbs}
                     onChange={handleFoodFormChange}
                     placeholder="e.g., 0"
-                    min="0"
-                   step="0.01"/>
+                    min="0"                   step="0.01"/>
                 </div>
 
                 <div className="form-group">
