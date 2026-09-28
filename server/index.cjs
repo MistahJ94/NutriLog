@@ -620,7 +620,7 @@ async function protectedApi(req, res, pathname, user) {
     }
     if (req.method === "PUT") {
       const body = await readBody(req)
-      const themes = ["green","blue","purple","orange","yellow","slate","custom"]
+      const themes = ["green","blue","purple","orange","teal","red","pink","indigo","yellow","slate","custom"]
       const theme = themes.includes(body.theme) ? body.theme : "green"
       const mode = body.mode === "dark" ? "dark" : "light"
       const accent = /^#[0-9a-fA-F]{6}$/.test(String(body.customAccent || "")) ? String(body.customAccent) : "#6B9080"
