@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
-import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition } from './services'
+import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition, getConfiguredServerUrl, isNutriLogNative } from './services'
 
 function AdminPanel({ user }) {
   const [users, setUsers] = useState([])
@@ -178,7 +178,7 @@ function AdminPanel({ user }) {
     </div>
   )
 }
-function App({ user, initialServerData, onLogout }) {
+function App({ user, initialServerData, onLogout, onChangeServer }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
   const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'settings']
@@ -1968,6 +1968,22 @@ function App({ user, initialServerData, onLogout }) {
                 </div>
               </div>
             </div>
+
+            {isNutriLogNative() && (
+              <div className="section">
+                <h3>Server Connection</h3>
+                <p className="settings-description">This device is connected to:</p>
+                <div className="food-item" style={{ marginTop: 10 }}>
+                  <div className="food-info">
+                    <h3 style={{ wordBreak: 'break-all' }}>{getConfiguredServerUrl()}</h3>
+                    <div className="food-details"><span>Server address is stored on this device.</span></div>
+                  </div>
+                  <div className="food-actions">
+                    <button className="btn btn-secondary" type="button" onClick={onChangeServer}>Change Server</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="settings-grid">
               {/* Data Overview */}
