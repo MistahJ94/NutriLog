@@ -497,8 +497,7 @@ body {
 }
 
 .meal-food-macros {
-  font-size: 0.9rem;
-  color: #636e72;
+  font-size: 0.9rem;  color: #636e72;
 }
 
 .meal-food-controls {
@@ -997,7 +996,6 @@ body {
   padding-top: 25px;
   border-top: 1px solid #e8e8e3;
 }
-
 .goal-presets h4 {
   font-size: 1rem;
   color: #2d3436;
@@ -1497,8 +1495,7 @@ body {
 
 .btn-icon-delete {
   background: none;
-  border: none;
-  color: #D86C70;
+  border: none;  color: #D86C70;
   cursor: pointer;
   padding: 6px;
   border-radius: 6px;
@@ -2198,177 +2195,110 @@ body {
   .tracker-stats-grid {
     grid-template-columns: 1fr !important;
   }
-  .tracker-card-size-wide,
-  .tracker-card-size-tall,
-  .tracker-card-size-large {
-    grid-column: span 1 !important;
-    grid-row: span 1 !important;
-    min-height: 150px !important;
+
+/* Compact tracker tiles and touch-friendly mobile resizing */
+.tracker-stats-grid {
+  grid-auto-flow: dense;
+  grid-auto-rows: minmax(112px, auto);
+  gap: 12px;
+}
+
+.tracker-stats-grid .stat-card {
+  min-height: 112px;
+  padding: 22px 18px;
+}
+
+.tracker-stats-grid .stat-value {
+  font-size: 1.9rem;
+}
+
+.tracker-stats-grid .stat-label {
+  font-size: 0.78rem;
+  margin-bottom: 7px;
+}
+
+.tracker-stats-grid .stat-subtext {
+  font-size: 0.82rem;
+}
+
+@media (max-width: 768px) {
+  .tracker-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+    grid-auto-rows: minmax(112px, auto);
+  }
+
+  .tracker-stats-grid .stat-card {
+    min-height: 112px;
+    padding: 18px 12px;
+  }
+
+  .tracker-stats-grid .stat-value {
+    font-size: 1.65rem;
+  }
+
+  .tracker-stats-grid .stat-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.8px;
+  }
+
+  .tracker-stats-grid .stat-subtext {
+    font-size: 0.75rem;
+  }
+
+  .tracker-stats-grid .tracker-card-size-wide,
+  .tracker-stats-grid .tracker-card-size-large {
+    grid-column: span 2 !important;
+  }
+
+  .tracker-stats-grid .tracker-card-size-tall,
+  .tracker-stats-grid .tracker-card-size-large {
+    grid-row: span 2 !important;
+    min-height: 224px !important;
+  }
+
+  .tracker-stats-grid .tracker-card-resize-handle {
+    width: 32px;
+    height: 32px;
+    right: 4px;
+    bottom: 4px;
+    font-size: 17px;
+    touch-action: none;
   }
 }
 
+@media (max-width: 520px) {
+  .tracker-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px;
+  }
 
-/* Planner theme cleanup */
-.planner-container .goal-display-item {
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface, #fafaf8));
-  border-color: var(--accent-border);
-  color: var(--text);
-}
-.planner-container .goal-display-item.primary {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-soft) 100%);
-  color: #fff;
-  border-color: transparent;
-}
-.planner-container .goal-icon {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent-dark);
-}
-.planner-container .goal-display-item.primary .goal-icon {
-  background: rgba(255,255,255,.22);
-  color: #fff;
-}
-.planner-container .goal-label,
-.planner-container .goal-value {
-  color: inherit;
-}
-.planner-container .macro-breakdown {
-  background: color-mix(in srgb, var(--accent) 4%, var(--surface, #fafaf8));
-  border-color: var(--accent-border);
-}
-.planner-container .macro-breakdown h4,
-.planner-container .breakdown-label {
-  color: var(--text);
-}
-.planner-container .breakdown-bar {
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface-alt, #f1f3f1));
-}
-.planner-container .breakdown-fill.protein {
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%);
-}
-.planner-container .breakdown-fill.carbs {
-  background: linear-gradient(90deg, var(--accent-soft) 0%, var(--accent-pale) 100%);
-}
-.planner-container .breakdown-fill.fat {
-  background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent-soft) 100%);
-}
-.planner-container .goal-presets {
-  border-top-color: var(--accent-border);
-}
-.planner-container .goal-presets h4 {
-  color: var(--text);
-}
-.planner-container .preset-btn {
-  background: var(--accent-pale);
-  border-color: var(--accent-border);
-  color: var(--text);
-}
-.planner-container .preset-btn:hover {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface, #fafaf8));
-  border-color: var(--accent);
-  color: var(--accent-dark);
-}
+  .tracker-stats-grid .stat-card {
+    min-height: 112px;
+    padding: 16px 10px;
+  }
 
-/* Direct widget-style tracker resizing */
-.tracker-stats-grid .tracker-card-resize-handle {
-  width: 34px;
-  height: 34px;
-  right: 5px;
-  bottom: 5px;
-  border-radius: 8px;
-  border: 1px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface, #fff));
-  color: var(--accent-dark);
-  cursor: nwse-resize;
-  touch-action: none;
-  user-select: none;
-}
-.tracker-stats-grid .tracker-card-resize-handle:hover {
-  background: var(--accent);
-  color: #fff;
-}
-.tracker-stats-grid .tracker-card-size-wide,
-.tracker-stats-grid .tracker-card-size-large {
-  grid-column: span 2 !important;
-}
-.tracker-stats-grid .tracker-card-size-tall,
-.tracker-stats-grid .tracker-card-size-large {
-  grid-row: span 2 !important;
-}
-:root[data-mode="dark"] .planner-container .macro-breakdown {
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface-raised));
-}
-:root[data-mode="dark"] .planner-container .goal-display-item {
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
-}
+  .tracker-stats-grid .stat-value {
+    font-size: 1.5rem;
+  }
 
+  .tracker-stats-grid .stat-label {
+    font-size: 0.66rem;
+    letter-spacing: 0.5px;
+  }
 
-/* Theme-aware tab titles and headings */
-:root {
-  --heading-text: #2d3436;
-  --muted-text: #636e72;
-}
+  .tracker-stats-grid .stat-subtext {
+    font-size: 0.7rem;
+  }
 
-:root[data-mode="dark"] {
-  --heading-text: #F8FAFC;
-  --muted-text: #CBD5E1;
-}
+  .tracker-stats-grid .tracker-card-size-wide,
+  .tracker-stats-grid .tracker-card-size-large {
+    grid-column: span 2 !important;
+  }
 
-/* Keep headings readable in every tab and every color mode. */
-.main-content h2,
-.main-content h3,
-.main-content h4 {
-  color: var(--heading-text);
-}
-
-/* Headings that sit on accent/colored surfaces remain white. */
-.header h1,
-.header p,
-.date-header h3,
-.selected-item-preview h4,
-.stat-card.primary h2,
-.stat-card.primary h3,
-.stat-card.primary h4,
-.recommendation-grid h2,
-.recommendation-grid h3,
-.recommendation-grid h4 {
-  color: white;
-}
-
-:root[data-mode="dark"] .main-content .section h2,
-:root[data-mode="dark"] .main-content .section h3,
-:root[data-mode="dark"] .main-content .section h4,
-:root[data-mode="dark"] .main-content .planner-intro h2,
-:root[data-mode="dark"] .main-content .tracker-dashboard-header h2,
-:root[data-mode="dark"] .main-content .tracker-customizer h3,
-:root[data-mode="dark"] .main-content .food-info h3,
-:root[data-mode="dark"] .main-content .action-card h4,
-:root[data-mode="dark"] .main-content .macro-breakdown h4 {
-  color: var(--heading-text);
-}
-
-
-/* Theme-aware subtitle and supporting text */
-.main-content .tracker-dashboard-header p,
-.main-content .planner-intro p,
-.main-content .settings-description,
-.main-content .section > p,
-.main-content .section > div > p,
-.main-content .tracker-customizer-intro p {
-  color: var(--muted-text);
-}
-
-:root[data-mode="dark"] .main-content .tracker-dashboard-header p,
-:root[data-mode="dark"] .main-content .planner-intro p,
-:root[data-mode="dark"] .main-content .settings-description,
-:root[data-mode="dark"] .main-content .section > p,
-:root[data-mode="dark"] .main-content .section > div > p,
-:root[data-mode="dark"] .main-content .tracker-customizer-intro p {
-  color: var(--muted-text);
-}
-
-/* Supporting text on accent-colored cards stays light. */
-.main-content .stat-card.primary p,
-.main-content .selected-item-preview p,
-.main-content .recommendation-grid p {
-  color: rgba(255, 255, 255, 0.9);
+  .tracker-stats-grid .tracker-card-size-tall,
+  .tracker-stats-grid .tracker-card-size-large {
+    grid-row: span 2 !important;
+    min-height: 224px !important;
+  }
 }
