@@ -10,6 +10,7 @@ const ServerConnectionScreen = ({ onConnected }) => {
     event.preventDefault()
     const value = serverUrl.trim().replace(/\/$/, '')
     if (!/^https?:\/\//i.test(value)) return setError('Enter a complete server URL beginning with https://')
+    if (isNutriLogNative() && !/^https:\/\//i.test(value)) return setError('The Android app requires an HTTPS server URL.')
     setBusy(true); setError('')
     try {
       setConfiguredServerUrl(value)
