@@ -1,3 +1,5 @@
+import { CapacitorHttp } from '@capacitor/core'
+
 const isNativeApp = () => Boolean(window.Capacitor?.isNativePlatform?.() || window.location.protocol === 'capacitor:')
 const getServerUrl = () => String(localStorage.getItem('nutrilog-server-url') || '').trim().replace(/\/$/, '')
 export const getConfiguredServerUrl = () => getServerUrl()
@@ -12,14 +14,31 @@ const getApiBaseUrl = () => {
 
 const request = async (path, options = {}) => {
   const token = localStorage.getItem('nutrilog-session-token')
-  const response = await fetch(getApiBaseUrl() + path, {
+  const headers = {
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(token && isNativeApp() ? { Authorization: 'Bearer ' + token } : {}),
+    ...(isNativeApp() ? { 'X-NutriLog-Client': 'capacitor' } : {}),
+    ...options.headers,
+  }
+  const url = getApiBaseUrl() + path
+
+  if (isNativeApp()) {
+    const response = await CapacitorHttp.request({
+      url,
+      method: options.method || 'GET',
+      headers,
+      data: options.body ? JSON.parse(options.body) : undefined,
+    })
+    const data = response.data ?? {}
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(data?.error || 'API request failed')
+    }
+    return data
+  }
+
+  const response = await fetch(url, {
     credentials: 'include',
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token && isNativeApp() ? { Authorization: 'Bearer ' + token } : {}),
-      ...(isNativeApp() ? { 'X-NutriLog-Client': 'capacitor' } : {}),
-      ...options.headers,
-    },
+    headers,
     ...options,
   })
   const data = await response.json().catch(() => ({}))
