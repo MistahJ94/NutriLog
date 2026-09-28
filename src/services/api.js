@@ -11,7 +11,6 @@ const getApiBaseUrl = () => {
 }
 
 const request = async (path, options = {}) => {
- const request = async (path, options = {}) => {
   const token = localStorage.getItem('nutrilog-session-token')
   const response = await fetch(getApiBaseUrl() + path, {
     credentials: 'include',
@@ -26,7 +25,9 @@ const request = async (path, options = {}) => {
   const data = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(data.error || 'API request failed')
   return data
-}h, { method, body: JSON.stringify(body) })
+}
+
+const json = (method, path, body) => request(path, { method, body: JSON.stringify(body) })
 
 export const api = {
   health: () => request('/health'),
