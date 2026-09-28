@@ -395,6 +395,65 @@ body {
   border-color: white;
 }
 
+.tab-btn.tab-customizing {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.tab-btn.tab-customizing:active,
+.tab-btn.tab-dragging {
+  cursor: grabbing;
+}
+
+.tab-btn.tab-dragging {
+  opacity: 0.85;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.tab-drag-grip {
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.75;
+  margin-right: -2px;
+}
+
+.tab-customize-toggle {
+  border-style: dashed;
+}
+
+.tab-customizer-hint {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .tab-navigation {
+    gap: 7px;
+    margin-top: 20px;
+  }
+
+  .tab-btn {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+
+  .tab-drag-grip {
+    font-size: 16px;
+  }
+
+  .tab-customizer-hint {
+    font-size: 0.78rem;
+    gap: 8px;
+  }
+}
+
 /* Badges */
 .badge-meal {
   display: inline-block;
