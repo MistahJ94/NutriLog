@@ -2195,6 +2195,7 @@ body {
   .tracker-stats-grid {
     grid-template-columns: 1fr !important;
   }
+}
 
 /* Compact tracker tiles and touch-friendly mobile resizing */
 .tracker-stats-grid {

@@ -736,47 +736,168 @@ function App({ user, initialServerData, onLogout }) {
     }
   }, [resizingTrackerCard, trackerLayout.columns])
 
+  const trackerDragRef = useRef(null)
+
   const beginTrackerDrag = (event, cardId) => {
     event.preventDefault()
     event.stopPropagation()
-    if (event.currentTarget?.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
+
+    const card = event.currentTarget?.closest('.stat-card')
+    if (!card) return
+
+    const rect = card.getBoundingClientRect()
+
+    trackerDragRef.current = {
+      cardId,
+      card,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      moved: false
+    }
+
+    if (event.currentTarget?.setPointerCapture) {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    }
+
     setDraggingTrackerCard(cardId)
+
+    card.style.zIndex = '100'
+    card.style.transition = 'none'
+    card.style.willChange = 'transform'
   }
 
   useEffect(() => {
     if (!draggingTrackerCard) return
 
+    let animationFrame = null
+    let latestEvent = null
+
     const handlePointerMove = event => {
-      const cards = [...document.querySelectorAll('.tracker-stats-grid .stat-card[data-tracker-card-id]')]
-      const target = cards
-        .filter(card => card.dataset.trackerCardId !== draggingTrackerCard)
-        .map(card => {
-          const rect = card.getBoundingClientRect()
-          const dx = event.clientX - (rect.left + rect.width / 2)
-          const dy = event.clientY - (rect.top + rect.height / 2)
-          return { id: card.dataset.trackerCardId, distance: Math.hypot(dx, dy) }
-        })
-        .sort((a, b) => a.distance - b.distance)[0]
+      const drag = trackerDragRef.current
+      if (!drag || drag.cardId !== draggingTrackerCard) return
 
-      if (!target) return
+      latestEvent = event
 
-      setTrackerLayout(prev => {
-        const order = Array.isArray(prev.order) ? [...prev.order] : trackerCards.map(card => card.id)
-        const from = order.indexOf(draggingTrackerCard)
-        const to = order.indexOf(target.id)
-        if (from < 0 || to < 0 || from === to) return prev
-        const [moved] = order.splice(from, 1)
-        order.splice(to, 0, moved)
-        return { ...prev, template: 'custom', order }
+      if (animationFrame) return
+
+      animationFrame = requestAnimationFrame(() => {
+        animationFrame = null
+
+        const current = trackerDragRef.current
+        if (!current || !latestEvent) return
+
+        const dx = latestEvent.clientX - current.startX
+        const dy = latestEvent.clientY - current.startY
+
+        if (Math.abs(dx) + Math.abs(dy) > 6) {
+          current.moved = true
+        }
+
+        current.card.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.03)`
       })
     }
 
-    const handlePointerUp = () => setDraggingTrackerCard(null)
-    window.addEventListener('pointermove', handlePointerMove)
+    const handlePointerUp = event => {
+      const drag = trackerDragRef.current
+      if (!drag || drag.cardId !== draggingTrackerCard) return
+
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame)
+        animationFrame = null
+      }
+
+      const cards = [...document.querySelectorAll('.tracker-stats-grid .stat-card[data-tracker-card-id]')]
+        .filter(card => card.dataset.trackerCardId !== drag.cardId)
+
+      let target = null
+      let closestDistance = Infinity
+
+      for (const card of cards) {
+        const rect = card.getBoundingClientRect()
+        const centerX = rect.left + rect.width / 2
+        const centerY = rect.top + rect.height / 2
+        const distance = Math.hypot(event.clientX - centerX, event.clientY - centerY)
+
+        if (distance < closestDistance) {
+          closestDistance = distance
+          target = card
+        }
+      }
+
+      const draggedRect = drag.card.getBoundingClientRect()
+      const dragCenterX = draggedRect.left + draggedRect.width / 2
+      const dragCenterY = draggedRect.top + draggedRect.height / 2
+
+      if (target && closestDistance < Math.max(target.offsetWidth, target.offsetHeight) * 0.8) {
+        const targetId = target.dataset.trackerCardId
+
+        setTrackerLayout(prev => {
+          const order = Array.isArray(prev.order)
+            ? [...prev.order]
+            : trackerCards.map(card => card.id)
+
+          const from = order.indexOf(drag.cardId)
+          const to = order.indexOf(targetId)
+
+          if (from < 0 || to < 0 || from === to) return prev
+
+          const [moved] = order.splice(from, 1)
+          order.splice(to, 0, moved)
+
+          return {
+            ...prev,
+            template: 'custom',
+            order
+          }
+        })
+      }
+
+      drag.card.style.transition = 'transform 160ms ease'
+      drag.card.style.transform = ''
+
+      setTimeout(() => {
+        if (drag.card) {
+          drag.card.style.zIndex = ''
+          drag.card.style.willChange = ''
+          drag.card.style.transition = ''
+        }
+      }, 180)
+
+      trackerDragRef.current = null
+      setDraggingTrackerCard(null)
+    }
+
+    const handlePointerCancel = () => {
+      const drag = trackerDragRef.current
+
+      if (drag?.card) {
+        drag.card.style.transition = 'transform 160ms ease'
+        drag.card.style.transform = ''
+
+        setTimeout(() => {
+          if (drag.card) {
+            drag.card.style.zIndex = ''
+            drag.card.style.willChange = ''
+            drag.card.style.transition = ''
+          }
+        }, 180)
+      }
+
+      trackerDragRef.current = null
+      setDraggingTrackerCard(null)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
     window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerCancel)
+
     return () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerCancel)
     }
   }, [draggingTrackerCard])
 
