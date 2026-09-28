@@ -64,3 +64,13 @@ CREATE TABLE IF NOT EXISTS weight_entries (
 );
 CREATE INDEX IF NOT EXISTS weight_entries_user_date_idx ON weight_entries(user_id, recorded_at DESC, created_at DESC);
 
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  theme TEXT NOT NULL DEFAULT 'green',
+  mode TEXT NOT NULL DEFAULT 'light',
+  accent_color TEXT NOT NULL DEFAULT '#6B9080',
+  tracker_layout JSONB NOT NULL DEFAULT '{}'::jsonb,
+  tab_order JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
