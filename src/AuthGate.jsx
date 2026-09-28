@@ -13,13 +13,19 @@ const ServerConnectionScreen = ({ onConnected }) => {
     if (isNutriLogNative() && !/^https:\/\//i.test(value)) return setError('The Android app requires an HTTPS server URL.')
     setBusy(true); setError('')
     try {
+      const response = await fetch(value + '/api/health', {
+        method: 'GET',
+        headers: { 'X-NutriLog-Client': 'capacitor' },
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || !result.ok || result.service !== 'nutrilog-api') {
+        throw new Error(result.error || 'The server responded, but it is not a compatible NutriLog server.')
+      }
       setConfiguredServerUrl(value)
-      const result = await api.health()
-      if (!result.ok || result.service !== 'nutrilog-api') throw new Error('The server responded, but it is not a compatible NutriLog server.')
       onConnected()
     } catch (err) {
       clearConfiguredServerUrl()
-      setError(err.message || 'Could not connect to that server.')
+      setError(err?.message || 'Could not connect to that server.')
     } finally { setBusy(false) }
   }
   return (
