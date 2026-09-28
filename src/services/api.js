@@ -46,7 +46,7 @@ export const api = {
     users: () => request('/admin/users'), createUser: (email, password, role = 'user') => json('POST', '/admin/users', { email, password, role }), updateUser: (id, changes) => json('PUT', '/admin/users/' + id, changes), deleteUser: id => request('/admin/users/' + id, { method: 'DELETE' }), revokeSessions: id => request('/admin/users/' + id + '/sessions/revoke', { method: 'POST' }), resetPassword: (id, password) => json('POST', '/admin/users/' + id + '/password', { password }), smtp: () => request('/admin/smtp'), saveSmtp: settings => json('PUT', '/admin/smtp', settings), testSmtp: settings => json('POST', '/admin/smtp/test', settings), disableSmtp: () => request('/admin/smtp', { method: 'DELETE' }),
   },
   preferences: { get: () => request('/preferences'), save: preferences => json('PUT', '/preferences', preferences) },
-  health: { get: () => request('/health-profile'), save: profile => json('PUT', '/health-profile', profile) },
+  healthProfile: { get: () => request('/health-profile'), save: profile => json('PUT', '/health-profile', profile) },
   activities: { list: () => request('/activities'), create: activity => json('POST', '/activities', activity), remove: id => request('/activities/' + id, { method: 'DELETE' }) },
   weight: { list: () => request('/weight'), create: entry => json('POST', '/weight', entry), remove: id => request('/weight/' + id, { method: 'DELETE' }) },
   goals: { get: () => request('/goals'), save: goals => json('PUT', '/goals', goals) },
