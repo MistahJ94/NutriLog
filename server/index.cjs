@@ -6,7 +6,8 @@ const postgres = require("postgres")
 
 const PORT = Number(process.env.PORT || 3001)
 const DATABASE_URL = process.env.DATABASE_URL
-const CORS_ORIGIN = String(process.env.CORS_ORIGIN || "").trim() || null
+const CORS_ORIGINS = String(process.env.CORS_ORIGIN || "").split(",").map(value => value.trim()).filter(Boolean)
+const NATIVE_CORS_ORIGINS = ["https://localhost", "http://localhost", "capacitor://localhost", "ionic://localhost"]
 const PRODUCTION = process.env.NODE_ENV === "production"
 const COOKIE_SECURE = process.env.COOKIE_SECURE !== "false"
 
@@ -75,6 +76,13 @@ const verifyPassword = (password, stored) => new Promise((resolve, reject) => {
 const sessionCookie = token =>
   "nutrilog_session=" + encodeURIComponent(token) + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000" +
   (COOKIE_SECURE ? "; Secure" : "")
+
+const bearerToken = req => {
+  const value = String(req.headers.authorization || "")
+  return value.startsWith("Bearer ") ? value.slice(7).trim() : ""
+}
+
+const requestSessionToken = req => bearerToken(req) || parseCookies(req.headers.cookie).nutrilog_session || ""
 
 const validEmail = email => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validPassword = password => typeof password === "string" && password.length >= 8 && password.length <= 128
@@ -199,7 +207,7 @@ async function createSession(userId) {
 }
 
 async function userFromRequest(req) {
-  const token = parseCookies(req.headers.cookie).nutrilog_session
+  const token = requestSessionToken(req)
   if (!token) return null
   const rows = await sql.unsafe(
     "SELECT u.id, u.email, u.role, u.is_active FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > NOW()",
@@ -236,7 +244,8 @@ async function authApi(req, res, pathname) {
     const passwordHash = await hashPassword(body.password)
     const user = (await sql.unsafe("INSERT INTO users (email, password_hash, role) VALUES ($1, $2, 'admin') RETURNING id, email, role, is_active", [email, passwordHash]))[0]
     await sql.unsafe("INSERT INTO user_goals (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING", [user.id])
-    return send(res, 201, { user }, { "Set-Cookie": sessionCookie(await createSession(user.id)) })
+    const token = await createSession(user.id)
+    return send(res, 201, { user, token }, { "Set-Cookie": sessionCookie(token) })
   }
 
   if (req.method === "POST" && pathname === "/api/auth/register") {
@@ -263,11 +272,12 @@ async function authApi(req, res, pathname) {
     if (!rows.length || !(await verifyPassword(body.password, rows[0].password_hash))) return send(res, 401, { error: "Invalid email or password" })
     if (!rows[0].is_active) return send(res, 403, { error: "This account has been disabled" })
     const user = { id: rows[0].id, email: rows[0].email, role: rows[0].role }
-    return send(res, 200, { user }, { "Set-Cookie": sessionCookie(await createSession(user.id)) })
+    const token = await createSession(user.id)
+    return send(res, 200, { user, token }, { "Set-Cookie": sessionCookie(token) })
   }
 
-  if (req.method === "POST" && pathname === "/api/auth/change-password") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); if(!authAllowed(req))return send(res,429,{error:"Too many authentication attempts. Try again later."}); const body=await readBody(req); if(!validPassword(body.newPassword))return send(res,400,{error:"Password must be 8-128 characters"}); const row=(await sql.unsafe("SELECT password_hash FROM users WHERE id=$1 AND is_active=TRUE",[user.id]))[0]; if(!row||!(await verifyPassword(body.currentPassword,row.password_hash)))return send(res,401,{error:"Current password is incorrect"}); await sql.unsafe("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2",[await hashPassword(body.newPassword),user.id]); const current=parseCookies(req.headers.cookie).nutrilog_session; await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
-  if (req.method === "POST" && pathname === "/api/auth/revoke-other-sessions") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); const current=parseCookies(req.headers.cookie).nutrilog_session; await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
+  if (req.method === "POST" && pathname === "/api/auth/change-password") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); if(!authAllowed(req))return send(res,429,{error:"Too many authentication attempts. Try again later."}); const body=await readBody(req); if(!validPassword(body.newPassword))return send(res,400,{error:"Password must be 8-128 characters"}); const row=(await sql.unsafe("SELECT password_hash FROM users WHERE id=$1 AND is_active=TRUE",[user.id]))[0]; if(!row||!(await verifyPassword(body.currentPassword,row.password_hash)))return send(res,401,{error:"Current password is incorrect"}); await sql.unsafe("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2",[await hashPassword(body.newPassword),user.id]); const current=requestSessionToken(req); await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
+  if (req.method === "POST" && pathname === "/api/auth/revoke-other-sessions") { const user=await userFromRequest(req); if(!user)return send(res,401,{error:"Authentication required"}); const current=requestSessionToken(req); await sql.unsafe("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,tokenHash(current||"")]); return send(res,200,{ok:true}) }
   if (req.method === "POST" && pathname === "/api/auth/forgot-password") {
     if (!authAllowed(req)) return send(res, 429, { error: "Too many requests. Try again later." })
     const body = await readBody(req)
@@ -302,7 +312,7 @@ async function authApi(req, res, pathname) {
   }
   if (req.method === "POST" && pathname === "/api/auth/reset-password") { if(!authAllowed(req))return send(res,429,{error:"Too many requests. Try again later."}); const body=await readBody(req); if(!validPassword(body.newPassword)||typeof body.token!=="string")return send(res,400,{error:"A valid reset token and password (8-128 characters) are required"}); const rows=await sql.unsafe("SELECT user_id FROM password_reset_tokens WHERE token_hash=$1 AND expires_at>NOW()",[tokenHash(body.token)]); if(!rows.length)return send(res,400,{error:"This password reset link is invalid or has expired."}); await sql.unsafe("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2",[await hashPassword(body.newPassword),rows[0].user_id]); await sql.unsafe("DELETE FROM sessions WHERE user_id=$1",[rows[0].user_id]); await sql.unsafe("DELETE FROM password_reset_tokens WHERE user_id=$1",[rows[0].user_id]); return send(res,200,{ok:true}) }
   if (req.method === "POST" && pathname === "/api/auth/logout") {
-    const token = parseCookies(req.headers.cookie).nutrilog_session
+    const token = requestSessionToken(req)
     if (token) await sql.unsafe("DELETE FROM sessions WHERE token_hash = $1", [tokenHash(token)])
     return send(res, 200, { ok: true }, { "Set-Cookie": "nutrilog_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0" })
   }
@@ -596,6 +606,31 @@ async function healthApi(req, res, pathname, user) {
 async function protectedApi(req, res, pathname, user) {
   const healthHandled = await healthApi(req, res, pathname, user)
   if (healthHandled !== false) return
+  if (pathname === "/api/preferences") {
+    if (req.method === "GET") {
+      const rows = await sql.unsafe("SELECT theme, mode, accent_color, tracker_layout, tab_order, updated_at FROM user_preferences WHERE user_id=$1", [user.id])
+      return send(res, 200, { preferences: rows[0] ? {
+        theme: rows[0].theme,
+        mode: rows[0].mode,
+        customAccent: rows[0].accent_color,
+        trackerLayout: rows[0].tracker_layout || {},
+        tabOrder: Array.isArray(rows[0].tab_order) ? rows[0].tab_order : []
+      } : null })
+    }
+    if (req.method === "PUT") {
+      const body = await readBody(req)
+      const themes = ["green","blue","purple","orange","yellow","slate","custom"]
+      const theme = themes.includes(body.theme) ? body.theme : "green"
+      const mode = body.mode === "dark" ? "dark" : "light"
+      const accent = /^#[0-9a-fA-F]{6}$/.test(String(body.customAccent || "")) ? String(body.customAccent) : "#6B9080"
+      const layout = body.trackerLayout && typeof body.trackerLayout === "object" ? body.trackerLayout : {}
+      const order = Array.isArray(body.tabOrder) ? body.tabOrder.filter(value => typeof value === "string").slice(0, 20) : []
+      await sql.unsafe("INSERT INTO user_preferences (user_id, theme, mode, accent_color, tracker_layout, tab_order) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET theme=EXCLUDED.theme, mode=EXCLUDED.mode, accent_color=EXCLUDED.accent_color, tracker_layout=EXCLUDED.tracker_layout, tab_order=EXCLUDED.tab_order, updated_at=NOW()", [user.id, theme, mode, accent, JSON.stringify(layout), JSON.stringify(order)])
+      return send(res, 200, { ok: true })
+    }
+    return send(res, 405, { error: "Method not allowed" })
+  }
+
   if (pathname === "/api/goals") {
     if (req.method === "GET") {
       const rows = await sql.unsafe("SELECT calories, protein, carbs, fat, fiber, updated_at FROM user_goals WHERE user_id = $1", [user.id])
@@ -740,8 +775,10 @@ async function serveStatic(res, pathname) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (CORS_ORIGIN) {
-    res.setHeader("Access-Control-Allow-Origin", CORS_ORIGIN)
+  const requestOrigin = String(req.headers.origin || "")
+  const allowedOrigins = [...CORS_ORIGINS, ...NATIVE_CORS_ORIGINS]
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    res.setHeader("Access-Control-Allow-Origin", requestOrigin)
     res.setHeader("Access-Control-Allow-Credentials", "true")
     res.setHeader("Vary", "Origin")
   }
@@ -752,11 +789,11 @@ const server = http.createServer(async (req, res) => {
   if (PRODUCTION) res.setHeader("Strict-Transport-Security", "max-age=31536000")
 
   if (req.method === "OPTIONS") {
-    if (CORS_ORIGIN) {
+    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
       res.writeHead(204, {
-        "Access-Control-Allow-Origin": CORS_ORIGIN,
+        "Access-Control-Allow-Origin": requestOrigin,
         "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-NutriLog-Client",
         "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS"
       })
     } else {
