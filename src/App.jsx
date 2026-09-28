@@ -181,6 +181,42 @@ function AdminPanel({ user }) {
 function App({ user, initialServerData, onLogout }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
+  const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'settings']
+  const tabLabels = {
+    tracker: 'Tracker',
+    planner: 'Planner',
+    foods: 'Foods',
+    meals: 'Meals',
+    goals: 'Goals',
+    activity: 'Activity',
+    settings: 'Settings',
+    admin: 'Admin'
+  }
+  const tabIcons = {
+    tracker: Flame,
+    planner: ClipboardList,
+    foods: Coffee,
+    meals: UtensilsCrossed,
+    goals: Target,
+    activity: TrendingUp,
+    settings: Settings,
+    admin: Shield
+  }
+  const [tabOrder, setTabOrder] = useState(() => {
+    try {
+      const key = 'nutrilog-tab-order-' + (user?.id || 'default')
+      const saved = JSON.parse(localStorage.getItem(key))
+      const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
+      if (!Array.isArray(saved)) return available
+      const valid = saved.filter(tab => available.includes(tab))
+      return [...valid, ...available.filter(tab => !valid.includes(tab))]
+    } catch {
+      return user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
+    }
+  })
+  const [customizeTabs, setCustomizeTabs] = useState(false)
+  const tabDragRef = useRef(null)
+  const [draggingTab, setDraggingTab] = useState(null)
   const [theme, setTheme] = useState(() => localStorage.getItem('nutrilog-theme') || 'green')
   const [mode, setMode] = useState(() => localStorage.getItem('nutrilog-mode') || 'light')
   const [customAccent, setCustomAccent] = useState(() => localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
@@ -282,6 +318,112 @@ function App({ user, initialServerData, onLogout }) {
   useEffect(() => {
     localStorage.setItem('nutrilog-tracker-layout', JSON.stringify(trackerLayout))
   }, [trackerLayout])
+
+  useEffect(() => {
+    const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
+    const normalized = [...tabOrder.filter(tab => available.includes(tab)), ...available.filter(tab => !tabOrder.includes(tab))]
+    if (normalized.join('|') !== tabOrder.join('|')) setTabOrder(normalized)
+    localStorage.setItem('nutrilog-tab-order-' + (user?.id || 'default'), JSON.stringify(normalized))
+  }, [tabOrder, user?.id, user?.role])
+
+  const beginTabDrag = (event, tabId) => {
+    if (!customizeTabs) return
+    event.preventDefault()
+    event.stopPropagation()
+    const tab = event.currentTarget?.closest('.tab-btn')
+    if (!tab) return
+
+    tabDragRef.current = {
+      tabId,
+      tab,
+      startX: event.clientX,
+      startY: event.clientY
+    }
+
+    if (event.currentTarget?.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
+    setDraggingTab(tabId)
+    tab.style.zIndex = '20'
+    tab.style.transition = 'none'
+    tab.style.willChange = 'transform'
+  }
+
+  useEffect(() => {
+    if (!draggingTab) return
+
+    const handlePointerMove = event => {
+      const drag = tabDragRef.current
+      if (!drag || drag.tabId !== draggingTab) return
+      const dx = event.clientX - drag.startX
+      const dy = event.clientY - drag.startY
+      drag.tab.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.03)`
+    }
+
+    const handlePointerUp = event => {
+      const drag = tabDragRef.current
+      if (!drag || drag.tabId !== draggingTab) return
+
+      const tabs = [...document.querySelectorAll('.tab-navigation .tab-btn[data-tab-id]')]
+        .filter(tab => tab.dataset.tabId !== drag.tabId)
+
+      let target = null
+      let closest = Infinity
+      for (const tab of tabs) {
+        const rect = tab.getBoundingClientRect()
+        const distance = Math.hypot(event.clientX - (rect.left + rect.width / 2), event.clientY - (rect.top + rect.height / 2))
+        if (distance < closest) {
+          closest = distance
+          target = tab
+        }
+      }
+
+      if (target && closest < Math.max(target.offsetWidth, target.offsetHeight) * 0.9) {
+        const targetId = target.dataset.tabId
+        setTabOrder(prev => {
+          const next = [...prev]
+          const from = next.indexOf(drag.tabId)
+          const to = next.indexOf(targetId)
+          if (from < 0 || to < 0 || from === to) return prev
+          const [moved] = next.splice(from, 1)
+          next.splice(to, 0, moved)
+          return next
+        })
+      }
+
+      drag.tab.style.transition = 'transform 160ms ease'
+      drag.tab.style.transform = ''
+      setTimeout(() => {
+        if (drag.tab) {
+          drag.tab.style.zIndex = ''
+          drag.tab.style.willChange = ''
+          drag.tab.style.transition = ''
+        }
+      }, 180)
+
+      tabDragRef.current = null
+      setDraggingTab(null)
+    }
+
+    const handlePointerCancel = () => {
+      const drag = tabDragRef.current
+      if (drag?.tab) {
+        drag.tab.style.transform = ''
+        drag.tab.style.zIndex = ''
+        drag.tab.style.willChange = ''
+        drag.tab.style.transition = ''
+      }
+      tabDragRef.current = null
+      setDraggingTab(null)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerCancel)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerCancel)
+    }
+  }, [draggingTab, customizeTabs])
 
   // Load data through the application storage service.
   useEffect(() => {
@@ -1055,65 +1197,40 @@ function App({ user, initialServerData, onLogout }) {
         
         {/* Tab Navigation */}
         <div className="tab-navigation">
-          <button 
-            className={`tab-btn ${activeTab === 'tracker' ? 'active' : ''}`}
-            onClick={() => setActiveTab('tracker')}
+          {tabOrder.map(tabId => {
+            const Icon = tabIcons[tabId]
+            return (
+              <button
+                key={tabId}
+                type="button"
+                data-tab-id={tabId}
+                className={`tab-btn ${activeTab === tabId ? 'active' : ''} ${customizeTabs ? 'tab-customizing' : ''} ${draggingTab === tabId ? 'tab-dragging' : ''}`}
+                onClick={() => !customizeTabs && setActiveTab(tabId)}
+                onPointerDown={event => customizeTabs && beginTabDrag(event, tabId)}
+                title={customizeTabs ? `Drag to move ${tabLabels[tabId]}` : tabLabels[tabId]}
+              >
+                {customizeTabs && <span className="tab-drag-grip" aria-hidden="true">⠿</span>}
+                <Icon size={20} />
+                {tabLabels[tabId]}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            className={`tab-btn tab-customize-toggle ${customizeTabs ? 'active' : ''}`}
+            onClick={() => setCustomizeTabs(prev => !prev)}
           >
-            <Flame size={20} />
-            Tracker
+            <Settings size={18} />
+            {customizeTabs ? 'Done' : 'Arrange Tabs'}
           </button>
-          <button 
-            className={`tab-btn ${activeTab === 'planner' ? 'active' : ''}`}
-            onClick={() => setActiveTab('planner')}
-          >
-            <ClipboardList size={20} />
-            Planner
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'foods' ? 'active' : ''}`}
-            onClick={() => setActiveTab('foods')}
-          >
-            <Coffee size={20} />
-            Foods
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'meals' ? 'active' : ''}`}
-            onClick={() => setActiveTab('meals')}
-          >
-            <UtensilsCrossed size={20} />
-            Meals
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'goals' ? 'active' : ''}`}
-            onClick={() => setActiveTab('goals')}
-          >
-            <Target size={20} />
-            Goals
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
-            onClick={() => setActiveTab('activity')}
-          >
-            <TrendingUp size={20} />
-            Activity
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
-          >
-            <Settings size={20} />
-            Settings
-          </button>
-          {user?.role === 'admin' && (
-            <button
-              className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`}
-              onClick={() => setActiveTab('admin')}
-            >
-              <Shield size={20} />
-              Admin
-            </button>
-          )}
         </div>
+
+        {customizeTabs && (
+          <div className="tab-customizer-hint">
+            <span>↔ Drag the tabs into any order</span>
+            <span>Your layout is saved for this account</span>
+          </div>
+        )}
       </div>
 
       <div className="main-content">
