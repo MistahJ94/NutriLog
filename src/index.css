@@ -2302,3 +2302,155 @@ body {
     min-height: 224px !important;
   }
 }
+
+
+/* Inline tracker customization: no separate editor table */
+.tracker-customizer-inline {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 auto 12px;
+  padding: 8px 12px;
+  color: var(--muted-text, #667);
+  font-size: .78rem;
+}
+
+.tracker-stats-grid {
+  grid-auto-rows: minmax(90px, auto);
+}
+
+.tracker-stats-grid .stat-card {
+  min-height: 90px;
+  padding: 14px 14px;
+}
+
+.tracker-stats-grid .stat-value {
+  font-size: 1.65rem;
+}
+
+.tracker-stats-grid .stat-label {
+  font-size: .72rem;
+  margin-bottom: 5px;
+}
+
+.tracker-stats-grid .stat-subtext {
+  font-size: .76rem;
+}
+
+.tracker-card-drag-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -7px 5px -7px -7px;
+  padding: 0;
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  background: var(--accent-pale);
+  color: var(--accent-dark);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  font-size: 16px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.tracker-card-drag-dot:active {
+  cursor: grabbing;
+}
+
+.tracker-card-drag-dot:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.tracker-card-dragging {
+  opacity: .55;
+  transform: scale(.98);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+@media (max-width: 768px) {
+  .tracker-customizer-inline {
+    gap: 8px 14px;
+    font-size: .7rem;
+    margin-bottom: 8px;
+  }
+
+  .tracker-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px;
+    grid-auto-rows: minmax(90px, auto);
+  }
+
+  .tracker-stats-grid .stat-card {
+    min-height: 90px;
+    padding: 12px 9px;
+  }
+
+  .tracker-stats-grid .stat-value {
+    font-size: 1.42rem;
+  }
+
+  .tracker-stats-grid .stat-label {
+    font-size: .62rem;
+    letter-spacing: .35px;
+  }
+
+  .tracker-stats-grid .stat-subtext {
+    font-size: .66rem;
+  }
+
+  .tracker-stats-grid .tracker-card-resize-handle {
+    width: 30px;
+    height: 30px;
+    right: 3px;
+    bottom: 3px;
+    font-size: 16px;
+  }
+
+  .tracker-card-drag-dot {
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
+  }
+
+  .tracker-stats-grid .tracker-card-size-tall,
+  .tracker-stats-grid .tracker-card-size-large {
+    min-height: 180px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .tracker-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px;
+    grid-auto-rows: minmax(86px, auto);
+  }
+
+  .tracker-stats-grid .stat-card {
+    min-height: 86px;
+    padding: 10px 8px;
+  }
+
+  .tracker-stats-grid .stat-value {
+    font-size: 1.28rem;
+  }
+
+  .tracker-stats-grid .stat-label {
+    font-size: .58rem;
+  }
+
+  .tracker-stats-grid .stat-subtext {
+    font-size: .62rem;
+  }
+
+  .tracker-stats-grid .tracker-card-size-tall,
+  .tracker-stats-grid .tracker-card-size-large {
+    min-height: 172px !important;
+  }
+}
