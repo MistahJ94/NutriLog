@@ -13,17 +13,29 @@ const getApiBaseUrl = () => {
 
 const request = async (path, options = {}) => {
   const token = localStorage.getItem('nutrilog-session-token')
-  const response = await fetch(getApiBaseUrl() + path, {
+  const url = getApiBaseUrl() + path
+  const headers = {
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(token && isNativeApp() ? { Authorization: 'Bearer ' + token } : {}),
+    ...(isNativeApp() ? { 'X-NutriLog-Client': 'capacitor' } : {}),
+    ...options.headers,
+  }
+
+  if (isNativeApp()) {
+    console.info('[NutriLog API] Request:', options.method || 'GET', url)
+  }
+
+  const response = await fetch(url, {
     credentials: 'include',
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token && isNativeApp() ? { Authorization: 'Bearer ' + token } : {}),
-      ...(isNativeApp() ? { 'X-NutriLog-Client': 'capacitor' } : {}),
-      ...options.headers,
-    },
     ...options,
+    headers,
   })
   const data = await response.json().catch(() => ({}))
+
+  if (isNativeApp()) {
+    console.info('[NutriLog API] Response:', response.status, url, data)
+  }
+
   if (!response.ok) throw new Error(data.error || 'API request failed')
   return data
 }
