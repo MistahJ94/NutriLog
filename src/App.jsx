@@ -1,1 +1,1 @@
-const PLACEHOLDER
+const PLACEHOLDER = true
