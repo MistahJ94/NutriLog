@@ -693,7 +693,7 @@ async function protectedApi(req, res, pathname, user) {
     if (match[1] === "log-entries" && !["food", "meal"].includes(body.entry_type)) return send(res, 400, { error: "Invalid entry type" })
     const values = config.fields.map(field => {
       if (["calories","protein","carbs","fat","fiber"].includes(field)) return numberValue(body[field])
-      if (field === "foods") return Array.isArray(body[field]) ? JSON.stringify(body[field]) : "[]"
+      if (field === "foods") return Array.isArray(body[field]) ? body[field] : []
       if (field === "source") return body[field] || "custom"
       if (field === "serving_size") return body[field] || "1 serving"
       if (field === "serving_amount") return numberValue(body[field] || 1)
