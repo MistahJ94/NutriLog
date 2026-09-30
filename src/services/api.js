@@ -72,7 +72,7 @@ export const api = {
   },
   meals: { list: () => request('/meals'), create: meal => json('POST', '/meals', meal), update: (id, meal) => json('PUT', '/meals/' + id, meal), remove: id => request('/meals/' + id, { method: 'DELETE' }) },
   sync: { replace: data => json('PUT', '/sync', data) },
-  logs: { list: () => request('/log-entries'), create: entry => json('POST', '/log-entries', { entry_type: entry.type, name: entry.name, calories: entry.calories, protein: entry.protein, carbs: entry.carbs, fat: entry.fat, fiber: entry.fiber || 0, foods: entry.foods || [], quantity: entry.quantity || 1, consumed_at: entry.timestamp }), remove: id => request('/log-entries/' + id, { method: 'DELETE' }) },
+  logs: { list: () => request('/log-entries'), create: entry => json('POST', '/log-entries', { entry_type: entry.type, name: entry.name, calories: entry.calories, protein: entry.protein, carbs: entry.carbs, fat: entry.fat, fiber: entry.fiber || 0, foods: entry.foods || [], quantity: entry.quantity || 1, consumed_at: entry.timestamp }), update: (id, entry) => json('PUT', '/log-entries/' + id, { entry_type: entry.type, name: entry.name, calories: entry.calories, protein: entry.protein, carbs: entry.carbs, fat: entry.fat, fiber: entry.fiber || 0, foods: entry.foods || [], quantity: entry.quantity || 1, consumed_at: entry.timestamp }), remove: id => request('/log-entries/' + id, { method: 'DELETE' }) },
 }
 
 export const normalizeServerData = ({ goals, foods, meals, logs }) => ({
