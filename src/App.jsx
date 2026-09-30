@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
+
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return year + '-' + month + '-' + day
+}
 import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition, getConfiguredServerUrl, isNutriLogNative } from './services'
 
 function AdminPanel({ user }) {
@@ -304,13 +311,13 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   })
   const [mealFoodsExpanded, setMealFoodsExpanded] = useState(true)
   const [mealFoodSearch, setMealFoodSearch] = useState('')
-  const [trackerHistoryDate, setTrackerHistoryDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [trackerHistoryDate, setTrackerHistoryDate] = useState(() => getLocalDateString())
   const [showTrackerHistory, setShowTrackerHistory] = useState(false)
   
   const [quickLogForm, setQuickLogForm] = useState({
     selectedItem: null,
     itemType: '', // 'food' or 'meal'
-    date: new Date().toISOString().split('T')[0], // Default to today
+    date: getLocalDateString(), // Default to today
     searchQuery: '',
     showSuggestions: false,
     quantity: '1'
@@ -787,7 +794,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     try {
       const newEntry = await createLogEntry(draft)
       setLogEntries(prev => [newEntry, ...prev])
-      setQuickLogForm({ selectedItem: null, itemType: '', date: new Date().toISOString().split('T')[0], searchQuery: '', showSuggestions: false, quantity: '1' })
+      setQuickLogForm({ selectedItem: null, itemType: '', date: getLocalDateString(), searchQuery: '', showSuggestions: false, quantity: '1' })
     } catch (error) {
       alert(error.message)
     }
@@ -1283,7 +1290,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const shiftTrackerHistoryDate = days => {
     const date = new Date(trackerHistoryDate + 'T12:00:00')
     date.setDate(date.getDate() + days)
-    setTrackerHistoryDate(date.toISOString().split('T')[0])
+    setTrackerHistoryDate(getLocalDateString(date))
   }
 
   // Import/Export Handlers
@@ -1532,7 +1539,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
                       <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(-1)} aria-label="Previous day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>‹ Previous</button>
                       <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(1)} aria-label="Next day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Next ›</button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setTrackerHistoryDate(new Date().toISOString().split('T')[0])} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Today</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setTrackerHistoryDate(getLocalDateString())} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Today</button>
                     </div>
                   </div>
 
