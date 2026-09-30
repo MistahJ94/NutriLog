@@ -1519,17 +1519,21 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                 )
               ) : (
                 <div style={{ marginTop: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
-                    <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(-1)} aria-label="Previous day">‹ Previous</button>
-                    <input
-                      type="date"
-                      value={trackerHistoryDate}
-                      onChange={e => setTrackerHistoryDate(e.target.value)}
-                      aria-label="Select history date"
-                      style={{ minWidth: 150 }}
-                    />
-                    <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(1)} aria-label="Next day">Next ›</button>
-                    <button type="button" className="btn btn-secondary" onClick={() => setTrackerHistoryDate(new Date().toISOString().split('T')[0])}>Today</button>
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                      <input
+                        type="date"
+                        value={trackerHistoryDate}
+                        onChange={e => setTrackerHistoryDate(e.target.value)}
+                        aria-label="Select history date"
+                        style={{ minWidth: 150 }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                      <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(-1)} aria-label="Previous day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>‹ Previous</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(1)} aria-label="Next day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Next ›</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setTrackerHistoryDate(new Date().toISOString().split('T')[0])} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Today</button>
+                    </div>
                   </div>
 
                   <div className="section" style={{ margin: 0, padding: 16 }}>
