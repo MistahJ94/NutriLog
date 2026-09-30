@@ -789,9 +789,25 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     }
   }
 
-  const handleLogSavedFood = (food) => {
-    setQuickLogForm({ selectedItem: food, itemType: 'food', date: new Date().toISOString().split('T')[0], searchQuery: food.name, showSuggestions: false, quantity: '1' })
-    setActiveTab('tracker')
+  const handleLogSavedFood = async (food) => {
+    const quantity = 1
+    const scaled = scaleNutrition(food, quantity)
+
+    const draft = {
+      type: 'food',
+      name: food.name,
+      ...scaled,
+      quantity,
+      timestamp: new Date().toISOString()
+    }
+
+    try {
+      const newEntry = await createLogEntry(draft)
+      setLogEntries(prev => [newEntry, ...prev])
+      setActiveTab('tracker')
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
   const handleLogMeal = async (meal) => {
