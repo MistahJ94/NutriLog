@@ -4,6 +4,8 @@
   --nl-input-border: #d4d4ce;
   --nl-log-bg: #ffffff;
   --nl-log-text: #2d3436;
+  --nl-surface-bg: #ffffff;
+  --nl-surface-border: #d4d4ce;
 }
 
 input[type="text"], input[type="search"], input[type="date"], input[type="number"], select {
@@ -44,12 +46,33 @@ input[placeholder="Search foods..."] {
 
 .entries-table .quantity-input:hover { border-color: var(--accent); }
 
+/* The meal food picker had a hard-coded white inline background. */
+div[style*="max-height: 220px"] {
+  background: var(--nl-surface-bg) !important;
+  color: var(--nl-log-text);
+  border-color: var(--nl-surface-border) !important;
+}
+
+div[style*="max-height: 220px"] label { color: var(--nl-log-text); }
+div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
+
+/* Shared disclaimer/information tiles on Goals and Activity. */
+.info-box {
+  background: var(--nl-surface-bg) !important;
+  color: var(--nl-log-text) !important;
+  border: 1px solid var(--nl-surface-border) !important;
+  border-radius: 10px;
+}
+.info-box span { color: var(--nl-log-text) !important; }
+
 :root[data-mode="dark"] {
   --nl-input-bg: #273244;
   --nl-input-text: #F3F4F6;
   --nl-input-border: #475569;
   --nl-log-bg: #1F2937;
   --nl-log-text: #F3F4F6;
+  --nl-surface-bg: #1F2937;
+  --nl-surface-border: #475569;
 }
 
 :root[data-mode="dark"] input[type="text"],
@@ -73,6 +96,13 @@ input[placeholder="Search foods..."] {
 
 :root[data-mode="dark"] .entries-table tbody tr:hover { background: #273244; }
 
+:root[data-mode="dark"] .info-box {
+  background: #1F2937 !important;
+  color: #F3F4F6 !important;
+  border-color: #475569 !important;
+}
+:root[data-mode="dark"] .info-box span { color: #F3F4F6 !important; }
+
 :root[data-mode="light"] .date-group,
 :root[data-mode="light"] .date-entries,
 :root[data-mode="light"] .entries-table,
@@ -81,6 +111,13 @@ input[placeholder="Search foods..."] {
   background: #ffffff;
   color: #2d3436;
 }
+
+:root[data-mode="light"] .info-box {
+  background: #ffffff !important;
+  color: #2d3436 !important;
+  border-color: #d4d4ce !important;
+}
+:root[data-mode="light"] .info-box span { color: #2d3436 !important; }
 
 @media (max-width: 768px) {
   input[placeholder="Search foods..."] { min-height: 42px; }
