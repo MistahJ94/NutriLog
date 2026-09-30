@@ -303,6 +303,8 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   })
   const [mealFoodsExpanded, setMealFoodsExpanded] = useState(true)
   const [mealFoodSearch, setMealFoodSearch] = useState('')
+  const [trackerHistoryDate, setTrackerHistoryDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [showTrackerHistory, setShowTrackerHistory] = useState(false)
   
   const [quickLogForm, setQuickLogForm] = useState({
     selectedItem: null,
@@ -1237,6 +1239,37 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     })
   }
 
+  const trackerHistoryEntries = logEntries.filter(entry => {
+    if (!entry.timestamp) return false
+    const date = new Date(entry.timestamp)
+    if (Number.isNaN(date.getTime())) return false
+    const localDate = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0')
+    ].join('-')
+    return localDate === trackerHistoryDate
+  }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+
+  const trackerHistoryTotals = trackerHistoryEntries.reduce((totals, entry) => ({
+    calories: totals.calories + entry.calories,
+    protein: totals.protein + entry.protein,
+    carbs: totals.carbs + entry.carbs,
+    fat: totals.fat + entry.fat,
+    fiber: totals.fiber + (entry.fiber || 0)
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
+
+  const formatHistoryDate = dateString => {
+    const date = new Date(dateString + 'T12:00:00')
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  }
+
+  const shiftTrackerHistoryDate = days => {
+    const date = new Date(trackerHistoryDate + 'T12:00:00')
+    date.setDate(date.getDate() + days)
+    setTrackerHistoryDate(date.toISOString().split('T')[0])
+  }
+
   // Import/Export Handlers
   const handleExportData = () => {
     const exportData = storage.exportData({
@@ -1403,73 +1436,124 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               })}
             </div>
 
-            {/* Food Log by Date */}
+            {/* Food Log / History */}
             <div className="section" style={{ margin: '0 auto' }}>
-              <h2>Food Log</h2>
-              {logEntries.length === 0 ? (
-                <div className="empty-state">
-                  <Flame size={48} />
-                  <p>No entries yet.</p>
-                  <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Start tracking your meals!</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <h2 style={{ marginBottom: 4 }}>Food Log</h2>
+                  <p style={{ margin: 0, color: '#777' }}>
+                    {showTrackerHistory ? 'View your nutrition log for any date.' : 'Today’s entries and recent history.'}
+                  </p>
                 </div>
-              ) : (
-                <div className="log-by-date">
-                  {groupEntriesByDate().map(([dateKey, dateData]) => (
-                    <div key={dateKey} className="date-group">
-                      <div className="date-header">
-                        <h3>{formatDate(dateKey)}</h3>
-                        <div className="date-totals">
-                          <span className="total-calories">{dateData.totals.calories} kcal</span>
-                          <span>P: {dateData.totals.protein}g</span>
-                          <span>C: {dateData.totals.carbs}g</span>
-                          <span>F: {dateData.totals.fat}g</span>
-                          {dateData.totals.fiber > 0 && <span>Fiber: {dateData.totals.fiber}g</span>}
+                <button
+                  type="button"
+                  className={showTrackerHistory ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => setShowTrackerHistory(prev => !prev)}
+                >
+                  {showTrackerHistory ? 'Show Recent History' : 'View History'}
+                </button>
+              </div>
+
+              {!showTrackerHistory ? (
+                logEntries.length === 0 ? (
+                  <div className="empty-state">
+                    <Flame size={48} />
+                    <p>No entries yet.</p>
+                    <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Start tracking your meals!</p>
+                  </div>
+                ) : (
+                  <div className="log-by-date" style={{ marginTop: 18 }}>
+                    {groupEntriesByDate().map(([dateKey, dateData]) => (
+                      <div key={dateKey} className="date-group">
+                        <div className="date-header">
+                          <h3>{formatDate(dateKey)}</h3>
+                          <div className="date-totals">
+                            <span className="total-calories">{dateData.totals.calories} kcal</span>
+                            <span>P: {dateData.totals.protein}g</span>
+                            <span>C: {dateData.totals.carbs}g</span>
+                            <span>F: {dateData.totals.fat}g</span>
+                            {dateData.totals.fiber > 0 && <span>Fiber: {dateData.totals.fiber}g</span>}
+                          </div>
+                        </div>
+                        <div className="date-entries">
+                          <table className="entries-table">
+                            <thead>
+                              <tr><th>Time</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                              {dateData.entries.map(entry => (
+                                <tr key={entry.id}>
+                                  <td className="time-cell">{formatTime(entry.timestamp)}</td>
+                                  <td className="name-cell">{entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}</td>
+                                  <td><strong>{entry.calories}</strong></td>
+                                  <td>{entry.protein}g</td>
+                                  <td>{entry.carbs}g</td>
+                                  <td>{entry.fat}g</td>
+                                  <td>{entry.fiber || 0}g</td>
+                                  <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
-                      
+                    ))}
+                  </div>
+                )
+              ) : (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(-1)} aria-label="Previous day">‹ Previous</button>
+                    <input
+                      type="date"
+                      value={trackerHistoryDate}
+                      onChange={e => setTrackerHistoryDate(e.target.value)}
+                      aria-label="Select history date"
+                      style={{ minWidth: 150 }}
+                    />
+                    <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(1)} aria-label="Next day">Next ›</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => setTrackerHistoryDate(new Date().toISOString().split('T')[0])}>Today</button>
+                  </div>
+
+                  <div className="section" style={{ margin: 0, padding: 16 }}>
+                    <h3 style={{ marginTop: 0, textAlign: 'center' }}>{formatHistoryDate(trackerHistoryDate)}</h3>
+                    <div className="date-totals" style={{ justifyContent: 'center', marginBottom: 16 }}>
+                      <span className="total-calories">{trackerHistoryTotals.calories} kcal</span>
+                      <span>P: {trackerHistoryTotals.protein}g</span>
+                      <span>C: {trackerHistoryTotals.carbs}g</span>
+                      <span>F: {trackerHistoryTotals.fat}g</span>
+                      <span>Fiber: {trackerHistoryTotals.fiber}g</span>
+                    </div>
+
+                    {trackerHistoryEntries.length === 0 ? (
+                      <div className="empty-state">
+                        <Flame size={42} />
+                        <p>No food logged on this date.</p>
+                      </div>
+                    ) : (
                       <div className="date-entries">
                         <table className="entries-table">
                           <thead>
-                            <tr>
-                              <th>Time</th>
-                              <th>Food</th>
-                              <th>Calories</th>
-                              <th>Protein</th>
-                              <th>Carbs</th>
-                              <th>Fat</th>
-                              <th>Fiber</th>
-                              <th></th>
-                            </tr>
+                            <tr><th>Time</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                           </thead>
                           <tbody>
-                            {dateData.entries.map(entry => (
+                            {trackerHistoryEntries.map(entry => (
                               <tr key={entry.id}>
                                 <td className="time-cell">{formatTime(entry.timestamp)}</td>
-                                <td className="name-cell">
-                                  {entry.name}
-                                  {entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
-                                </td>
+                                <td className="name-cell">{entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}</td>
                                 <td><strong>{entry.calories}</strong></td>
                                 <td>{entry.protein}g</td>
                                 <td>{entry.carbs}g</td>
                                 <td>{entry.fat}g</td>
                                 <td>{entry.fiber || 0}g</td>
-                                <td>
-                                  <button 
-                                    className="btn-icon-delete"
-                                    onClick={() => handleDeleteLogEntry(entry.id)}
-                                    title="Delete entry"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
+                                <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
               )}
             </div>
