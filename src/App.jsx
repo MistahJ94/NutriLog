@@ -242,6 +242,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const [resizingTrackerCard, setResizingTrackerCard] = useState(null)
   const [foodSearch, setFoodSearch] = useState('')
   const [foodSort, setFoodSort] = useState('newest')
+  const [foodLogQuantities, setFoodLogQuantities] = useState({})
   
   // Ref for click outside detection
   const quickLogSearchRef = useRef(null)
@@ -757,6 +758,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
       fat: Number(saved.fat),
       fiber: Number(saved.fiber),
       foods: Array.isArray(saved.foods) ? saved.foods : [],
+      quantity: Number(saved.quantity || entry.quantity || 1),
       timestamp: saved.consumed_at,
     } : { ...entry, id: Date.now() }
   }
@@ -791,8 +793,9 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     }
   }
 
-  const handleLogSavedFood = async (food) => {
-    const quantity = 1
+  const handleLogSavedFood = async (food, requestedQuantity = 1) => {
+    const quantity = Number(requestedQuantity)
+    if (!Number.isFinite(quantity) || quantity <= 0) { alert('Please enter a valid serving quantity.'); return }
     const scaled = scaleNutrition(food, quantity)
 
     const draft = {
@@ -832,6 +835,19 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     } catch (error) {
       alert(error.message)
     }
+  }
+
+  const handleUpdateLogQuantity = async (entry, requestedQuantity) => {
+    const quantity = Number(requestedQuantity)
+    if (!Number.isFinite(quantity) || quantity <= 0) { alert('Please enter a valid serving quantity.'); return }
+    const currentQuantity = Number(entry.quantity) > 0 ? Number(entry.quantity) : 1
+    const scale = quantity / currentQuantity
+    const updated = { ...entry, quantity, calories: Number((entry.calories * scale).toFixed(2)), protein: Number((entry.protein * scale).toFixed(2)), carbs: Number((entry.carbs * scale).toFixed(2)), fat: Number((entry.fat * scale).toFixed(2)), fiber: Number(((entry.fiber || 0) * scale).toFixed(2)) }
+    try {
+      const saved = user ? (await api.logs.update(entry.id, updated)).item : null
+      const next = saved ? { ...updated, id: saved.id, type: saved.entry_type, name: saved.name, calories: Number(saved.calories), protein: Number(saved.protein), carbs: Number(saved.carbs), fat: Number(saved.fat), fiber: Number(saved.fiber), quantity: Number(saved.quantity || quantity), foods: Array.isArray(saved.foods) ? saved.foods : updated.foods, timestamp: saved.consumed_at } : updated
+      setLogEntries(prev => prev.map(item => item.id === entry.id ? next : item))
+    } catch (error) { alert(error.message) }
   }
 
   const handleDeleteLogEntry = async (id) => {
@@ -1478,13 +1494,14 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                         <div className="date-entries">
                           <table className="entries-table">
                             <thead>
-                              <tr><th>Time</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
+                              <tr><th>Time</th><th>Food</th><th>Qty</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                             </thead>
                             <tbody>
                               {dateData.entries.map(entry => (
                                 <tr key={entry.id}>
                                   <td className="time-cell">{formatTime(entry.timestamp)}</td>
                                   <td className="name-cell">{entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}</td>
+                                  <td><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={entry.quantity ?? 1} onChange={e => setLogEntries(prev => prev.map(item => item.id === entry.id ? { ...item, quantity: e.target.value } : item))} onBlur={e => handleUpdateLogQuantity(entry, e.target.value)} aria-label={"Quantity for " + entry.name} /></td>
                                   <td><strong>{entry.calories}</strong></td>
                                   <td>{entry.protein}g</td>
                                   <td>{entry.carbs}g</td>
@@ -1909,7 +1926,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                       </div>
                     </div>
                     <div className="food-actions">
-                      <button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food)}><Plus size={16} />Log</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={foodLogQuantities[food.id] ?? 1} onChange={e => setFoodLogQuantities(prev => ({ ...prev, [food.id]: e.target.value }))} aria-label={"Quantity for " + food.name} /><button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food, foodLogQuantities[food.id] ?? 1)}><Plus size={16} />Log</button></div>
                       <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
                       <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
                     </div>
