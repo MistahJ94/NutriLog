@@ -87,7 +87,9 @@ const requestSessionToken = req => bearerToken(req) || parseCookies(req.headers.
 const validEmail = email => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validPassword = password => typeof password === "string" && password.length >= 8 && password.length <= 128
 const validRole = role => role === "admin" || role === "user"
-const cryptoKey = crypto.createHash("sha256").update(DATABASE_URL + "|nutrilog-settings-v1").digest()
+const cryptoKey = process.env.NUTRILOG_ENCRYPTION_KEY
+  ? crypto.createHash("sha256").update(process.env.NUTRILOG_ENCRYPTION_KEY).digest()
+  : crypto.createHash("sha256").update(DATABASE_URL + "|nutrilog-settings-v1").digest()
 const encryptSecret = value => {
   const iv = crypto.randomBytes(12)
   const cipher = crypto.createCipheriv("aes-256-gcm", cryptoKey, iv)
