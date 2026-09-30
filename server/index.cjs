@@ -682,6 +682,20 @@ async function protectedApi(req, res, pathname, user) {
     return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
   }
 
+  if (req.method === "PUT" && id && match[1] === "log-entries") {
+    const body = await readBody(req)
+    if (!body.name || !["food", "meal"].includes(body.entry_type)) return send(res, 400, { error: "Valid log entry data is required" })
+    const values = config.fields.map(field => {
+      if (["calories","protein","carbs","fat","fiber"].includes(field)) return numberValue(body[field])
+      if (field === "foods") return Array.isArray(body[field]) ? body[field] : []
+      if (field === "quantity") return Math.max(0.01, numberValue(body[field] || 1))
+      return body[field] ?? null
+    })
+    const setClause = config.fields.map((field, i) => field + " = $" + (i + 2)).join(", ")
+    const rows = await sql.unsafe("UPDATE " + config.table + " SET " + setClause + " WHERE user_id = $1 AND id = $" + (config.fields.length + 2) + " RETURNING " + config.select, [user.id, ...values, id])
+    return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
+  }
+
   if (req.method === "DELETE" && id) {
     const rows = await sql.unsafe("DELETE FROM " + config.table + " WHERE user_id = $1 AND id = $2 RETURNING id", [user.id, id])
     return rows.length ? send(res, 200, { ok: true }) : send(res, 404, { error: "Not found" })
