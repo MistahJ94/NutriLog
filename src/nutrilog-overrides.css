@@ -1,0 +1,88 @@
+:root {
+  --nl-input-bg: #ffffff;
+  --nl-input-text: #2d3436;
+  --nl-input-border: #d4d4ce;
+  --nl-log-bg: #ffffff;
+  --nl-log-text: #2d3436;
+}
+
+input[type="text"], input[type="search"], input[type="date"], input[type="number"], select {
+  border: 1.5px solid var(--nl-input-border);
+  border-radius: 10px;
+  background: var(--nl-input-bg);
+  color: var(--nl-input-text);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+input[type="text"]:focus, input[type="search"]:focus, input[type="date"]:focus, input[type="number"]:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+input[placeholder="Search foods..."] {
+  min-height: 44px;
+  padding: 10px 13px;
+  width: 100%;
+  margin-bottom: 10px !important;
+}
+
+.date-group, .date-entries, .entries-table, .entries-table tbody, .entries-table tbody tr {
+  background: var(--nl-log-bg);
+  color: var(--nl-log-text);
+}
+
+.entries-table tbody tr:hover { background: var(--accent-hover); }
+
+.entries-table .quantity-input {
+  width: 72px;
+  min-height: 38px;
+  padding: 7px 9px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.entries-table .quantity-input:hover { border-color: var(--accent); }
+
+:root[data-mode="dark"] {
+  --nl-input-bg: #273244;
+  --nl-input-text: #F3F4F6;
+  --nl-input-border: #475569;
+  --nl-log-bg: #1F2937;
+  --nl-log-text: #F3F4F6;
+}
+
+:root[data-mode="dark"] input[type="text"],
+:root[data-mode="dark"] input[type="search"],
+:root[data-mode="dark"] input[type="date"],
+:root[data-mode="dark"] input[type="number"],
+:root[data-mode="dark"] select {
+  background: var(--nl-input-bg);
+  color: var(--nl-input-text);
+  border-color: var(--nl-input-border);
+}
+
+:root[data-mode="dark"] .date-group,
+:root[data-mode="dark"] .date-entries,
+:root[data-mode="dark"] .entries-table,
+:root[data-mode="dark"] .entries-table tbody,
+:root[data-mode="dark"] .entries-table tbody tr {
+  background: var(--nl-log-bg);
+  color: var(--nl-log-text);
+}
+
+:root[data-mode="dark"] .entries-table tbody tr:hover { background: #273244; }
+
+:root[data-mode="light"] .date-group,
+:root[data-mode="light"] .date-entries,
+:root[data-mode="light"] .entries-table,
+:root[data-mode="light"] .entries-table tbody,
+:root[data-mode="light"] .entries-table tbody tr {
+  background: #ffffff;
+  color: #2d3436;
+}
+
+@media (max-width: 768px) {
+  input[placeholder="Search foods..."] { min-height: 42px; }
+  .entries-table .quantity-input { width: 64px; }
+}
