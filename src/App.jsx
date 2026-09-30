@@ -301,6 +301,8 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     name: '',
     selectedFoods: []
   })
+  const [mealFoodsExpanded, setMealFoodsExpanded] = useState(true)
+  const [mealFoodSearch, setMealFoodSearch] = useState('')
   
   const [quickLogForm, setQuickLogForm] = useState({
     selectedItem: null,
@@ -600,10 +602,56 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const handleFoodQuantityChange = (index, quantity) => {
     setMealFormData(prev => ({
       ...prev,
-      selectedFoods: prev.selectedFoods.map((food, i) => 
-        i === index ? { ...food, quantity: parseInt(quantity) || 1 } : food
+      selectedFoods: prev.selectedFoods.map((food, i) =>
+        i === index ? { ...food, quantity } : food
       )
     }))
+  }
+
+  const handleFoodQuantityBlur = (index) => {
+    setMealFormData(prev => ({
+      ...prev,
+      selectedFoods: prev.selectedFoods.map((food, i) => {
+        if (i !== index) return food
+        const value = Number(food.quantity)
+        return {
+          ...food,
+          quantity: Number.isFinite(value) && value > 0 ? value : 1
+        }
+      })
+    }))
+  }
+
+  const handleLogMealFromBuilder = async () => {
+    if (mealFormData.selectedFoods.length === 0) {
+      alert('Please add at least one food to the meal.')
+      return
+    }
+
+    const normalizedFoods = mealFormData.selectedFoods.map(food => ({
+      ...food,
+      quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1
+    }))
+
+    const totals = calculateMealTotals(normalizedFoods)
+    const draft = {
+      type: 'meal',
+      name: mealFormData.name.trim() || 'Meal',
+      ...totals,
+      quantity: 1,
+      timestamp: new Date().toISOString(),
+      foods: normalizedFoods
+    }
+
+    try {
+      const newEntry = await createLogEntry(draft)
+      setLogEntries(prev => [newEntry, ...prev])
+      setMealFormData({ name: '', selectedFoods: [] })
+      setEditingMealId(null)
+      setActiveTab('tracker')
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
   const handleSaveMeal = async (e) => {
@@ -612,8 +660,12 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
       alert('Please enter a meal name and add at least one food')
       return
     }
-    const totals = calculateMealTotals(mealFormData.selectedFoods)
-    const draft = { name: mealFormData.name, foods: mealFormData.selectedFoods, ...totals }
+    const normalizedFoods = mealFormData.selectedFoods.map(food => ({
+      ...food,
+      quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1
+    }))
+    const totals = calculateMealTotals(normalizedFoods)
+    const draft = { name: mealFormData.name, foods: normalizedFoods, ...totals }
     try {
       const newMeal = user
         ? (editingMealId
@@ -1800,7 +1852,6 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
         {/* MEALS TAB */}
         {activeTab === 'meals' && (
           <div className="content-grid">
-            {/* Create Meal Form */}
             <div className="section">
               <h2>Create Meal</h2>
               <form onSubmit={handleSaveMeal}>
@@ -1818,79 +1869,163 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
 
                 <div className="form-group">
                   <label>Add Foods</label>
-                  <select 
-                    onChange={(e) => {
-                      handleAddFoodToMeal(e.target.value)
-                      e.target.value = ''
+                  <input
+                    type="text"
+                    value={mealFoodSearch}
+                    onChange={(e) => setMealFoodSearch(e.target.value)}
+                    placeholder="Search foods..."
+                    style={{ marginBottom: '8px' }}
+                  />
+                  <div
+                    style={{
+                      maxHeight: '220px',
+                      overflowY: 'auto',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      padding: '6px',
+                      background: '#fff'
                     }}
-                    className="food-select"
                   >
-                    <option value="">Select a food...</option>
-                    {savedFoods.map(food => (
-                      <option key={food.id} value={food.id}>
-                        {food.name} ({food.calories} kcal)
-                      </option>
-                    ))}
-                  </select>
+                    {savedFoods
+                      .filter(food => food.name.toLowerCase().includes(mealFoodSearch.toLowerCase()))
+                      .map(food => {
+                        const selected = mealFormData.selectedFoods.some(
+                          selectedFood => String(selectedFood.id) === String(food.id)
+                        )
+                        return (
+                          <label
+                            key={food.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '8px',
+                              cursor: 'pointer',
+                              borderRadius: '6px'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => {
+                                if (selected) {
+                                  const index = mealFormData.selectedFoods.findIndex(
+                                    selectedFood => String(selectedFood.id) === String(food.id)
+                                  )
+                                  if (index !== -1) handleRemoveFoodFromMeal(index)
+                                } else {
+                                  handleAddFoodToMeal(food.id)
+                                }
+                              }}
+                              style={{
+                                appearance: 'auto',
+                                WebkitAppearance: 'checkbox',
+                                width: '20px',
+                                height: '20px',
+                                minWidth: '20px',
+                                minHeight: '20px',
+                                margin: 0,
+                                opacity: 1,
+                                display: 'inline-block'
+                              }}
+                            />
+                            <span style={{ flex: 1 }}>{food.name}</span>
+                            <span style={{ fontSize: '0.85rem', color: '#888' }}>{food.calories} kcal</span>
+                          </label>
+                        )
+                      })}
+                    {savedFoods.filter(food => food.name.toLowerCase().includes(mealFoodSearch.toLowerCase())).length === 0 && (
+                      <div style={{ padding: '12px', color: '#888', textAlign: 'center' }}>
+                        No matching foods found.
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Selected Foods for Meal */}
                 {mealFormData.selectedFoods.length > 0 && (
                   <div className="meal-foods">
-                    <h3 style={{ fontSize: '1rem', marginBottom: '10px', color: '#555' }}>Foods in this meal:</h3>
-                    {mealFormData.selectedFoods.map((food, index) => (
-                      <div key={index} className="meal-food-item">
-                        <div className="meal-food-info">
-                          <span>{food.name}</span>
-                          <span className="meal-food-macros">
-                            {food.calories * food.quantity} kcal
-                          </span>
-                        </div>
-                        <div className="meal-food-controls">
-                          <input
-                            type="number"
-                            value={food.quantity}
-                            onChange={(e) => handleFoodQuantityChange(index, e.target.value)}
-                            min="1"
-                            className="quantity-input"
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-danger"
-                            style={{ padding: '4px 8px' }}
-                            onClick={() => handleRemoveFoodFromMeal(index)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {/* Meal Totals */}
-                    <div className="meal-totals">
+                    <div className="meal-totals" style={{ marginBottom: '12px' }}>
                       <h4>Meal Totals:</h4>
                       <div className="meal-totals-grid">
-                        <span><strong>Calories:</strong> {calculateMealTotals(mealFormData.selectedFoods).calories} kcal</span>
-                        <span><strong>Protein:</strong> {calculateMealTotals(mealFormData.selectedFoods).protein}g</span>
-                        <span><strong>Carbs:</strong> {calculateMealTotals(mealFormData.selectedFoods).carbs}g</span>
-                        <span><strong>Fat:</strong> {calculateMealTotals(mealFormData.selectedFoods).fat}g</span>
+                        <span><strong>Calories:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).calories} kcal</span>
+                        <span><strong>Protein:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).protein}g</span>
+                        <span><strong>Carbs:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).carbs}g</span>
+                        <span><strong>Fat:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).fat}g</span>
                       </div>
                     </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <h3 style={{ fontSize: '1rem', margin: 0, color: '#555' }}>
+                        Foods in this meal ({mealFormData.selectedFoods.length})
+                      </h3>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                        onClick={() => setMealFoodsExpanded(prev => !prev)}
+                      >
+                        {mealFoodsExpanded ? 'Collapse' : 'Expand'}
+                      </button>
+                    </div>
+
+                    {mealFoodsExpanded && (
+                      <div>
+                        {mealFormData.selectedFoods.map((food, index) => (
+                          <div key={index} className="meal-food-item">
+                            <div className="meal-food-info">
+                              <span>{food.name}</span>
+                              <span className="meal-food-macros">
+                                {food.calories * (Number(food.quantity) || 1)} kcal
+                              </span>
+                            </div>
+                            <div className="meal-food-controls">
+                              <input
+                                type="text"
+                                value={food.quantity ?? ''}
+                                onChange={(e) => handleFoodQuantityChange(index, e.target.value)}
+                                onBlur={() => handleFoodQuantityBlur(index)}
+                                className="quantity-input"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                placeholder="1"
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-danger"
+                                style={{ padding: '4px 8px' }}
+                                onClick={() => handleRemoveFoodFromMeal(index)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={mealFormData.selectedFoods.length === 0}
-                >
-                  <Plus size={20} />
-                  {editingMealId ? 'Update Meal' : 'Save Meal'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={mealFormData.selectedFoods.length === 0}
+                  >
+                    <Plus size={20} />
+                    {editingMealId ? 'Update Meal' : 'Save Meal'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={mealFormData.selectedFoods.length === 0}
+                    onClick={handleLogMealFromBuilder}
+                  >
+                    Log Meal
+                  </button>
+                </div>
               </form>
             </div>
 
-            {/* Saved Meals List */}
             <div className="section">
               <h2>Your Meals ({savedMeals.length})</h2>
               <div className="food-list">
@@ -1914,14 +2049,12 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '5px' }}>
                           {meal.foods.map((f, i) => (
-                            <span key={i}>
-                              {f.name} ({f.quantity}x){i < meal.foods.length - 1 ? ', ' : ''}
-                            </span>
+                            <span key={i}>{f.name} ({f.quantity}x){i < meal.foods.length - 1 ? ', ' : ''}</span>
                           ))}
                         </div>
                       </div>
                       <div className="food-actions">
-                        <button 
+                        <button
                           className="btn btn-primary"
                           style={{ padding: '8px 12px', fontSize: '0.9rem' }}
                           onClick={() => handleLogMeal(meal)}
@@ -1935,7 +2068,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                         >
                           Edit
                         </button>
-                        <button 
+                        <button
                           className="btn btn-danger"
                           onClick={() => handleDeleteMeal(meal.id)}
                         >
