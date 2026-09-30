@@ -311,6 +311,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   })
   const [mealFoodsExpanded, setMealFoodsExpanded] = useState(true)
   const [mealFoodSearch, setMealFoodSearch] = useState('')
+  const [mealFoodSort, setMealFoodSort] = useState('name')
   const [trackerHistoryDate, setTrackerHistoryDate] = useState(() => getLocalDateString())
   const [showTrackerHistory, setShowTrackerHistory] = useState(false)
   
@@ -631,6 +632,16 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
       })
     }))
   }
+
+  const sortedMealFoods = [...mealFormData.selectedFoods].sort((a, b) => {
+    if (mealFoodSort === 'name') return String(a.name || '').localeCompare(String(b.name || ''))
+    if (mealFoodSort === 'calories') return Number(b.calories || 0) - Number(a.calories || 0)
+    if (mealFoodSort === 'protein') return Number(b.protein || 0) - Number(a.protein || 0)
+    if (mealFoodSort === 'carbs') return Number(b.carbs || 0) - Number(a.carbs || 0)
+    if (mealFoodSort === 'fat') return Number(b.fat || 0) - Number(a.fat || 0)
+    if (mealFoodSort === 'quantity') return Number(b.quantity || 0) - Number(a.quantity || 0)
+    return 0
+  })
 
   const handleLogMealFromBuilder = async () => {
     if (mealFormData.selectedFoods.length === 0) {
@@ -2098,7 +2109,20 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
 
                     {mealFoodsExpanded && (
                       <div>
-                        {mealFormData.selectedFoods.map((food, index) => (
+                        <div className="meal-food-sort">
+                          <label htmlFor="meal-food-sort">Sort foods</label>
+                          <select id="meal-food-sort" value={mealFoodSort} onChange={e => setMealFoodSort(e.target.value)}>
+                            <option value="name">Name</option>
+                            <option value="calories">Calories</option>
+                            <option value="protein">Protein</option>
+                            <option value="carbs">Carbs</option>
+                            <option value="fat">Fat</option>
+                            <option value="quantity">Quantity</option>
+                          </select>
+                        </div>
+                        {sortedMealFoods.map((food) => {
+                          const index = mealFormData.selectedFoods.findIndex(item => item === food)
+                          return (
                           <div key={index} className="meal-food-item">
                             <div className="meal-food-info">
                               <span>{food.name}</span>
@@ -2127,7 +2151,8 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                               </button>
                             </div>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>
