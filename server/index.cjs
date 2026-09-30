@@ -735,6 +735,18 @@ async function replaceUserData(res, user, body) {
   const foods = Array.isArray(body.foods) ? body.foods : []
   const meals = Array.isArray(body.meals) ? body.meals : []
   const logs = Array.isArray(body.logs) ? body.logs : []
+  if (foods.length > 1000 || meals.length > 500 || logs.length > 5000) {
+    return send(res, 400, { error: "Sync payload contains too many records" })
+  }
+  if (foods.some(food => typeof food?.name !== "string" || food.name.length > 500)) {
+    return send(res, 400, { error: "Invalid food data" })
+  }
+  if (meals.some(meal => typeof meal?.name !== "string" || meal.name.length > 500 || (Array.isArray(meal.foods) && meal.foods.length > 100))) {
+    return send(res, 400, { error: "Invalid meal data" })
+  }
+  if (logs.some(entry => typeof entry?.name !== "string" || entry.name.length > 500 || (Array.isArray(entry.foods) && entry.foods.length > 100))) {
+    return send(res, 400, { error: "Invalid log data" })
+  }
 
   await sql.begin(async tx => {
     await tx.unsafe("DELETE FROM log_entries WHERE user_id = $1", [user.id])
