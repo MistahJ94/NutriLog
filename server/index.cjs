@@ -803,6 +803,11 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
   if (PRODUCTION) res.setHeader("Strict-Transport-Security", "max-age=31536000")
 
+  const stateChanging = ["POST", "PUT", "DELETE", "PATCH"].includes(req.method)
+  if (stateChanging && requestOrigin && !allowedOrigins.includes(requestOrigin)) {
+    return send(res, 403, { error: "Origin not allowed" })
+  }
+
   if (req.method === "OPTIONS") {
     if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
       res.writeHead(204, {
