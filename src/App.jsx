@@ -742,9 +742,26 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     setActiveTab('tracker')
   }
 
-  const handleLogMeal = (meal) => {
-    setQuickLogForm({ selectedItem: meal, itemType: 'meal', date: new Date().toISOString().split('T')[0], searchQuery: meal.name, showSuggestions: false, quantity: '1' })
-    setActiveTab('tracker')
+  const handleLogMeal = async (meal) => {
+    const quantity = 1
+    const scaled = scaleNutrition(meal, quantity)
+
+    const draft = {
+      type: 'meal',
+      name: meal.name,
+      ...scaled,
+      quantity,
+      timestamp: new Date().toISOString(),
+      foods: Array.isArray(meal.foods) ? meal.foods : []
+    }
+
+    try {
+      const newEntry = await createLogEntry(draft)
+      setLogEntries(prev => [newEntry, ...prev])
+      setActiveTab('tracker')
+    } catch (error) {
+      alert(error.message)
+    }
   }
 
   const handleDeleteLogEntry = async (id) => {
@@ -794,11 +811,19 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
 
 
   // Calculate totals from log entries
-  const totalCalories = logEntries.reduce((sum, entry) => sum + entry.calories, 0)
-  const totalProtein = logEntries.reduce((sum, entry) => sum + entry.protein, 0)
-  const totalCarbs = logEntries.reduce((sum, entry) => sum + entry.carbs, 0)
-  const totalFat = logEntries.reduce((sum, entry) => sum + entry.fat, 0)
-  const totalFiber = logEntries.reduce((sum, entry) => sum + (entry.fiber || 0), 0)
+  const today = new Date()
+  const todayKey = today.toLocaleDateString('en-US')
+
+  const todaysLogEntries = logEntries.filter(entry => {
+    if (!entry.timestamp) return false
+    return new Date(entry.timestamp).toLocaleDateString('en-US') === todayKey
+  })
+
+  const totalCalories = todaysLogEntries.reduce((sum, entry) => sum + entry.calories, 0)
+  const totalProtein = todaysLogEntries.reduce((sum, entry) => sum + entry.protein, 0)
+  const totalCarbs = todaysLogEntries.reduce((sum, entry) => sum + entry.carbs, 0)
+  const totalFat = todaysLogEntries.reduce((sum, entry) => sum + entry.fat, 0)
+  const totalFiber = todaysLogEntries.reduce((sum, entry) => sum + (entry.fiber || 0), 0)
   const remaining = macroGoals.calories - totalCalories
   const progress = Math.min((totalCalories / macroGoals.calories) * 100, 100)
 
