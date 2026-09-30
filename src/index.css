@@ -2649,3 +2649,66 @@ body {
   border-color: var(--accent);
   color: #fff;
 }
+
+/* Simple theme-aware food and meal text */
+.food-item {
+  background: var(--surface-alt, #fff);
+  border-color: var(--border, #e8e8e3);
+  color: var(--text, #111827);
+}
+.food-info h3,
+.meal-food-info span:first-child {
+  color: var(--text, #111827);
+}
+.food-details,
+.meal-food-macros {
+  color: var(--text-muted, #4b5563);
+}
+.meal-food-sort {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.meal-food-sort label {
+  color: var(--text, #111827);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.meal-food-sort select {
+  min-width: 130px;
+  background: var(--surface-raised, #fff);
+  color: var(--text, #111827);
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  padding: 7px 9px;
+}
+:root[data-mode="dark"] .food-item {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text);
+}
+:root[data-mode="dark"] .food-info h3,
+:root[data-mode="dark"] .meal-food-info span:first-child,
+:root[data-mode="dark"] .meal-food-sort label {
+  color: #fff;
+}
+:root[data-mode="dark"] .food-details,
+:root[data-mode="dark"] .meal-food-macros {
+  color: #d1d5db;
+}
+:root[data-mode="dark"] .meal-food-sort select {
+  background: var(--surface-raised);
+  color: #fff;
+  border-color: var(--border);
+}
+:root[data-mode="light"] .food-info h3,
+:root[data-mode="light"] .meal-food-info span:first-child,
+:root[data-mode="light"] .meal-food-sort label {
+  color: #000;
+}
+:root[data-mode="light"] .food-details,
+:root[data-mode="light"] .meal-food-macros {
+  color: #333;
+}
