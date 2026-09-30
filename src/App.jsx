@@ -254,6 +254,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   
   // Meals Database
   const [savedMeals, setSavedMeals] = useState([])
+  const [editingMealId, setEditingMealId] = useState(null)
   
   // Today's log (foods and meals consumed)
   const [logEntries, setLogEntries] = useState([])
@@ -614,12 +615,30 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     const totals = calculateMealTotals(mealFormData.selectedFoods)
     const draft = { name: mealFormData.name, foods: mealFormData.selectedFoods, ...totals }
     try {
-      const newMeal = user ? (await api.meals.create(draft)).item : { ...draft, id: Date.now() }
-      setSavedMeals(prev => [newMeal, ...prev])
+      const newMeal = user
+        ? (editingMealId
+            ? (await api.meals.update(editingMealId, draft)).item
+            : (await api.meals.create(draft)).item)
+        : { ...draft, id: editingMealId || Date.now() }
+
+      setSavedMeals(prev => editingMealId
+        ? prev.map(meal => meal.id === editingMealId ? newMeal : meal)
+        : [newMeal, ...prev]
+      )
       setMealFormData({ name: '', selectedFoods: [] })
+      setEditingMealId(null)
     } catch (error) {
       alert(error.message)
     }
+  }
+
+  const handleEditMeal = (meal) => {
+    setEditingMealId(meal.id)
+    setMealFormData({
+      name: meal.name,
+      selectedFoods: meal.foods || []
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleDeleteMeal = async (id) => {
@@ -1841,7 +1860,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                   disabled={mealFormData.selectedFoods.length === 0}
                 >
                   <Plus size={20} />
-                  Save Meal
+                  {editingMealId ? 'Update Meal' : 'Save Meal'}
                 </button>
               </form>
             </div>
@@ -1884,6 +1903,12 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                         >
                           <Plus size={16} />
                           Log
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => handleEditMeal(meal)}
+                        >
+                          Edit
                         </button>
                         <button 
                           className="btn btn-danger"
