@@ -1529,6 +1529,35 @@ body {
   color: #2d3436;
 }
 
+/* Theme-aware tracker/history table text */
+:root[data-mode="dark"] .entries-table thead {
+  background: var(--surface-raised);
+  border-bottom-color: var(--border);
+}
+:root[data-mode="dark"] .entries-table th {
+  color: var(--text-muted);
+  border-bottom-color: var(--border);
+}
+:root[data-mode="dark"] .entries-table tbody tr {
+  border-bottom-color: var(--border);
+}
+:root[data-mode="dark"] .entries-table tbody tr:hover {
+  background: var(--surface-raised);
+}
+:root[data-mode="dark"] .entries-table td {
+  color: var(--text);
+}
+:root[data-mode="dark"] .entries-table .time-cell {
+  color: var(--text-muted);
+}
+
+:root[data-mode="light"] .entries-table td {
+  color: #2d3436;
+}
+:root[data-mode="light"] .entries-table .time-cell {
+  color: #636e72;
+}
+
 .time-cell {
   color: #999;
   font-size: 0.9rem;
