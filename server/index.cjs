@@ -191,8 +191,13 @@ const sendPasswordResetEmail = async (settings, email, token) => {
     "Someone requested a NutriLog password reset.\r\n\r\nReset your password within 30 minutes:\r\n" + url + "\r\n\r\nIf you did not request this, you can safely ignore this email.")
 }
 const authAttempts = new Map()
+const clientIp = req => {
+  const direct = String(req.socket.remoteAddress || "").replace(/^::ffff:/, "")
+  const forwarded = String(req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"] || "").split(",")[0].trim()
+  return direct === "10.10.8.246" && forwarded ? forwarded : direct || "unknown"
+}
 const authAllowed = req => {
-  const key = req.socket.remoteAddress || "unknown"
+  const key = clientIp(req)
   const now = Date.now()
   const recent = (authAttempts.get(key) || []).filter(timestamp => now - timestamp < 15 * 60 * 1000)
   if (recent.length >= 20) { authAttempts.set(key, recent); return false }
