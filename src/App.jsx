@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, BarChart3 } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
 
@@ -188,7 +188,7 @@ function AdminPanel({ user }) {
 function App({ user, initialServerData, onLogout, onChangeServer }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
-  const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'settings']
+  const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'graphs', 'settings']
   const tabLabels = {
     tracker: 'Tracker',
     planner: 'Planner',
@@ -196,6 +196,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     meals: 'Meals',
     goals: 'Goals',
     activity: 'Activity',
+    graphs: 'Graphs',
     settings: 'Settings',
     admin: 'Admin'
   }
@@ -206,6 +207,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     meals: UtensilsCrossed,
     goals: Target,
     activity: TrendingUp,
+    graphs: BarChart3,
     settings: Settings,
     admin: Shield
   }
@@ -1567,7 +1569,16 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                     <div className="stat-label">{trackerLayout.customize && <button type="button" className="tracker-card-drag-dot" aria-label={`Move ${card.label} card`} onPointerDown={event => beginTrackerDrag(event, card.id)}>⠿</button>}{card.label}</div>
                     <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && remaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
                     <div className="stat-subtext">{card.subtext}</div>
-                    {card.progress !== undefined && <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%` }}></div></div>}
+                    {card.progress !== undefined && (() => {
+                      const visual = (trackerLayout.cards[card.id] || {}).visual || 'bar'
+                      if (visual === 'none') return null
+                      if (visual === 'ring') return <div className="tracker-visual-ring" style={{ '--tracker-progress': `${card.progress}%` }}><div>{Math.round(card.progress)}%</div></div>
+                      if (visual === 'circle') return <div className="tracker-visual-circle" style={{ '--tracker-progress': `${card.progress}%` }}><span>{Math.round(card.progress)}%</span></div>
+                      return <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%` }}></div></div>
+                    })()}
+                    {trackerLayout.customize && card.progress !== undefined && <select className="tracker-visual-select" value={(trackerLayout.cards[card.id] || {}).visual || 'bar'} onChange={event => updateTrackerCard(card.id, 'visual', event.target.value)} aria-label={`Visual style for ${card.label}`}>
+                      <option value="bar">Bar</option><option value="ring">Ring</option><option value="circle">Circle</option><option value="none">Number only</option>
+                    </select>}
                     {trackerLayout.customize && <button type="button" className="tracker-card-resize-handle" aria-label={`Resize ${card.label} card`} onPointerDown={event => beginTrackerResize(event, card.id)} title="Drag to resize">↘</button>}
                   </div>
                 )
@@ -2550,6 +2561,56 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
         {activeTab === 'goals' && <HealthGoals />}
 
         {activeTab === 'activity' && <ActivityBoard />}
+
+        {activeTab === 'graphs' && (
+          <div className="graphs-page">
+            <div className="planner-intro">
+              <h2><BarChart3 size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />Nutrition Graphs</h2>
+              <p>See how your logged calories and macros change over the last 14 days.</p>
+            </div>
+            <div className="section">
+              <h3>Daily Calories</h3>
+              <div className="nutrition-graph">
+                {Array.from({ length: 14 }, (_, offset) => {
+                  const date = new Date()
+                  date.setHours(12, 0, 0, 0)
+                  date.setDate(date.getDate() - (13 - offset))
+                  const key = getLocalDateString(date)
+                  const entries = logEntries.filter(entry => entry.timestamp && getLocalDateString(new Date(entry.timestamp)) === key)
+                  const calories = entries.reduce((sum, entry) => sum + Number(entry.calories || 0), 0)
+                  const height = macroGoals.calories > 0 ? Math.min(100, Math.max(2, calories / macroGoals.calories * 100)) : 2
+                  return <div className="nutrition-graph-day" key={key} title={`${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${Math.round(calories)} kcal`}>
+                    <div className="nutrition-graph-value">{Math.round(calories)}</div>
+                    <div className="nutrition-graph-track"><div className="nutrition-graph-fill" style={{ height: `${height}%` }} /></div>
+                    <span>{date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</span>
+                  </div>
+                })}
+              </div>
+            </div>
+            <div className="content-grid graphs-macro-grid">
+              {[
+                ['Protein', 'protein', macroGoals.protein],
+                ['Carbs', 'carbs', macroGoals.carbs],
+                ['Fat', 'fat', macroGoals.fat]
+              ].map(([label, key, goal]) => (
+                <div className="section" key={key}>
+                  <h3>{label}</h3>
+                  <div className="macro-graph-list">
+                    {Array.from({ length: 7 }, (_, offset) => {
+                      const date = new Date()
+                      date.setHours(12, 0, 0, 0)
+                      date.setDate(date.getDate() - (6 - offset))
+                      const dayKey = getLocalDateString(date)
+                      const value = logEntries.filter(entry => entry.timestamp && getLocalDateString(new Date(entry.timestamp)) === dayKey).reduce((sum, entry) => sum + Number(entry[key] || 0), 0)
+                      const pct = goal > 0 ? Math.min(100, Math.max(0, value / goal * 100)) : 0
+                      return <div className="macro-graph-row" key={dayKey}><span>{date.toLocaleDateString('en-US', { weekday: 'short' })}</span><div className="progress-bar"><div className="progress-fill" style={{ width: `${pct}%` }} /></div><strong>{Math.round(value)}g</strong></div>
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
                 {/* SETTINGS TAB */}
         {activeTab === 'settings' && (
