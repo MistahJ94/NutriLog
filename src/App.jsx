@@ -1575,7 +1575,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                       const visual = (trackerLayout.cards[card.id] || {}).visual || 'bar'
                       if (visual === 'none') return null
                       if (visual === 'ring') return <div className="tracker-visual-ring" style={{ '--tracker-progress': `${card.progress}%`, '--tracker-color': (trackerLayout.cards[card.id] || {}).color || 'var(--accent)' }}><div>{Math.round(card.progress)}%</div></div>
-                      if (visual === 'circle') return <div className="tracker-visual-circle" style={{ '--tracker-progress': `${card.progress}%` }}><span>{Math.round(card.progress)}%</span></div>
+                      if (visual === 'circle') return <div className="tracker-visual-circle" style={{ '--tracker-progress': `${card.progress}%`, '--tracker-color': (trackerLayout.cards[card.id] || {}).color || 'var(--accent)' }}><span>{Math.round(card.progress)}%</span></div>
                       return <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%`, background: (trackerLayout.cards[card.id] || {}).color || undefined }}></div></div>
                     })()}
                     {trackerLayout.customize && card.progress !== undefined && <div className="tracker-visual-controls">
