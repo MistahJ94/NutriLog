@@ -1354,6 +1354,22 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     })
   }
 
+  const todayDateString = getLocalDateString()
+  const todayLogEntries = logEntries.filter(entry => {
+    if (!entry.timestamp) return false
+    const date = new Date(entry.timestamp)
+    if (Number.isNaN(date.getTime())) return false
+    return getLocalDateString(date) === todayDateString
+  }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+
+  const todayLogTotals = todayLogEntries.reduce((totals, entry) => ({
+    calories: totals.calories + entry.calories,
+    protein: totals.protein + entry.protein,
+    carbs: totals.carbs + entry.carbs,
+    fat: totals.fat + entry.fat,
+    fiber: totals.fiber + (entry.fiber || 0)
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
+
   const trackerHistoryEntries = logEntries.filter(entry => {
     if (!entry.timestamp) return false
     const date = new Date(entry.timestamp)
@@ -1560,32 +1576,31 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
 
             {/* Food Log / History */}
             <div className="section" style={{ margin: '0 auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <div>
-                  <h2 style={{ marginBottom: 4 }}>Food Log</h2>
-                  <p style={{ margin: 0, color: '#777' }}>
-                    {showTrackerHistory ? 'View your nutrition log for any date.' : 'Today’s entries and recent history.'}
-                  </p>
-                </div>
+              <div>
+                <h2 style={{ marginBottom: 4 }}>Food Log</h2>
+                <p style={{ margin: 0, color: '#777' }}>
+                  {showTrackerHistory ? 'View your nutrition log for any date.' : 'Today’s entries.'}
+                </p>
                 <button
                   type="button"
                   className={showTrackerHistory ? 'btn btn-primary' : 'btn btn-secondary'}
+                  style={{ padding: '5px 10px', fontSize: '0.82rem', marginTop: 8 }}
                   onClick={() => setShowTrackerHistory(prev => !prev)}
                 >
-                  {showTrackerHistory ? 'Show Recent History' : 'View History'}
+                  {showTrackerHistory ? 'Show Today' : 'View History'}
                 </button>
               </div>
 
               {!showTrackerHistory ? (
-                logEntries.length === 0 ? (
+                todayLogEntries.length === 0 ? (
                   <div className="empty-state">
                     <Flame size={48} />
-                    <p>No entries yet.</p>
+                    <p>No entries logged today.</p>
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Start tracking your meals!</p>
                   </div>
                 ) : (
                   <div className="log-by-date" style={{ marginTop: 18 }}>
-                    {groupEntriesByDate().map(([dateKey, dateData]) => (
+                    {[[todayDateString, { entries: todayLogEntries, totals: todayLogTotals }]].map(([dateKey, dateData]) => (
                       <div key={dateKey} className="date-group">
                         <div className="date-header">
                           <h3>{formatDate(dateKey)}</h3>
@@ -1612,7 +1627,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                       <button
                                         type="button"
                                         className="btn btn-secondary"
-                                        style={{ padding: '3px 7px', marginRight: 6 }}
+                                        style={{ padding: '2px 6px', minWidth: 28, fontSize: '0.8rem', lineHeight: 1, marginRight: 6 }}
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
                                       >
@@ -1665,7 +1680,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                                 </div>
                                               ))}
                                             </div>
-                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => handleEditLoggedMeal(entry)}>
+                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10, padding: '5px 9px', fontSize: '0.82rem' }} onClick={() => handleEditLoggedMeal(entry)}>
                                               <Edit size={16} /> Edit Meal
                                             </button>
                                           </>
@@ -1733,7 +1748,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                       <button
                                         type="button"
                                         className="btn btn-secondary"
-                                        style={{ padding: '3px 7px', marginRight: 6 }}
+                                        style={{ padding: '2px 6px', minWidth: 28, fontSize: '0.8rem', lineHeight: 1, marginRight: 6 }}
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
                                       >
@@ -1785,7 +1800,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                                 </div>
                                               ))}
                                             </div>
-                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => handleEditLoggedMeal(entry)}>
+                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10, padding: '5px 9px', fontSize: '0.82rem' }} onClick={() => handleEditLoggedMeal(entry)}>
                                               <Edit size={16} /> Edit Meal
                                             </button>
                                           </>
@@ -2456,6 +2471,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                             <button
                               type="button"
                               className="btn btn-primary"
+                              style={{ padding: '5px 9px', fontSize: '0.82rem' }}
                               onClick={() => {
                                 setMealFormData({ name: entry.name, selectedFoods: entry.foods.map(food => ({ ...food })) })
                                 setActiveTab('meals')
