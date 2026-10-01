@@ -382,7 +382,7 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .nutrition-chart-line,.nutrition-chart-area,.nutrition-chart-dot { vector-effect:non-scaling-stroke; }
 .nutrition-chart-line { fill:none; stroke:var(--accent); stroke-width:2; }
 .nutrition-chart-area { fill:var(--accent); opacity:.18; }
-.nutrition-chart-dot { fill:var(--accent); stroke:var(--surface-raised,#fff); stroke-width:1; }
+.nutrition-chart-dot { fill:var(--accent); stroke:var(--surface-raised,#fff); stroke-width:1; transform:scaleX(.35); transform-box:fill-box; transform-origin:center; }
 .nutrition-chart-line,.nutrition-chart-area { pointer-events:none; }
 .nutrition-chart-line,.nutrition-chart-area,.nutrition-chart-dot { }
 .nutrition-chart-line + .nutrition-chart-dot { }
