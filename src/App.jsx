@@ -2601,7 +2601,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                     <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${graphMetric} ${graphType} chart`}>
                       {graphType === "area" && <polygon points={`0,100 ${points} 100,100`} className="nutrition-chart-area" />}
                       {graphType !== "dots" && <polyline points={points} className="nutrition-chart-line" />}
-                      {graphType === "dots" && days.map((day, index) => <div key={day.key} className="nutrition-chart-dot" style={{ left: `${((index + 0.5) / 14) * 100}%`, bottom: `${Math.min(90, (day.value / max) * 90)}%` }} title={`${day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${Math.round(day.value)} ${graphMetric === "calories" ? "kcal" : "g"}`} />)}
+                      {graphType === "dots" && <div className="nutrition-chart-dot-layer">{days.map((day, index) => <div key={day.key} className="nutrition-chart-dot" style={{ left: `${((index + 0.5) / 14) * 100}%`, bottom: `${Math.max(0, Math.min(90, (day.value / max) * 90))}%` }} title={`${day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${Math.round(day.value)} ${graphMetric === "calories" ? "kcal" : "g"}`} />)}</div>}
                     </svg>
                     <div className="nutrition-chart-labels">{days.map(day => <span key={day.key}>{day.date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span>)}</div>
                   </div>
@@ -2632,9 +2632,9 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                           <polyline points={points} className="macro-sparkline-line" />
                         </svg>
                         <div className="macro-sparkline-meta">
-                          <span>{days[0].date.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                          <span>{days[0].date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span>
                           <strong>{Math.round(days[6].value)}g today</strong>
-                          <span>{days[6].date.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                          <span>{days[6].date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span>
                         </div>
                       </div>
                     )
