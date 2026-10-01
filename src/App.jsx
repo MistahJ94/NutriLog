@@ -1563,7 +1563,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                 <span>↘ Drag the corner to resize it</span>
               </div>
             )}
-            <div className="stats-grid tracker-stats-grid" style={{ '--tracker-columns': trackerLayout.columns || 3 }}>
+            <div className={`stats-grid tracker-stats-grid ${trackerLayout.customize ? 'tracker-grid-customizing' : ''}`} style={{ '--tracker-columns': trackerLayout.columns || 3 }}>
               {orderedTrackerCards.map(card => {
                 const config = trackerLayout.cards[card.id] || {}
                 return (
