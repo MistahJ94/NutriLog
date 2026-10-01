@@ -123,3 +123,81 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   input[placeholder="Search foods..."] { min-height: 42px; }
   .entries-table .quantity-input { width: 64px; }
 }
+
+
+/* Meals: keep action buttons compact, aligned, and out of the meal content flow. */
+.meals-page .food-item {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.meals-page .food-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.meals-page .food-actions .btn {
+  min-height: 34px;
+  padding: 5px 8px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.1;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.meals-page .meal-history-header > button {
+  min-height: 34px;
+  padding: 5px 9px;
+  font-size: 0.82rem;
+}
+
+.meals-page .meal-builder-actions {
+  align-items: center;
+}
+
+.meals-page .meal-builder-actions .btn {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 768px) {
+  .meals-page .food-item {
+    gap: 8px;
+  }
+
+  .meals-page .food-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
+  .meals-page .food-actions .btn {
+    min-height: 32px;
+    padding: 4px 7px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .meals-page .meal-history-header {
+    align-items: flex-start !important;
+  }
+
+  .meals-page .meal-history-header > button {
+    margin-top: 4px;
+  }
+
+  .meals-page .meal-history-controls {
+    gap: 6px !important;
+  }
+
+  .meals-page .meal-history-controls .btn {
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+}
