@@ -314,6 +314,10 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const [mealFoodSort, setMealFoodSort] = useState('name')
   const [trackerHistoryDate, setTrackerHistoryDate] = useState(() => getLocalDateString())
   const [showTrackerHistory, setShowTrackerHistory] = useState(false)
+  const [mealHistoryDate, setMealHistoryDate] = useState(() => getLocalDateString())
+  const [showMealHistory, setShowMealHistory] = useState(false)
+  const [expandedLogEntryId, setExpandedLogEntryId] = useState(null)
+  const [editingLogMeal, setEditingLogMeal] = useState(null)
   
   const [quickLogForm, setQuickLogForm] = useState({
     selectedItem: null,
@@ -868,10 +872,87 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     } catch (error) { alert(error.message) }
   }
 
+  const handleToggleLogMeal = entry => {
+    if (entry.type !== 'meal') return
+    setExpandedLogEntryId(prev => prev === entry.id ? null : entry.id)
+    if (expandedLogEntryId === entry.id) setEditingLogMeal(null)
+  }
+
+  const handleEditLoggedMeal = entry => {
+    if (entry.type !== 'meal') return
+    setExpandedLogEntryId(entry.id)
+    setEditingLogMeal({
+      ...entry,
+      name: entry.name,
+      foods: Array.isArray(entry.foods) ? entry.foods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 })) : []
+    })
+  }
+
+  const handleLoggedMealFoodQuantityChange = (index, value) => {
+    setEditingLogMeal(prev => prev ? ({
+      ...prev,
+      foods: prev.foods.map((food, i) => i === index ? { ...food, quantity: value } : food)
+    }) : prev)
+  }
+
+  const handleSaveLoggedMeal = async () => {
+    if (!editingLogMeal) return
+    if (!editingLogMeal.name.trim() || editingLogMeal.foods.length === 0) {
+      alert('A meal name and at least one food are required.')
+      return
+    }
+
+    const foods = editingLogMeal.foods.map(food => ({
+      ...food,
+      quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1
+    }))
+    const mealQuantity = Number(editingLogMeal.quantity) > 0 ? Number(editingLogMeal.quantity) : 1
+    const baseTotals = calculateMealTotals(foods)
+    const updated = {
+      ...editingLogMeal,
+      name: editingLogMeal.name.trim(),
+      foods,
+      calories: Number((baseTotals.calories * mealQuantity).toFixed(2)),
+      protein: Number((baseTotals.protein * mealQuantity).toFixed(2)),
+      carbs: Number((baseTotals.carbs * mealQuantity).toFixed(2)),
+      fat: Number((baseTotals.fat * mealQuantity).toFixed(2)),
+      fiber: Number((baseTotals.fiber * mealQuantity).toFixed(2)),
+      quantity: mealQuantity
+    }
+
+    try {
+      const saved = user ? (await api.logs.update(editingLogMeal.id, updated)).item : null
+      const next = saved ? {
+        ...updated,
+        id: saved.id,
+        type: saved.entry_type,
+        name: saved.name,
+        calories: Number(saved.calories),
+        protein: Number(saved.protein),
+        carbs: Number(saved.carbs),
+        fat: Number(saved.fat),
+        fiber: Number(saved.fiber),
+        quantity: Number(saved.quantity || mealQuantity),
+        foods: Array.isArray(saved.foods) ? saved.foods : foods,
+        timestamp: saved.consumed_at
+      } : updated
+
+      setLogEntries(prev => prev.map(item => item.id === editingLogMeal.id ? next : item))
+      setEditingLogMeal(null)
+      setExpandedLogEntryId(null)
+    } catch (error) {
+      alert(error.message)
+    }
+  }
+
   const handleDeleteLogEntry = async (id) => {
     try {
       if (user) await api.logs.remove(id)
       setLogEntries(prev => prev.filter(entry => entry.id !== id))
+      if (expandedLogEntryId === id) {
+        setExpandedLogEntryId(null)
+        setEditingLogMeal(null)
+      }
     } catch (error) { alert(error.message) }
   }
 
@@ -1293,6 +1374,13 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     fiber: totals.fiber + (entry.fiber || 0)
   }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
 
+  const mealHistoryEntries = logEntries.filter(entry => {
+    if (entry.type !== 'meal' || !entry.timestamp) return false
+    const date = new Date(entry.timestamp)
+    if (Number.isNaN(date.getTime())) return false
+    return getLocalDateString(date) === mealHistoryDate
+  }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+
   const formatHistoryDate = dateString => {
     const date = new Date(dateString + 'T12:00:00')
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
@@ -1518,7 +1606,20 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                               {dateData.entries.map(entry => (
                                 <tr key={entry.id}>
                                   <td className="time-cell">{formatTime(entry.timestamp)}</td>
-                                  <td className="name-cell">{entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}</td>
+                                  <td className="name-cell">
+                                    {entry.type === 'meal' && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        style={{ padding: '3px 7px', marginRight: 6 }}
+                                        onClick={() => handleToggleLogMeal(entry)}
+                                        title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
+                                      >
+                                        {expandedLogEntryId === entry.id ? '−' : '+'}
+                                      </button>
+                                    )}
+                                    {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
+                                  </td>
                                   <td><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={entry.quantity ?? 1} onChange={e => setLogEntries(prev => prev.map(item => item.id === entry.id ? { ...item, quantity: e.target.value } : item))} onBlur={e => handleUpdateLogQuantity(entry, e.target.value)} aria-label={"Quantity for " + entry.name} /></td>
                                   <td><strong>{entry.calories}</strong></td>
                                   <td>{entry.protein}g</td>
@@ -1527,6 +1628,51 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                   <td>{entry.fiber || 0}g</td>
                                   <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
+                                {expandedLogEntryId === entry.id && entry.type === 'meal' && (
+                                  <tr>
+                                    <td colSpan="9" style={{ padding: 0 }}>
+                                      <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
+                                        {editingLogMeal?.id === entry.id ? (
+                                          <>
+                                            <div className="form-group" style={{ marginBottom: 10 }}>
+                                              <label>Meal Name<input value={editingLogMeal.name} onChange={e => setEditingLogMeal(prev => ({ ...prev, name: e.target.value }))} /></label>
+                                            </div>
+                                            {editingLogMeal.foods.map((food, index) => (
+                                              <div key={index} className="meal-food-item">
+                                                <div className="meal-food-info">
+                                                  <span>{food.name}</span>
+                                                  <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
+                                                </div>
+                                                <div className="meal-food-controls">
+                                                  <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                </div>
+                                              </div>
+                                            ))}
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                              <button type="button" className="btn btn-primary" onClick={handleSaveLoggedMeal}>Save Changes</button>
+                                              <button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)}>Cancel</button>
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div style={{ fontWeight: 700, marginBottom: 8 }}>Foods in this meal</div>
+                                            <div style={{ display: 'grid', gap: 6 }}>
+                                              {entry.foods.map((food, index) => (
+                                                <div key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                                                  <span>{food.name}</span>
+                                                  <span>{food.quantity}x · {Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => handleEditLoggedMeal(entry)}>
+                                              <Edit size={16} /> Edit Meal
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
                               ))}
                             </tbody>
                           </table>
@@ -1577,16 +1723,76 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                           </thead>
                           <tbody>
                             {trackerHistoryEntries.map(entry => (
-                              <tr key={entry.id}>
-                                <td className="time-cell">{formatTime(entry.timestamp)}</td>
-                                <td className="name-cell">{entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}</td>
-                                <td><strong>{entry.calories}</strong></td>
-                                <td>{entry.protein}g</td>
-                                <td>{entry.carbs}g</td>
-                                <td>{entry.fat}g</td>
-                                <td>{entry.fiber || 0}g</td>
-                                <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
-                              </tr>
+                              <React.Fragment key={entry.id}>
+                                <tr>
+                                  <td className="time-cell">{formatTime(entry.timestamp)}</td>
+                                  <td className="name-cell">
+                                    {entry.type === 'meal' && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        style={{ padding: '3px 7px', marginRight: 6 }}
+                                        onClick={() => handleToggleLogMeal(entry)}
+                                        title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
+                                      >
+                                        {expandedLogEntryId === entry.id ? '−' : '+'}
+                                      </button>
+                                    )}
+                                    {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
+                                  </td>
+                                  <td><strong>{entry.calories}</strong></td>
+                                  <td>{entry.protein}g</td>
+                                  <td>{entry.carbs}g</td>
+                                  <td>{entry.fat}g</td>
+                                  <td>{entry.fiber || 0}g</td>
+                                  <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                </tr>
+                                {expandedLogEntryId === entry.id && entry.type === 'meal' && (
+                                  <tr>
+                                    <td colSpan="8" style={{ padding: 0 }}>
+                                      <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
+                                        {editingLogMeal?.id === entry.id ? (
+                                          <>
+                                            <div className="form-group" style={{ marginBottom: 10 }}>
+                                              <label>Meal Name<input value={editingLogMeal.name} onChange={e => setEditingLogMeal(prev => ({ ...prev, name: e.target.value }))} /></label>
+                                            </div>
+                                            {editingLogMeal.foods.map((food, index) => (
+                                              <div key={index} className="meal-food-item">
+                                                <div className="meal-food-info">
+                                                  <span>{food.name}</span>
+                                                  <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
+                                                </div>
+                                                <div className="meal-food-controls">
+                                                  <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                </div>
+                                              </div>
+                                            ))}
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                              <button type="button" className="btn btn-primary" onClick={handleSaveLoggedMeal}>Save Changes</button>
+                                              <button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)}>Cancel</button>
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div style={{ fontWeight: 700, marginBottom: 8 }}>Foods in this meal</div>
+                                            <div style={{ display: 'grid', gap: 6 }}>
+                                              {entry.foods.map((food, index) => (
+                                                <div key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                                                  <span>{food.name}</span>
+                                                  <span>{food.quantity}x · {Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => handleEditLoggedMeal(entry)}>
+                                              <Edit size={16} /> Edit Meal
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
                             ))}
                           </tbody>
                         </table>
@@ -2177,6 +2383,93 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                   </button>
                 </div>
               </form>
+            </div>
+
+            <div className="section">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <h2 style={{ marginBottom: 4 }}>Meal History</h2>
+                  <p style={{ margin: 0, color: '#777' }}>Go back to any date to find meals you previously logged.</p>
+                </div>
+                <button
+                  type="button"
+                  className={showMealHistory ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => setShowMealHistory(prev => !prev)}
+                >
+                  {showMealHistory ? 'Hide History' : 'View History'}
+                </button>
+              </div>
+
+              {showMealHistory && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => {
+                      const date = new Date(mealHistoryDate + 'T12:00:00')
+                      date.setDate(date.getDate() - 1)
+                      setMealHistoryDate(getLocalDateString(date))
+                    }}>‹ Previous</button>
+                    <input
+                      type="date"
+                      value={mealHistoryDate}
+                      onChange={e => setMealHistoryDate(e.target.value)}
+                      aria-label="Select meal history date"
+                    />
+                    <button type="button" className="btn btn-secondary" onClick={() => {
+                      const date = new Date(mealHistoryDate + 'T12:00:00')
+                      date.setDate(date.getDate() + 1)
+                      setMealHistoryDate(getLocalDateString(date))
+                    }}>Next ›</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => setMealHistoryDate(getLocalDateString())}>Today</button>
+                  </div>
+
+                  <div style={{ textAlign: 'center', marginBottom: 14, color: '#666', fontWeight: 600 }}>
+                    {formatHistoryDate(mealHistoryDate)}
+                  </div>
+
+                  {mealHistoryEntries.length === 0 ? (
+                    <div className="empty-state">
+                      <UtensilsCrossed size={42} />
+                      <p>No meals were logged on this date.</p>
+                    </div>
+                  ) : (
+                    <div className="food-list">
+                      {mealHistoryEntries.map(entry => (
+                        <div key={entry.id} className="food-item">
+                          <div className="food-info">
+                            <h3>{entry.name}</h3>
+                            <div className="food-details">
+                              <span>{formatTime(entry.timestamp)}</span>
+                              <span><strong>{entry.calories}</strong> kcal</span>
+                              <span>P: {entry.protein}g</span>
+                              <span>C: {entry.carbs}g</span>
+                              <span>F: {entry.fat}g</span>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#888', marginTop: 5 }}>
+                              {entry.foods.map((food, i) => (
+                                <span key={i}>{food.name} ({food.quantity}x){i < entry.foods.length - 1 ? ', ' : ''}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="food-actions">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => {
+                                setMealFormData({ name: entry.name, selectedFoods: entry.foods.map(food => ({ ...food })) })
+                                setActiveTab('meals')
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                              }}
+                            >
+                              <Edit size={16} />
+                              Use in Meal Builder
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="section">
