@@ -2213,7 +2213,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
 
         {/* MEALS TAB */}
         {activeTab === 'meals' && (
-          <div className="content-grid">
+          <div className="content-grid meals-page">
             <div className="section">
               <h2>Create Meal</h2>
               <form onSubmit={handleSaveMeal}>
@@ -2381,7 +2381,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <div className="meal-builder-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button
                     type="submit"
                     className="btn btn-primary"
@@ -2403,7 +2403,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
             </div>
 
             <div className="section">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div className="meal-history-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div>
                   <h2 style={{ marginBottom: 4 }}>Meal History</h2>
                   <p style={{ margin: 0, color: '#777' }}>Go back to any date to find meals you previously logged.</p>
@@ -2419,7 +2419,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
 
               {showMealHistory && (
                 <div style={{ marginTop: 18 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                  <div className="meal-history-controls" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
                     <button type="button" className="btn btn-secondary" onClick={() => {
                       const date = new Date(mealHistoryDate + 'T12:00:00')
                       date.setDate(date.getDate() - 1)
