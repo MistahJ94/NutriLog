@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { Fragment, useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
@@ -1723,7 +1723,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                           </thead>
                           <tbody>
                             {trackerHistoryEntries.map(entry => (
-                              <React.Fragment key={entry.id}>
+                              <Fragment key={entry.id}>
                                 <tr>
                                   <td className="time-cell">{formatTime(entry.timestamp)}</td>
                                   <td className="name-cell">
@@ -1792,7 +1792,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                     </td>
                                   </tr>
                                 )}
-                              </React.Fragment>
+                              </Fragment>
                             ))}
                           </tbody>
                         </table>
