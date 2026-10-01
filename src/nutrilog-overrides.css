@@ -376,3 +376,21 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .graph-control-row label { display:flex; flex-direction:column; gap:6px; font-size:.8rem; font-weight:600; }
 .graph-control-row select { min-height:42px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface-raised,#fff); color:var(--text,#2d3436); }
 @media (max-width:600px) { .graph-control-row { grid-template-columns:1fr; } .tracker-visual-controls { flex-wrap:wrap; } .tracker-visual-controls .tracker-visual-select { min-width:0; } }
+
+
+/* Functional nutrition chart styles */
+.nutrition-chart-line,.nutrition-chart-area,.nutrition-chart-dot { vector-effect:non-scaling-stroke; }
+.nutrition-chart-line { fill:none; stroke:var(--accent); stroke-width:2; }
+.nutrition-chart-area { fill:var(--accent); opacity:.18; }
+.nutrition-chart-dot { fill:var(--accent); stroke:var(--surface-raised,#fff); stroke-width:1; }
+.nutrition-chart-line,.nutrition-chart-area { pointer-events:none; }
+.nutrition-chart-line,.nutrition-chart-area,.nutrition-chart-dot { }
+.nutrition-chart-line + .nutrition-chart-dot { }
+.nutrition-chart-line { }
+.nutrition-chart-labels { display:grid; grid-template-columns:repeat(14,1fr); gap:2px; margin-top:8px; font-size:.62rem; color:var(--text-muted,#667); text-align:center; }
+.nutrition-chart-line { width:100%; height:250px; display:block; }
+.nutrition-chart-area svg,.nutrition-chart-dots svg { width:100%; height:250px; display:block; }
+.nutrition-chart-line svg { width:100%; height:250px; display:block; }
+.nutrition-chart-labels span:nth-child(even) { opacity:.7; }
+.macro-graph-row { grid-template-columns:48px 1fr; padding:7px 0; border-bottom:1px solid var(--border); }
+.macro-graph-row strong { text-align:right; }
