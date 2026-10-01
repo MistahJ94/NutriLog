@@ -201,3 +201,42 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     font-size: 0.8rem;
   }
 }
+
+
+/* Health & Activity: keep paired form controls visually uniform. */
+.health-page .form-group input,
+.health-page .form-group select,
+.activity-page .form-group input,
+.activity-page .form-group select {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.health-page .form-group select,
+.activity-page .form-group select {
+  padding: 12px 15px;
+}
+
+.health-page .form-row,
+.activity-page .form-row {
+  align-items: stretch;
+}
+
+.activity-page .activity-grid > .section {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.activity-page .activity-grid .form-group {
+  min-width: 0;
+}
+
+@media (max-width: 800px) {
+  .health-page .form-group input,
+  .health-page .form-group select,
+  .activity-page .form-group input,
+  .activity-page .form-group select {
+    min-height: 46px;
+  }
+}
