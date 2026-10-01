@@ -431,3 +431,62 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 @media (max-width: 700px) {
   .macro-sparkline svg { height: 62px; }
 }
+
+
+/* Tracker customization controls: keep resize, visual, and fill controls separated. */
+.tracker-grid-customizing .stat-card {
+  min-height: 205px;
+  padding-bottom: 48px;
+  overflow: visible;
+}
+
+.tracker-grid-customizing .tracker-visual-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  width: 100%;
+  margin-top: 10px;
+  position: relative;
+  z-index: 3;
+}
+
+.tracker-grid-customizing .tracker-visual-controls .tracker-visual-select {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.tracker-grid-customizing .tracker-color-control {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 7px;
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  background: var(--surface-raised, #fff);
+  box-sizing: border-box;
+}
+
+.tracker-grid-customizing .tracker-color-control input[type="color"] {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 30px;
+}
+
+.tracker-grid-customizing .tracker-card-resize-handle {
+  z-index: 5;
+}
+
+@media (max-width: 768px) {
+  .tracker-grid-customizing .stat-card {
+    min-height: 215px;
+    padding-bottom: 50px;
+  }
+
+  .tracker-grid-customizing .tracker-visual-controls {
+    gap: 6px;
+  }
+}
