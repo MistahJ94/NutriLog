@@ -188,6 +188,8 @@ function AdminPanel({ user }) {
 function App({ user, initialServerData, onLogout, onChangeServer }) {
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
+  const [graphType, setGraphType] = useState('bars')
+  const [graphMetric, setGraphMetric] = useState('calories')
   const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'graphs', 'settings']
   const tabLabels = {
     tracker: 'Tracker',
@@ -1572,13 +1574,16 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                     {card.progress !== undefined && (() => {
                       const visual = (trackerLayout.cards[card.id] || {}).visual || 'bar'
                       if (visual === 'none') return null
-                      if (visual === 'ring') return <div className="tracker-visual-ring" style={{ '--tracker-progress': `${card.progress}%` }}><div>{Math.round(card.progress)}%</div></div>
+                      if (visual === 'ring') return <div className="tracker-visual-ring" style={{ '--tracker-progress': `${card.progress}%`, '--tracker-color': (trackerLayout.cards[card.id] || {}).color || 'var(--accent)' }}><div>{Math.round(card.progress)}%</div></div>
                       if (visual === 'circle') return <div className="tracker-visual-circle" style={{ '--tracker-progress': `${card.progress}%` }}><span>{Math.round(card.progress)}%</span></div>
-                      return <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%` }}></div></div>
+                      return <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%`, background: (trackerLayout.cards[card.id] || {}).color || undefined }}></div></div>
                     })()}
-                    {trackerLayout.customize && card.progress !== undefined && <select className="tracker-visual-select" value={(trackerLayout.cards[card.id] || {}).visual || 'bar'} onChange={event => updateTrackerCard(card.id, 'visual', event.target.value)} aria-label={`Visual style for ${card.label}`}>
-                      <option value="bar">Bar</option><option value="ring">Ring</option><option value="circle">Circle</option><option value="none">Number only</option>
-                    </select>}
+                    {trackerLayout.customize && card.progress !== undefined && <div className="tracker-visual-controls">
+                      <select className="tracker-visual-select" value={(trackerLayout.cards[card.id] || {}).visual || 'bar'} onChange={event => updateTrackerCard(card.id, 'visual', event.target.value)} aria-label={`Visual style for ${card.label}`}>
+                        <option value="bar">Bar</option><option value="ring">Ring</option><option value="circle">Circle</option><option value="none">Number only</option>
+                      </select>
+                      <label className="tracker-color-control">Fill <input type="color" value={(trackerLayout.cards[card.id] || {}).color || '#6B9080'} onChange={event => updateTrackerCard(card.id, 'color', event.target.value)} aria-label={`Fill color for ${card.label}`} /></label>
+                    </div>}
                     {trackerLayout.customize && <button type="button" className="tracker-card-resize-handle" aria-label={`Resize ${card.label} card`} onPointerDown={event => beginTrackerResize(event, card.id)} title="Drag to resize">↘</button>}
                   </div>
                 )
@@ -2568,8 +2573,14 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               <h2><BarChart3 size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />Nutrition Graphs</h2>
               <p>See how your logged calories and macros change over the last 14 days.</p>
             </div>
+            <div className="section graph-controls">
+              <div className="graph-control-row">
+                <label>Metric<select value={graphMetric} onChange={event => setGraphMetric(event.target.value)}><option value="calories">Calories</option><option value="protein">Protein</option><option value="carbs">Carbs</option><option value="fat">Fat</option><option value="fiber">Fiber</option></select></label>
+                <label>Graph type<select value={graphType} onChange={event => setGraphType(event.target.value)}><option value="bars">Bar</option><option value="line">Line</option><option value="area">Area</option><option value="dots">Dots</option></select></label>
+              </div>
+            </div>
             <div className="section">
-              <h3>Daily Calories</h3>
+              <h3>{graphMetric.charAt(0).toUpperCase() + graphMetric.slice(1)} — Last 14 Days</h3>
               <div className="nutrition-graph">
                 {Array.from({ length: 14 }, (_, offset) => {
                   const date = new Date()
@@ -2577,10 +2588,11 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                   date.setDate(date.getDate() - (13 - offset))
                   const key = getLocalDateString(date)
                   const entries = logEntries.filter(entry => entry.timestamp && getLocalDateString(new Date(entry.timestamp)) === key)
-                  const calories = entries.reduce((sum, entry) => sum + Number(entry.calories || 0), 0)
-                  const height = macroGoals.calories > 0 ? Math.min(100, Math.max(2, calories / macroGoals.calories * 100)) : 2
-                  return <div className="nutrition-graph-day" key={key} title={`${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${Math.round(calories)} kcal`}>
-                    <div className="nutrition-graph-value">{Math.round(calories)}</div>
+                  const value = entries.reduce((sum, entry) => sum + Number(entry[graphMetric] || 0), 0)
+                  const goal = Number(macroGoals[graphMetric] || 0)
+                  const height = goal > 0 ? Math.min(100, Math.max(2, value / goal * 100)) : 2
+                  return <div className="nutrition-graph-day" key={key} title={`${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${Math.round(value)} ${graphMetric === 'calories' ? 'kcal' : 'g'}`}>
+                    <div className="nutrition-graph-value">{Math.round(value)}</div>
                     <div className="nutrition-graph-track"><div className="nutrition-graph-fill" style={{ height: `${height}%` }} /></div>
                     <span>{date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</span>
                   </div>
