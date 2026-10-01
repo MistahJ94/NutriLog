@@ -2581,24 +2581,32 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
             </div>
             <div className="section">
               <h3>{graphMetric.charAt(0).toUpperCase() + graphMetric.slice(1)} — Last 14 Days</h3>
-              <div className="nutrition-graph">
-                {Array.from({ length: 14 }, (_, offset) => {
+              {(() => {
+                const days = Array.from({ length: 14 }, (_, offset) => {
                   const date = new Date()
                   date.setHours(12, 0, 0, 0)
                   date.setDate(date.getDate() - (13 - offset))
                   const key = getLocalDateString(date)
                   const entries = logEntries.filter(entry => entry.timestamp && getLocalDateString(new Date(entry.timestamp)) === key)
-                  const value = entries.reduce((sum, entry) => sum + Number(entry[graphMetric] || 0), 0)
-                  const goal = Number(macroGoals[graphMetric] || 0)
-                  const height = goal > 0 ? Math.min(100, Math.max(2, value / goal * 100)) : 2
-                  return <div className="nutrition-graph-day" key={key} title={`${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${Math.round(value)} ${graphMetric === 'calories' ? 'kcal' : 'g'}`}>
-                    <div className="nutrition-graph-value">{Math.round(value)}</div>
-                    <div className="nutrition-graph-track"><div className="nutrition-graph-fill" style={{ height: `${height}%` }} /></div>
-                    <span>{date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</span>
+                  return { date, key, value: entries.reduce((sum, entry) => sum + Number(entry[graphMetric] || 0), 0) }
+                })
+                const max = Math.max(Number(macroGoals[graphMetric] || 0), ...days.map(day => day.value), 1)
+                const points = days.map((day, index) => `${(index / 13) * 100},${100 - Math.min(96, (day.value / max) * 90)}`).join(" ")
+                return graphType === "bars" ? (
+                  <div className="nutrition-graph nutrition-graph-bars">
+                    {days.map(day => <div className="nutrition-graph-day" key={day.key} title={`${day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${Math.round(day.value)} ${graphMetric === "calories" ? "kcal" : "g"}`}><div className="nutrition-graph-value">{Math.round(day.value)}</div><div className="nutrition-graph-track"><div className="nutrition-graph-fill" style={{ height: `${Math.max(2, day.value / max * 100)}%` }} /></div><span>{day.date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span></div>)}
                   </div>
-                })}
-              </div>
-            </div>
+                ) : (
+                  <div className={`nutrition-chart-${graphType}`}>
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${graphMetric} ${graphType} chart`}>
+                      {graphType === "area" && <polygon points={`0,100 ${points} 100,100`} className="nutrition-chart-area" />}
+                      <polyline points={points} className="nutrition-chart-line" />
+                      {graphType === "dots" && days.map((day, index) => <circle key={day.key} cx={(index / 13) * 100} cy={100 - Math.min(96, (day.value / max) * 90)} r="2.2" className="nutrition-chart-dot" />)}
+                    </svg>
+                    <div className="nutrition-chart-labels">{days.map(day => <span key={day.key}>{day.date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span>)}</div>
+                  </div>
+                )
+              })()}            </div>
             <div className="content-grid graphs-macro-grid">
               {[
                 ['Protein', 'protein', macroGoals.protein],
@@ -2614,8 +2622,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                       date.setDate(date.getDate() - (6 - offset))
                       const dayKey = getLocalDateString(date)
                       const value = logEntries.filter(entry => entry.timestamp && getLocalDateString(new Date(entry.timestamp)) === dayKey).reduce((sum, entry) => sum + Number(entry[key] || 0), 0)
-                      const pct = goal > 0 ? Math.min(100, Math.max(0, value / goal * 100)) : 0
-                      return <div className="macro-graph-row" key={dayKey}><span>{date.toLocaleDateString('en-US', { weekday: 'short' })}</span><div className="progress-bar"><div className="progress-fill" style={{ width: `${pct}%` }} /></div><strong>{Math.round(value)}g</strong></div>
+                      return <div className="macro-graph-row" key={dayKey}><span>{date.toLocaleDateString("en-US", { weekday: "short" })}</span><strong>{Math.round(value)}g</strong></div>
                     })}
                   </div>
                 </div>
