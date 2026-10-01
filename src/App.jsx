@@ -2601,7 +2601,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                     <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${graphMetric} ${graphType} chart`}>
                       {graphType === "area" && <polygon points={`0,100 ${points} 100,100`} className="nutrition-chart-area" />}
                       {graphType !== "dots" && <polyline points={points} className="nutrition-chart-line" />}
-                      {graphType === "dots" && days.map((day, index) => <circle key={day.key} cx={(index / 13) * 100} cy={100 - Math.min(96, (day.value / max) * 90)} r="1.35" className="nutrition-chart-dot" />)}
+                      {graphType === "dots" && days.map((day, index) => <circle key={day.key} cx={(index / 13) * 100} cy={Math.max(2, 100 - Math.min(96, (day.value / max) * 90))} r="1.35" className="nutrition-chart-dot" />)}
                     </svg>
                     <div className="nutrition-chart-labels">{days.map(day => <span key={day.key}>{day.date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span>)}</div>
                   </div>
