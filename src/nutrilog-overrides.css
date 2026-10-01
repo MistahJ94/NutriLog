@@ -476,6 +476,35 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   height: 30px;
 }
 
+.tracker-grid-customizing .tracker-color-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.tracker-grid-customizing .tracker-color-action {
+  flex: 1;
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  background: var(--surface-raised, #fff);
+  color: var(--text, #2d3436);
+  font-size: .68rem;
+  cursor: pointer;
+}
+
+.tracker-grid-customizing .tracker-color-action:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-pale);
+}
+
+.tracker-grid-customizing .tracker-color-action:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
 .tracker-grid-customizing .tracker-card-resize-handle {
   z-index: 5;
 }
