@@ -394,3 +394,38 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .nutrition-chart-labels span:nth-child(even) { opacity:.7; }
 .macro-graph-row { grid-template-columns:48px 1fr; padding:7px 0; border-bottom:1px solid var(--border); }
 .macro-graph-row strong { text-align:right; }
+
+
+/* Compact line sparklines for the smaller macro graphs */
+.macro-sparkline {
+  margin-top: 4px;
+}
+.macro-sparkline svg {
+  width: 100%;
+  height: 78px;
+  display: block;
+  overflow: visible;
+}
+.macro-sparkline-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.macro-sparkline-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: .68rem;
+  color: var(--text-muted, #667);
+}
+.macro-sparkline-meta strong {
+  font-size: .75rem;
+  color: var(--text, #2d3436);
+}
+@media (max-width: 700px) {
+  .macro-sparkline svg { height: 62px; }
+}
