@@ -2615,16 +2615,30 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               ].map(([label, key, goal]) => (
                 <div className="section" key={key}>
                   <h3>{label}</h3>
-                  <div className="macro-graph-list">
-                    {Array.from({ length: 7 }, (_, offset) => {
+                  {(() => {
+                    const days = Array.from({ length: 7 }, (_, offset) => {
                       const date = new Date()
                       date.setHours(12, 0, 0, 0)
                       date.setDate(date.getDate() - (6 - offset))
                       const dayKey = getLocalDateString(date)
                       const value = logEntries.filter(entry => entry.timestamp && getLocalDateString(new Date(entry.timestamp)) === dayKey).reduce((sum, entry) => sum + Number(entry[key] || 0), 0)
-                      return <div className="macro-graph-row" key={dayKey}><span>{date.toLocaleDateString("en-US", { weekday: "short" })}</span><strong>{Math.round(value)}g</strong></div>
-                    })}
-                  </div>
+                      return { date, dayKey, value }
+                    })
+                    const max = Math.max(goal || 0, ...days.map(day => day.value), 1)
+                    const points = days.map((day, index) => `${(index / 6) * 100},${100 - Math.min(92, (day.value / max) * 82)}`).join(" ")
+                    return (
+                      <div className="macro-sparkline">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${label} last 7 days`}>
+                          <polyline points={points} className="macro-sparkline-line" />
+                        </svg>
+                        <div className="macro-sparkline-meta">
+                          <span>{days[0].date.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                          <strong>{Math.round(days[6].value)}g today</strong>
+                          <span>{days[6].date.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               ))}
             </div>
