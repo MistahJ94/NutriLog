@@ -2601,8 +2601,22 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                     <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${graphMetric} ${graphType} chart`}>
                       {graphType === "area" && <polygon points={`0,100 ${points} 100,100`} className="nutrition-chart-area" />}
                       {graphType !== "dots" && <polyline points={points} className="nutrition-chart-line" />}
-                      {graphType === "dots" && <div className="nutrition-chart-dot-layer">{days.map((day, index) => <div key={day.key} className="nutrition-chart-dot" style={{ left: `${((index + 0.5) / 14) * 100}%`, bottom: `${Math.max(0, Math.min(90, (day.value / max) * 90))}%` }} title={`${day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${Math.round(day.value)} ${graphMetric === "calories" ? "kcal" : "g"}`} />)}</div>}
                     </svg>
+                    {graphType === "dots" && (
+                      <div className="nutrition-chart-dot-layer">
+                        {days.map((day, index) => (
+                          <div
+                            key={day.key}
+                            className="nutrition-chart-dot"
+                            style={{
+                              left: `${((index + 0.5) / 14) * 100}%`,
+                              bottom: `${5 + Math.min(90, (day.value / max) * 90)}%`
+                            }}
+                            title={`${day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${Math.round(day.value)} ${graphMetric === "calories" ? "kcal" : "g"}`}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <div className="nutrition-chart-labels">{days.map(day => <span key={day.key}>{day.date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span>)}</div>
                   </div>
                 )
