@@ -1604,7 +1604,8 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                             </thead>
                             <tbody>
                               {dateData.entries.map(entry => (
-                                <tr key={entry.id}>
+                                <Fragment key={entry.id}>
+                                  <tr>
                                   <td className="time-cell">{formatTime(entry.timestamp)}</td>
                                   <td className="name-cell">
                                     {entry.type === 'meal' && (
@@ -1673,6 +1674,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                     </td>
                                   </tr>
                                 )}
+                                </Fragment>
                               ))}
                             </tbody>
                           </table>
