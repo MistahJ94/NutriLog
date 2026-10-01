@@ -358,3 +358,21 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   .nutrition-graph-day > span { font-size: .56rem; }
   .graphs-macro-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Tracker progress color controls */
+.tracker-visual-controls { display:flex; align-items:center; gap:6px; width:100%; margin-top:8px; }
+.tracker-visual-controls .tracker-visual-select { margin-top:0; flex:1; }
+.tracker-color-control { display:flex; align-items:center; gap:4px; font-size:.7rem; white-space:nowrap; color:var(--text-muted,#667); }
+.tracker-color-control input[type="color"] { width:30px; height:30px; padding:2px; border:1px solid var(--border); border-radius:6px; background:transparent; cursor:pointer; }
+.tracker-visual-ring { background:conic-gradient(var(--tracker-color) var(--tracker-progress), var(--accent-pale) 0); }
+.tracker-visual-circle { background:conic-gradient(var(--tracker-color) var(--tracker-progress), var(--accent-pale) 0); }
+.nutrition-graph-line,.nutrition-graph-area,.nutrition-graph-dots { position:relative; }
+.nutrition-graph-line .nutrition-graph-track,.nutrition-graph-area .nutrition-graph-track,.nutrition-graph-dots .nutrition-graph-track { background:transparent; }
+.nutrition-graph-line .nutrition-graph-fill { border-radius:2px; min-height:3px; }
+.nutrition-graph-area .nutrition-graph-fill { opacity:.65; border-radius:8px 8px 0 0; }
+.nutrition-graph-dots .nutrition-graph-fill { width:16px; height:16px !important; min-height:16px; border-radius:50%; margin:0 auto; }
+.graph-control-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.graph-control-row label { display:flex; flex-direction:column; gap:6px; font-size:.8rem; font-weight:600; }
+.graph-control-row select { min-height:42px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface-raised,#fff); color:var(--text,#2d3436); }
+@media (max-width:600px) { .graph-control-row { grid-template-columns:1fr; } .tracker-visual-controls { flex-wrap:wrap; } .tracker-visual-controls .tracker-visual-select { min-width:0; } }
