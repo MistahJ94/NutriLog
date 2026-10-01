@@ -1039,6 +1039,41 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     }))
   }
 
+  const resetTrackerCardColor = id => {
+    setTrackerLayout(prev => {
+      const cards = { ...prev.cards }
+      const config = { ...(cards[id] || {}) }
+      delete config.color
+      if (Object.keys(config).length) cards[id] = config
+      else delete cards[id]
+      return { ...prev, template: 'custom', cards }
+    })
+  }
+
+  const applyTrackerColorToAll = id => {
+    setTrackerLayout(prev => {
+      const color = prev.cards?.[id]?.color
+      if (!color) return prev
+      const cards = { ...prev.cards }
+      trackerCards.forEach(card => {
+        cards[card.id] = { ...(cards[card.id] || {}), color }
+      })
+      return { ...prev, template: 'custom', cards }
+    })
+  }
+
+  const resetAllTrackerColors = () => {
+    setTrackerLayout(prev => {
+      const cards = {}
+      Object.entries(prev.cards || {}).forEach(([id, config]) => {
+        const next = { ...config }
+        delete next.color
+        if (Object.keys(next).length) cards[id] = next
+      })
+      return { ...prev, template: 'custom', cards }
+    })
+  }
+
   const moveTrackerCard = (id, direction) => {
     setTrackerLayout(prev => {
       const order = Array.isArray(prev.order) ? [...prev.order] : trackerCards.map(card => card.id)
@@ -1551,6 +1586,11 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                 <p>Arrange your nutrition cards to fit the way you track.</p>
               </div>
               <div className="tracker-layout-actions">
+                {trackerLayout.customize && (
+                  <button type="button" className="btn btn-secondary tracker-reset-colors-btn" onClick={resetAllTrackerColors}>
+                    Reset All Colors
+                  </button>
+                )}
                 <button type="button" className={trackerLayout.customize ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTrackerLayout(prev => ({ ...prev, customize: !prev.customize }))}>
                   <Settings size={16} /> {trackerLayout.customize ? 'Done Customizing' : 'Customize Cards'}
                 </button>
@@ -1583,6 +1623,10 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                         <option value="bar">Bar</option><option value="ring">Ring</option><option value="circle">Circle</option><option value="none">Number only</option>
                       </select>
                       <label className="tracker-color-control">Fill <input type="color" value={(trackerLayout.cards[card.id] || {}).color || '#6B9080'} onChange={event => updateTrackerCard(card.id, 'color', event.target.value)} aria-label={`Fill color for ${card.label}`} /></label>
+                      <div className="tracker-color-actions">
+                        <button type="button" className="tracker-color-action" onClick={() => applyTrackerColorToAll(card.id)} disabled={!(trackerLayout.cards[card.id] || {}).color} title="Apply this tile's custom color to all tiles">Apply to All</button>
+                        <button type="button" className="tracker-color-action" onClick={() => resetTrackerCardColor(card.id)} disabled={!(trackerLayout.cards[card.id] || {}).color} title="Reset this tile to its original color">Reset</button>
+                      </div>
                     </div>}
                     {trackerLayout.customize && <button type="button" className="tracker-card-resize-handle" aria-label={`Resize ${card.label} card`} onPointerDown={event => beginTrackerResize(event, card.id)} title="Drag to resize">↘</button>}
                   </div>
