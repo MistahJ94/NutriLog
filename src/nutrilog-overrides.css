@@ -490,3 +490,14 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     gap: 6px;
   }
 }
+
+
+/* Apply the selected fill color to circle progress visuals. */
+.tracker-visual-circle {
+  --tracker-color: var(--accent);
+  background: conic-gradient(var(--tracker-color) calc(var(--tracker-progress) * 1), color-mix(in srgb, var(--tracker-color) 14%, transparent) 0);
+}
+
+.tracker-visual-circle::before {
+  background: var(--surface-raised, #fff);
+}
