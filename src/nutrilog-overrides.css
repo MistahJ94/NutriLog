@@ -240,3 +240,121 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     min-height: 46px;
   }
 }
+
+
+/* Health and activity form alignment */
+.health-page .weight-action {
+  display: flex;
+  align-items: flex-end;
+}
+.health-page .weight-action .btn {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+.health-page .recommendation-grid + .info-box {
+  margin-top: 18px;
+}
+.activity-page .activity-grid > .section {
+  min-height: 100%;
+}
+
+/* Tracker visual choices */
+.tracker-visual-select {
+  width: 100%;
+  margin-top: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  background: var(--surface-raised, #fff);
+  color: var(--text, #2d3436);
+  font-size: .75rem;
+}
+.tracker-visual-ring {
+  width: 62px;
+  height: 62px;
+  margin: 10px auto 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--tracker-progress), var(--accent-pale) 0);
+  display: grid;
+  place-items: center;
+}
+.tracker-visual-ring > div {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface-raised, #fff);
+  display: grid;
+  place-items: center;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--text, #2d3436);
+}
+.tracker-visual-circle {
+  width: 58px;
+  height: 58px;
+  margin: 10px auto 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--accent) 0 43%, var(--accent-pale) 44% 100%);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.tracker-visual-circle span {
+  color: white;
+  font-size: .72rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+:root[data-mode="dark"] .tracker-visual-ring > div,
+:root[data-mode="dark"] .tracker-visual-select {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* Nutrition graphs */
+.graphs-page { display: flex; flex-direction: column; gap: 20px; }
+.nutrition-graph {
+  height: 270px;
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  align-items: end;
+  gap: 7px;
+  padding: 20px 8px 4px;
+  border-top: 1px solid var(--border);
+}
+.nutrition-graph-day {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 5px;
+  font-size: .68rem;
+  color: var(--text-muted, #667);
+}
+.nutrition-graph-value { font-size: .65rem; font-weight: 700; min-height: 13px; }
+.nutrition-graph-track {
+  width: 100%;
+  max-width: 34px;
+  height: 190px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 7px;
+  background: var(--accent-pale);
+  overflow: hidden;
+}
+.nutrition-graph-fill { width: 100%; min-height: 3px; border-radius: 7px 7px 0 0; background: var(--accent); }
+.graphs-macro-grid { align-items: stretch; }
+.macro-graph-list { display: flex; flex-direction: column; gap: 12px; }
+.macro-graph-row { display: grid; grid-template-columns: 34px 1fr 48px; align-items: center; gap: 9px; font-size: .8rem; }
+.macro-graph-row .progress-bar { margin: 0; }
+.macro-graph-row strong { text-align: right; font-size: .78rem; }
+@media (max-width: 700px) {
+  .nutrition-graph { gap: 3px; padding-left: 0; padding-right: 0; }
+  .nutrition-graph-value { font-size: .56rem; }
+  .nutrition-graph-track { max-width: 22px; }
+  .nutrition-graph-day > span { font-size: .56rem; }
+  .graphs-macro-grid { grid-template-columns: 1fr; }
+}
