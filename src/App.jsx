@@ -1053,9 +1053,6 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const selectedTrackerCarbsProgress = macroGoals.carbs > 0 ? Math.min((selectedTrackerCarbs / macroGoals.carbs) * 100, 100) : 0
   const selectedTrackerFatProgress = macroGoals.fat > 0 ? Math.min((selectedTrackerFat / macroGoals.fat) * 100, 100) : 0
   const selectedTrackerFiberProgress = macroGoals.fiber > 0 ? Math.min((selectedTrackerFiber / macroGoals.fiber) * 100, 100) : 0
-  const trackerDisplayDate = showTrackerHistory ? trackerHistoryDate : todayDateString
-  const trackerDisplayDateLabel = showTrackerHistory ? formatHistoryDate(trackerHistoryDate) : 'Today'
-
   const trackerCards = [
     { id: 'calories', label: showTrackerHistory ? 'Calories' : "Today's Calories", value: selectedTrackerCalories, subtext: `of ${macroGoals.calories} kcal`, progress: selectedTrackerProgress, className: 'primary' },
     { id: 'remaining', label: 'Remaining', value: selectedTrackerRemaining, subtext: `kcal ${selectedTrackerRemaining < 0 ? 'over' : 'left'}`, className: 'success' },
@@ -1617,7 +1614,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
             <div className="tracker-dashboard-header">
               <div>
                 <h2>Daily Dashboard</h2>
-                <p>{showTrackerHistory ? `Showing nutrition for ${trackerDisplayDateLabel}.` : 'Arrange your nutrition cards to fit the way you track.'}</p>
+                <p>{showTrackerHistory ? 'Showing the selected history date on your nutrition cards.' : 'Arrange your nutrition cards to fit the way you track.'}</p>
               </div>
               <div className="tracker-layout-actions">
                 {trackerLayout.customize && (
