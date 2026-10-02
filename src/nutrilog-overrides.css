@@ -46,7 +46,6 @@ input[placeholder="Search foods..."] {
 
 .entries-table .quantity-input:hover { border-color: var(--accent); }
 
-/* The meal food picker had a hard-coded white inline background. */
 div[style*="max-height: 220px"] {
   background: var(--nl-surface-bg) !important;
   color: var(--nl-log-text);
@@ -56,7 +55,6 @@ div[style*="max-height: 220px"] {
 div[style*="max-height: 220px"] label { color: var(--nl-log-text); }
 div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 
-/* Shared disclaimer/information tiles on Goals and Activity. */
 .info-box {
   background: var(--nl-surface-bg) !important;
   color: var(--nl-log-text) !important;
@@ -257,6 +255,28 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 }
 .activity-page .activity-grid > .section {
   min-height: 100%;
+}
+
+/* Activity summary tiles: center the three top-level stats without affecting other sections. */
+.activity-page .activity-stats {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.activity-page .activity-stats .activity-stat-card {
+  flex: 0 1 280px;
+}
+
+@media (max-width: 768px) {
+  .activity-page .activity-stats {
+    flex-wrap: wrap;
+  }
+
+  .activity-page .activity-stats .activity-stat-card {
+    flex: 1 1 220px;
+  }
 }
 
 /* Tracker visual choices */
