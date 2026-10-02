@@ -530,3 +530,34 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .tracker-visual-circle::before {
   background: var(--surface-raised, #fff);
 }
+
+/* Food Log meal expand/collapse control */
+.food-log-meal-toggle {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  height: 28px;
+  min-height: 28px !important;
+  padding: 2px !important;
+  margin-right: 6px;
+  flex: 0 0 28px;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .entries-table .food-log-meal-toggle {
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    height: 24px;
+    min-height: 24px !important;
+    flex-basis: 24px;
+    margin-right: 4px;
+    padding: 1px !important;
+    font-size: 0.72rem !important;
+  }
+}
