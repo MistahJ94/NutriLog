@@ -1,5 +1,5 @@
 const config = {
-  appId: 'com.jondomain.nutrilog',
+  appId: 'com.nutrilog.app',
   appName: 'NutriLog',
   webDir: 'dist',
   plugins: {
