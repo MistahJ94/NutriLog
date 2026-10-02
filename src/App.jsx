@@ -190,6 +190,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const [activeTab, setActiveTab] = useState('tracker')
   const [graphType, setGraphType] = useState('bars')
   const [graphMetric, setGraphMetric] = useState('calories')
+  const [activeGraphPoint, setActiveGraphPoint] = useState(null)
   const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'graphs', 'settings']
   const tabLabels = {
     tracker: 'Tracker',
@@ -2720,6 +2721,30 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${label} last 7 days`}>
                           <polyline points={points} className="macro-sparkline-line" />
                         </svg>
+                        <div className="macro-sparkline-point-layer" aria-label={`${label} daily values`}>
+                          {days.map((day, index) => {
+                            const pointId = `${key}-${day.dayKey}`
+                            const pointBottom = Math.min(92, (day.value / max) * 82)
+                            return (
+                              <button
+                                key={day.dayKey}
+                                type="button"
+                                className={`macro-sparkline-point ${activeGraphPoint === pointId ? 'active' : ''}`}
+                                style={{ left: `${(index / 6) * 100}%`, bottom: `${100 - pointBottom}%` }}
+                                aria-label={`${day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${Math.round(day.value)}g`}
+                                onMouseEnter={() => setActiveGraphPoint(pointId)}
+                                onMouseLeave={() => setActiveGraphPoint(null)}
+                                onFocus={() => setActiveGraphPoint(pointId)}
+                                onBlur={() => setActiveGraphPoint(null)}
+                                onClick={() => setActiveGraphPoint(prev => prev === pointId ? null : pointId)}
+                              >
+                                <span className="macro-sparkline-tooltip">
+                                  {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: {Math.round(day.value)}g
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
                         <div className="macro-sparkline-meta">
                           <span>{days[0].date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</span>
                           <strong>{Math.round(days[6].value)}g today</strong>
