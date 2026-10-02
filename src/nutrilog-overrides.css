@@ -622,3 +622,87 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 :root[data-mode="dark"] .goal-presets .preset-btn {
   color: var(--text, #f3f4f6);
 }
+
+/* Interactive daily values for compact macro sparklines */
+.macro-sparkline {
+  position: relative;
+}
+
+.macro-sparkline-point-layer {
+  position: absolute;
+  inset: 0 0 26px;
+  pointer-events: none;
+}
+
+.macro-sparkline-point {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, 50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.macro-sparkline-point::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.macro-sparkline-point:hover::after,
+.macro-sparkline-point:focus-visible::after,
+.macro-sparkline-point.active::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.macro-sparkline-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: 15px;
+  transform: translateX(-50%);
+  display: none;
+  white-space: nowrap;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--surface-raised, #fff);
+  color: var(--text, #2d3436);
+  border: 1px solid var(--border, #ddd);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.macro-sparkline-point:hover .macro-sparkline-tooltip,
+.macro-sparkline-point:focus-visible .macro-sparkline-tooltip,
+.macro-sparkline-point.active .macro-sparkline-tooltip {
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .macro-sparkline-point-layer {
+    inset: 0 0 24px;
+  }
+
+  .macro-sparkline-tooltip {
+    font-size: 0.68rem;
+    padding: 4px 6px;
+  }
+}
