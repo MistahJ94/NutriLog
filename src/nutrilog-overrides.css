@@ -561,3 +561,35 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     font-size: 0.72rem !important;
   }
 }
+
+/* Planner goal presets: keep the heading and preset controls readable in every theme. */
+.goal-presets {
+  color: var(--text, #2d3436);
+}
+
+.goal-presets h4 {
+  color: var(--text, #2d3436);
+  margin-bottom: 8px;
+}
+
+.goal-presets .preset-buttons {
+  color: var(--text, #2d3436);
+}
+
+.goal-presets .preset-btn {
+  color: var(--text, #2d3436);
+  background: var(--surface-raised, #fff);
+  border-color: var(--border);
+}
+
+.goal-presets .preset-btn:hover {
+  color: var(--text, #2d3436);
+  border-color: var(--accent);
+}
+
+:root[data-mode="dark"] .goal-presets,
+:root[data-mode="dark"] .goal-presets h4,
+:root[data-mode="dark"] .goal-presets .preset-buttons,
+:root[data-mode="dark"] .goal-presets .preset-btn {
+  color: var(--text, #f3f4f6);
+}
