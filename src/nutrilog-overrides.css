@@ -279,6 +279,15 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   }
 }
 
+.activity-page .activity-stats .activity-stat-card {
+  justify-content: center;
+  align-items: center;
+}
+
+.activity-page .activity-stats .activity-stat-card > div:last-child {
+  text-align: center;
+}
+
 /* Tracker visual choices */
 .tracker-visual-select {
   width: 100%;
