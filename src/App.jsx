@@ -2730,10 +2730,9 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                 key={day.dayKey}
                                 type="button"
                                 className={`macro-sparkline-point ${activeGraphPoint === pointId ? 'active' : ''}`}
-                                style={{ left: `${(index / 6) * 100}%`, bottom: `${100 - pointBottom}%` }}
+                                style={{ left: `${(index / 6) * 100}%`, bottom: `${pointBottom}%` }}
                                 aria-label={`${day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${Math.round(day.value)}g`}
                                 onMouseEnter={() => setActiveGraphPoint(pointId)}
-                                onMouseLeave={() => setActiveGraphPoint(null)}
                                 onFocus={() => setActiveGraphPoint(pointId)}
                                 onBlur={() => setActiveGraphPoint(null)}
                                 onClick={() => setActiveGraphPoint(prev => prev === pointId ? null : pointId)}
