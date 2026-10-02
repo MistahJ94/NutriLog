@@ -630,7 +630,10 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 
 .macro-sparkline-point-layer {
   position: absolute;
-  inset: 0 0 26px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 78px;
   pointer-events: none;
 }
 
@@ -640,7 +643,7 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   height: 20px;
   margin: 0;
   padding: 0;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, 50%);
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -701,7 +704,7 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 
 @media (max-width: 700px) {
   .macro-sparkline-point-layer {
-    inset: 0 0 24px;
+    height: 62px;
   }
 
   .macro-sparkline-tooltip {
