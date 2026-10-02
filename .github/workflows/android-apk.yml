@@ -40,11 +40,17 @@ jobs:
       - name: Install Capacitor 8
         run: npm install --no-save typescript @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8
 
+      - name: Install Capacitor Assets
+        run: npm install --no-save @capacitor/assets@3.0.5
+
       - name: Build NutriLog web app
         run: npm run build
 
       - name: Generate Android project
         run: npx cap add android
+
+      - name: Generate NutriLog Android assets
+        run: npx @capacitor/assets generate --android --assetPath assets --iconBackgroundColor '#090b0d' --iconBackgroundColorDark '#090b0d' --splashBackgroundColor '#090b0d' --splashBackgroundColorDark '#090b0d'
 
       - name: Sync Capacitor
         run: npx cap sync android
