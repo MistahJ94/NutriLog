@@ -1022,13 +1022,26 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const fatProgress = macroGoals.fat > 0 ? Math.min((totalFat / macroGoals.fat) * 100, 100) : 0
   const fiberProgress = macroGoals.fiber > 0 ? Math.min((totalFiber / macroGoals.fiber) * 100, 100) : 0
 
-  const selectedTrackerTotals = showTrackerHistory ? trackerHistoryTotals : {
-    calories: totalCalories,
-    protein: totalProtein,
-    carbs: totalCarbs,
-    fat: totalFat,
-    fiber: totalFiber
-  }
+  const selectedTrackerTotals = showTrackerHistory
+    ? logEntries.filter(entry => {
+        if (!entry.timestamp) return false
+        const date = new Date(entry.timestamp)
+        if (Number.isNaN(date.getTime())) return false
+        return getLocalDateString(date) === trackerHistoryDate
+      }).reduce((totals, entry) => ({
+        calories: totals.calories + Number(entry.calories || 0),
+        protein: totals.protein + Number(entry.protein || 0),
+        carbs: totals.carbs + Number(entry.carbs || 0),
+        fat: totals.fat + Number(entry.fat || 0),
+        fiber: totals.fiber + Number(entry.fiber || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
+    : {
+        calories: totalCalories,
+        protein: totalProtein,
+        carbs: totalCarbs,
+        fat: totalFat,
+        fiber: totalFiber
+      }
   const selectedTrackerCalories = selectedTrackerTotals.calories
   const selectedTrackerProtein = selectedTrackerTotals.protein
   const selectedTrackerCarbs = selectedTrackerTotals.carbs
