@@ -1022,13 +1022,34 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const fatProgress = macroGoals.fat > 0 ? Math.min((totalFat / macroGoals.fat) * 100, 100) : 0
   const fiberProgress = macroGoals.fiber > 0 ? Math.min((totalFiber / macroGoals.fiber) * 100, 100) : 0
 
+  const selectedTrackerTotals = showTrackerHistory ? trackerHistoryTotals : {
+    calories: totalCalories,
+    protein: totalProtein,
+    carbs: totalCarbs,
+    fat: totalFat,
+    fiber: totalFiber
+  }
+  const selectedTrackerCalories = selectedTrackerTotals.calories
+  const selectedTrackerProtein = selectedTrackerTotals.protein
+  const selectedTrackerCarbs = selectedTrackerTotals.carbs
+  const selectedTrackerFat = selectedTrackerTotals.fat
+  const selectedTrackerFiber = selectedTrackerTotals.fiber
+  const selectedTrackerRemaining = macroGoals.calories - selectedTrackerCalories
+  const selectedTrackerProgress = Math.min((selectedTrackerCalories / macroGoals.calories) * 100, 100)
+  const selectedTrackerProteinProgress = macroGoals.protein > 0 ? Math.min((selectedTrackerProtein / macroGoals.protein) * 100, 100) : 0
+  const selectedTrackerCarbsProgress = macroGoals.carbs > 0 ? Math.min((selectedTrackerCarbs / macroGoals.carbs) * 100, 100) : 0
+  const selectedTrackerFatProgress = macroGoals.fat > 0 ? Math.min((selectedTrackerFat / macroGoals.fat) * 100, 100) : 0
+  const selectedTrackerFiberProgress = macroGoals.fiber > 0 ? Math.min((selectedTrackerFiber / macroGoals.fiber) * 100, 100) : 0
+  const trackerDisplayDate = showTrackerHistory ? trackerHistoryDate : todayDateString
+  const trackerDisplayDateLabel = showTrackerHistory ? formatHistoryDate(trackerHistoryDate) : 'Today'
+
   const trackerCards = [
-    { id: 'calories', label: "Today's Calories", value: totalCalories, subtext: `of ${macroGoals.calories} kcal`, progress, className: 'primary' },
-    { id: 'remaining', label: 'Remaining', value: remaining, subtext: `kcal ${remaining < 0 ? 'over' : 'left'}`, className: 'success' },
-    { id: 'protein', label: 'Protein', value: `${totalProtein}g`, subtext: `of ${macroGoals.protein}g`, progress: proteinProgress },
-    { id: 'carbs', label: 'Carbs', value: `${totalCarbs}g`, subtext: `of ${macroGoals.carbs}g`, progress: carbsProgress },
-    { id: 'fat', label: 'Fat', value: `${totalFat}g`, subtext: `of ${macroGoals.fat}g`, progress: fatProgress },
-    { id: 'fiber', label: 'Fiber', value: `${totalFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: fiberProgress, className: 'warning' }
+    { id: 'calories', label: showTrackerHistory ? 'Calories' : "Today's Calories", value: selectedTrackerCalories, subtext: `of ${macroGoals.calories} kcal`, progress: selectedTrackerProgress, className: 'primary' },
+    { id: 'remaining', label: 'Remaining', value: selectedTrackerRemaining, subtext: `kcal ${selectedTrackerRemaining < 0 ? 'over' : 'left'}`, className: 'success' },
+    { id: 'protein', label: 'Protein', value: `${selectedTrackerProtein}g`, subtext: `of ${macroGoals.protein}g`, progress: selectedTrackerProteinProgress },
+    { id: 'carbs', label: 'Carbs', value: `${selectedTrackerCarbs}g`, subtext: `of ${macroGoals.carbs}g`, progress: selectedTrackerCarbsProgress },
+    { id: 'fat', label: 'Fat', value: `${selectedTrackerFat}g`, subtext: `of ${macroGoals.fat}g`, progress: selectedTrackerFatProgress },
+    { id: 'fiber', label: 'Fiber', value: `${selectedTrackerFiber}g`, subtext: `of ${macroGoals.fiber}g`, progress: selectedTrackerFiberProgress, className: 'warning' }
   ]
 
   const updateTrackerCard = (id, field, value) => {
@@ -1583,7 +1604,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
             <div className="tracker-dashboard-header">
               <div>
                 <h2>Daily Dashboard</h2>
-                <p>Arrange your nutrition cards to fit the way you track.</p>
+                <p>{showTrackerHistory ? `Showing nutrition for ${trackerDisplayDateLabel}.` : 'Arrange your nutrition cards to fit the way you track.'}</p>
               </div>
               <div className="tracker-layout-actions">
                 {trackerLayout.customize && (
@@ -1609,7 +1630,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                 return (
                   <div key={card.id} data-tracker-card-id={card.id} className={`stat-card ${card.className || ''} tracker-card-size-${config.size || 'normal'} tracker-card-orientation-${config.orientation || 'vertical'} ${draggingTrackerCard === card.id ? 'tracker-card-dragging' : ''}`}>
                     <div className="stat-label">{trackerLayout.customize && <button type="button" className="tracker-card-drag-dot" aria-label={`Move ${card.label} card`} onPointerDown={event => beginTrackerDrag(event, card.id)}>⠿</button>}{card.label}</div>
-                    <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && remaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
+                    <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && selectedTrackerRemaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
                     <div className="stat-subtext">{card.subtext}</div>
                     {card.progress !== undefined && (() => {
                       const visual = (trackerLayout.cards[card.id] || {}).visual || 'bar'
@@ -1665,7 +1686,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                         <div className="date-header">
                           <h3>{formatDate(dateKey)}</h3>
                           <div className="date-totals">
-                            <span className="total-calories">{dateData.totals.calories} kcal</span>
+                            <span className="total-calories">{Math.round(dateData.totals.calories)} kcal</span>
                             <span>P: {dateData.totals.protein}g</span>
                             <span>C: {dateData.totals.carbs}g</span>
                             <span>F: {dateData.totals.fat}g</span>
