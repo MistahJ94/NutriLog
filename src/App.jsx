@@ -1717,7 +1717,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                     {entry.type === 'meal' && (
                                       <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className="btn btn-secondary food-log-meal-toggle"
                                         style={{ padding: '2px 6px', minWidth: 28, fontSize: '0.8rem', lineHeight: 1, marginRight: 6 }}
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
@@ -1838,7 +1838,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                                     {entry.type === 'meal' && (
                                       <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className="btn btn-secondary food-log-meal-toggle"
                                         style={{ padding: '2px 6px', minWidth: 28, fontSize: '0.8rem', lineHeight: 1, marginRight: 6 }}
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
