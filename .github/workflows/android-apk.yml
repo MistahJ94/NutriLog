@@ -38,7 +38,7 @@ jobs:
         run: npm ci
 
       - name: Install Capacitor 8
-        run: npm install --no-save typescript @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8
+        run: npm install --save-dev typescript @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8
 
       - name: Install Capacitor Assets
         run: npm install --no-save @capacitor/assets@3.0.5
