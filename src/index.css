@@ -2953,3 +2953,63 @@ body {
 :root[data-mode="light"] .tab-navigation .mobile-secondary-tabs::after {
   border-color: #c9cdc7 !important;
 }
+
+
+/* Dark-mode settings surfaces: keep Data Overview and Backup & Restore consistent with the dark UI. */
+:root[data-mode="dark"] .settings-grid > .section {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-mode="dark"] .data-stat-item {
+  background: var(--surface-raised);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-mode="dark"] .data-stat-item:hover {
+  background: #2B3648;
+  border-color: var(--accent);
+}
+
+:root[data-mode="dark"] .data-stat-value {
+  color: var(--text);
+}
+
+:root[data-mode="dark"] .data-stat-label {
+  color: var(--text-muted);
+}
+
+:root[data-mode="dark"] .action-card {
+  background: var(--surface-raised);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-mode="dark"] .action-card:hover {
+  background: #2B3648;
+  border-color: var(--accent);
+}
+
+:root[data-mode="dark"] .action-card h4 {
+  color: var(--text);
+}
+
+:root[data-mode="dark"] .action-card p {
+  color: var(--text-muted);
+}
+
+:root[data-mode="dark"] .settings-grid .info-box {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+:root[data-mode="dark"] .settings-grid .info-box h4 {
+  color: var(--text);
+}
+
+:root[data-mode="dark"] .settings-grid .info-box ul {
+  color: var(--text-muted);
+}
