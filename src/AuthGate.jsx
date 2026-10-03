@@ -136,13 +136,14 @@ const AuthScreen = ({ onAuthenticated }) => {
   )
 }
 
-const OfflineStartScreen = ({ onStart }) => (
+const OfflineStartScreen = ({ onStart, onServer }) => (
   <div className="auth-screen">
     <div className="auth-card">
       <div className="auth-logo">🥗</div>
       <h1>Offline Mode</h1>
       <p>No server is required. Your foods, meals, goals, and food log will be stored on this device.</p>
       <button className="btn btn-primary" type="button" onClick={onStart}>Start NutriLog Offline</button>
+      <button className="btn btn-secondary" type="button" style={{ marginTop: 12, width: '100%' }} onClick={onServer}>Connect to a Server</button>
       <p style={{ marginTop: 14, fontSize: '0.85rem', opacity: 0.75 }}>
         Offline data does not automatically sync to another device.
       </p>
@@ -314,6 +315,6 @@ export default function AuthGate({ App }) {
   const resetToken = new URLSearchParams(window.location.search).get('reset')
   if (resetToken && !user) return <ResetPasswordScreen token={resetToken} />
   if (setupRequired && !user) return <SetupScreen onAuthenticated={authenticated} />
-  if (!user) return offline ? <OfflineStartScreen onStart={() => { setUser({ id: 'offline-user', email: 'offline@local', role: 'user', is_active: true }); setData(null); setReady(true) }} /> : <AuthScreen onAuthenticated={authenticated} />
+  if (!user) return offline ? <OfflineStartScreen onStart={() => { setUser({ id: 'offline-user', email: 'offline@local', role: 'user', is_active: true }); setData(null); setReady(true) }} onServer={() => { setOfflineMode(false); setOffline(false); setServerConnected(false); setReady(false) }} /> : <AuthScreen onAuthenticated={authenticated} />
   return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} onChangeServer={async () => { await api.auth.logout(); clearConfiguredServerUrl(); setUser(null); setData(null); setReady(false); setServerConnected(false) }} />
 }
