@@ -2850,3 +2850,69 @@ body {
   background: var(--surface);
   color: var(--text);
 }
+
+
+/* Light-mode navigation and surface visibility */
+:root[data-mode="light"] {
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-alt: #fafaf8;
+  --text: #1f2933;
+  --text-muted: #5f6b73;
+  --border: #d4d4ce;
+  --muted-text: #5f6b73;
+}
+
+:root[data-mode="light"] .header {
+  color: #ffffff;
+}
+
+:root[data-mode="light"] .tab-navigation .tab-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.55);
+  opacity: 1;
+  visibility: visible;
+}
+
+:root[data-mode="light"] .tab-navigation .tab-btn:hover {
+  background: rgba(255, 255, 255, 0.30);
+  color: #ffffff !important;
+  border-color: #ffffff;
+}
+
+:root[data-mode="light"] .tab-navigation .tab-btn.active {
+  background: #ffffff;
+  color: var(--accent-dark) !important;
+  border-color: #ffffff;
+  opacity: 1;
+}
+
+:root[data-mode="light"] .tab-navigation .tab-btn svg {
+  color: currentColor;
+  opacity: 1;
+  visibility: visible;
+}
+
+:root[data-mode="light"] .tab-navigation .mobile-secondary-tabs {
+  background: #ffffff;
+  border-color: #c9cdc7;
+}
+
+:root[data-mode="light"] .tab-navigation .mobile-secondary-menu-tab {
+  background: #ffffff;
+  color: #1f2933 !important;
+  border-color: transparent;
+}
+
+:root[data-mode="light"] .tab-navigation .mobile-secondary-menu-tab:hover,
+:root[data-mode="light"] .tab-navigation .mobile-secondary-menu-tab.active {
+  background: var(--accent-pale);
+  color: var(--accent-dark) !important;
+  border-color: var(--accent-border);
+}
+
+/* Ensure the mobile More control remains visible in light mode. */
+:root[data-mode="light"] .tab-navigation .mobile-more-toggle {
+  display: flex;
+}
