@@ -3013,3 +3013,39 @@ body {
 :root[data-mode="dark"] .settings-grid .info-box ul {
   color: var(--text-muted);
 }
+
+
+/* Dark-mode heading visibility fixes. */
+:root[data-mode="dark"] .planner-quick-presets,
+:root[data-mode="dark"] .quick-presets {
+  text-align: center;
+}
+
+:root[data-mode="dark"] .settings-container h2,
+:root[data-mode="dark"] .settings-container h3,
+:root[data-mode="dark"] .settings-container h4,
+:root[data-mode="dark"] .goals-section h2,
+:root[data-mode="dark"] .goals-section h3,
+:root[data-mode="dark"] .goals-section h4,
+:root[data-mode="dark"] .health-goals h2,
+:root[data-mode="dark"] .health-goals h3,
+:root[data-mode="dark"] .health-goals h4,
+:root[data-mode="dark"] .activity-section h2,
+:root[data-mode="dark"] .activity-section h3,
+:root[data-mode="dark"] .activity-section h4,
+:root[data-mode="dark"] .nutrition-graphs h2,
+:root[data-mode="dark"] .nutrition-graphs h3,
+:root[data-mode="dark"] .nutrition-graphs h4,
+:root[data-mode="dark"] .admin-section h2,
+:root[data-mode="dark"] .admin-section h3,
+:root[data-mode="dark"] .admin-section h4 {
+  color: var(--text);
+}
+
+/* Known standalone page/settings titles. */
+:root[data-mode="dark"] h1,
+:root[data-mode="dark"] h2,
+:root[data-mode="dark"] h3,
+:root[data-mode="dark"] h4 {
+  color: var(--text);
+}
