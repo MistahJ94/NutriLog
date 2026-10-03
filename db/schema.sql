@@ -74,3 +74,28 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   tab_order JSONB NOT NULL DEFAULT '[]'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (requester_user_id <> recipient_user_id),
+  UNIQUE (requester_user_id, recipient_user_id)
+);
+CREATE INDEX IF NOT EXISTS connections_recipient_status_idx ON connections(recipient_user_id, status);
+CREATE INDEX IF NOT EXISTS connections_requester_status_idx ON connections(requester_user_id, status);
+
+CREATE TABLE IF NOT EXISTS progress_sharing (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  share_calories BOOLEAN NOT NULL DEFAULT FALSE,
+  share_macros BOOLEAN NOT NULL DEFAULT FALSE,
+  share_weight BOOLEAN NOT NULL DEFAULT FALSE,
+  share_weight_history BOOLEAN NOT NULL DEFAULT FALSE,
+  share_activity BOOLEAN NOT NULL DEFAULT FALSE,
+  share_goals BOOLEAN NOT NULL DEFAULT FALSE,
+  share_charts BOOLEAN NOT NULL DEFAULT FALSE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
