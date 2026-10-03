@@ -1732,6 +1732,32 @@ body {
 .auth-logo{text-align:center;font-size:3rem;margin-bottom:8px}.auth-card h1{text-align:center;margin-bottom:8px}.auth-card>p{text-align:center;color:#666;margin-bottom:28px}
 .auth-card label{display:block;font-weight:500;color:#4a5568;margin-bottom:16px}.auth-card input{width:100%;margin-top:7px;padding:12px 14px;border:1.5px solid #d4d4ce;border-radius:8px;font-size:1rem}.auth-card input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(107,144,128,.1)}
 .auth-error{background:#fff0f0;color:#a33;border:1px solid #f0caca;border-radius:8px;padding:10px 12px;margin-bottom:15px}
+
+/* Keep the offline/server mode screens readable in light mode. */
+:root[data-mode="light"] .auth-card {
+  background: #ffffff;
+  border-color: #d4d4ce;
+  color: #2d3436;
+}
+:root[data-mode="light"] .auth-card h1,
+:root[data-mode="light"] .auth-card p,
+:root[data-mode="light"] .auth-card label {
+  color: #2d3436;
+}
+:root[data-mode="light"] .auth-card > p {
+  color: #636e72;
+}
+:root[data-mode="light"] .auth-card input {
+  background: #ffffff;
+  color: #2d3436;
+  border-color: #bfc3bd;
+}
+:root[data-mode="light"] .auth-card input::placeholder {
+  color: #8a8f89;
+}
+:root[data-mode="light"] .auth-link {
+  color: var(--accent-dark);
+}
 .auth-switch{width:100%;margin-top:14px;border:0;background:none;color:var(--accent-dark);cursor:pointer;padding:8px}
 
 .account-bar{display:flex;justify-content:center;align-items:center;gap:12px;margin:16px auto 0;font-size:.9rem;opacity:.95}.account-logout{border:1px solid rgba(255,255,255,.6);background:transparent;color:white;border-radius:7px;padding:6px 12px;cursor:pointer}.account-logout:hover{background:rgba(255,255,255,.15)}
