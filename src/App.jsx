@@ -2,6 +2,7 @@ import { Fragment, useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, BarChart3 } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
+import ConnectionsPanel from './ConnectionsPanel'
 
 const getLocalDateString = (date = new Date()) => {
   const year = date.getFullYear()
@@ -2807,6 +2808,8 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                 <button className="btn btn-secondary" onClick={async()=>{try{await api.auth.revokeOtherSessions();alert('All other sessions were revoked.')}catch(err){alert(err.message)}}}><RefreshCw size={18}/>Sign Out Other Devices</button>
               </div>
             </div>
+
+            <ConnectionsPanel />
 
             <div className="section theme-settings">
               <h3>Appearance</h3>
