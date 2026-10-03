@@ -93,18 +93,6 @@ const offlineApi = {
     save: async sharing => { saveLocalJson('nutrilog-offline-sharing', sharing); return { sharing } },
     progress: async () => { throw new Error('Shared progress requires a NutriLog server.') },
   },
-  connections: {
-    list: () => offlineEnabled() ? offlineApi.connections.list() : request('/connections'),
-    invite: email => offlineEnabled() ? offlineApi.connections.invite(email) : json('POST', '/connections/invite', { email }),
-    accept: id => offlineEnabled() ? offlineApi.connections.accept(id) : json('POST', '/connections/' + id + '/accept', {}),
-    decline: id => offlineEnabled() ? offlineApi.connections.decline(id) : json('POST', '/connections/' + id + '/decline', {}),
-    remove: id => offlineEnabled() ? offlineApi.connections.remove(id) : request('/connections/' + id, { method: 'DELETE' }),
-  },
-  sharing: {
-    get: () => offlineEnabled() ? offlineApi.sharing.get() : request('/progress/sharing'),
-    save: sharing => offlineEnabled() ? offlineApi.sharing.save(sharing) : json('PUT', '/progress/sharing', sharing),
-    progress: id => offlineEnabled() ? offlineApi.sharing.progress(id) : request('/progress/' + id),
-  },
   preferences: {
     get: async () => ({ preferences: localJson('nutrilog-offline-preferences', null) }),
     save: async preferences => { saveLocalJson('nutrilog-offline-preferences', preferences); return { preferences } },
@@ -212,6 +200,18 @@ export const api = {
     saveSmtp: settings => offlineEnabled() ? offlineApi.admin.saveSmtp(settings) : json('PUT', '/admin/smtp', settings),
     testSmtp: settings => offlineEnabled() ? offlineApi.admin.testSmtp(settings) : json('POST', '/admin/smtp/test', settings),
     disableSmtp: () => offlineEnabled() ? offlineApi.admin.disableSmtp() : request('/admin/smtp', { method: 'DELETE' }),
+  },
+  connections: {
+    list: () => offlineEnabled() ? offlineApi.connections.list() : request('/connections'),
+    invite: email => offlineEnabled() ? offlineApi.connections.invite(email) : json('POST', '/connections/invite', { email }),
+    accept: id => offlineEnabled() ? offlineApi.connections.accept(id) : json('POST', '/connections/' + id + '/accept', {}),
+    decline: id => offlineEnabled() ? offlineApi.connections.decline(id) : json('POST', '/connections/' + id + '/decline', {}),
+    remove: id => offlineEnabled() ? offlineApi.connections.remove(id) : request('/connections/' + id, { method: 'DELETE' }),
+  },
+  sharing: {
+    get: () => offlineEnabled() ? offlineApi.sharing.get() : request('/progress/sharing'),
+    save: sharing => offlineEnabled() ? offlineApi.sharing.save(sharing) : json('PUT', '/progress/sharing', sharing),
+    progress: id => offlineEnabled() ? offlineApi.sharing.progress(id) : request('/progress/' + id),
   },
   preferences: {
     get: () => offlineEnabled() ? offlineApi.preferences.get() : request('/preferences'),
