@@ -308,7 +308,7 @@ export default function AuthGate({ App }) {
       .catch(() => setReady(true))
   }, [serverConnected])
 
-  if (!serverConnected && isNutriLogNative()) return <ModeChoiceScreen onOffline={() => { setOfflineMode(true); setOffline(true); setServerConnected(true); setReady(false) }} onServer={() => { setOfflineMode(false); setOffline(false) }} />
+  if (!serverConnected && isNutriLogNative()) return <ModeChoiceScreen onOffline={() => { setOfflineMode(true); setOffline(true); setServerConnected(true); setReady(false) }} onServer={() => { setOfflineMode(false); setOffline(false); setServerConnected(false); setReady(false) }} />
   if (!serverConnected) return <ServerConnectionScreen onConnected={() => { setOfflineMode(false); setServerConnected(true); setReady(false) }} />
   if (!ready) return <div className="auth-loading">Loading NutriLog…</div>
   const resetToken = new URLSearchParams(window.location.search).get('reset')
