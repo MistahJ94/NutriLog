@@ -10,7 +10,7 @@ const getLocalDateString = (date = new Date()) => {
   const day = String(date.getDate()).padStart(2, '0')
   return year + '-' + month + '-' + day
 }
-import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition, getConfiguredServerUrl, isNutriLogNative } from './services'
+import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition, getConfiguredServerUrl, isNutriLogNative, isOfflineMode } from './services'
 
 function AdminPanel({ user }) {
   const [users, setUsers] = useState([])
@@ -2809,7 +2809,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               </div>
             </div>
 
-            <ConnectionsPanel />
+            {!isOfflineMode() && <ConnectionsPanel />}
 
             <div className="section theme-settings">
               <h3>Appearance</h3>
@@ -2852,7 +2852,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               </div>
             </div>
 
-            {isNutriLogNative() && (
+            {isNutriLogNative() && !isOfflineMode() && (
               <div className="section">
                 <h3>Server Connection</h3>
                 <p className="settings-description">This device is connected to:</p>
