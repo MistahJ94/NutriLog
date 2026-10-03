@@ -27,13 +27,39 @@
     font-size: 0.82rem;
     gap: 5px;
   }
-  .tab-navigation:not(.tab-navigation-customizing) .mobile-primary-tab svg {
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-secondary-tabs {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    width: 100%;
+    min-width: 0;
+    padding: 6px;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    z-index: 50;
+  }
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-secondary-tabs[aria-hidden="false"] {
+    display: grid;
+  }
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-secondary-menu-tab {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding: 10px 7px;
+    font-size: 0.82rem;
+    gap: 5px;
+  }
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-primary-tab svg,
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-secondary-menu-tab svg {
     width: 18px;
     height: 18px;
     flex-shrink: 0;
   }
   .tab-navigation:not(.tab-navigation-customizing) .mobile-primary-tab,
-  .tab-navigation:not(.tab-navigation-customizing) .mobile-more-toggle {
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-more-toggle,
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-secondary-menu-tab {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
