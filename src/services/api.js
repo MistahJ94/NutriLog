@@ -83,6 +83,7 @@ const offlineApi = {
   },
   connections: {
     list: async () => ({ connections: localJson('nutrilog-offline-connections', []) }),
+    search: async () => ({ users: [] }),
     invite: async email => { throw new Error('Connections require a NutriLog server.') },
     accept: async () => { throw new Error('Connections require a NutriLog server.') },
     decline: async () => { throw new Error('Connections require a NutriLog server.') },
@@ -203,6 +204,7 @@ export const api = {
   },
   connections: {
     list: () => offlineEnabled() ? offlineApi.connections.list() : request('/connections'),
+    search: query => offlineEnabled() ? offlineApi.connections.search(query) : request('/connections/search/' + encodeURIComponent(query)),
     invite: email => offlineEnabled() ? offlineApi.connections.invite(email) : json('POST', '/connections/invite', { email }),
     accept: id => offlineEnabled() ? offlineApi.connections.accept(id) : json('POST', '/connections/' + id + '/accept', {}),
     decline: id => offlineEnabled() ? offlineApi.connections.decline(id) : json('POST', '/connections/' + id + '/decline', {}),
