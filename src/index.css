@@ -1,4 +1,14 @@
 :root {
+  /* Citrus is the default accent. Individual themes below override these values. */
+  --accent: #F97316;
+  --accent-soft: #FDBA74;
+  --accent-dark: #EA580C;
+  --accent-pale: #FFF7ED;
+  --accent-border: #FED7AA;
+  --accent-hover: #FFFBF7;
+}
+
+:root[data-theme="green"] {
   --accent: #6B9080;
   --accent-soft: #A4C3B2;
   --accent-dark: #5a7a6d;
@@ -1803,9 +1813,16 @@ body {
   background: var(--accent);
   flex-shrink: 0;
 }
+.theme-option-green .theme-swatch { background: #6B9080; }
 .theme-option-blue .theme-swatch { background: #3B82F6; }
 .theme-option-purple .theme-swatch { background: #8B5CF6; }
 .theme-option-orange .theme-swatch { background: #F97316; }
+.theme-option-teal .theme-swatch { background: #0D9488; }
+.theme-option-red .theme-swatch { background: #E11D48; }
+.theme-option-pink .theme-swatch { background: #DB2777; }
+.theme-option-indigo .theme-swatch { background: #4F46E5; }
+.theme-option-yellow .theme-swatch { background: #CA8A04; }
+.theme-option-slate .theme-swatch { background: #475569; }
 .theme-option-dark { background: #172033; color: #F8FAFC; border-color: #334155; }
 .theme-option-dark .theme-swatch { background: #60A5FA; }
 
