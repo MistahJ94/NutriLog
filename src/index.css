@@ -2798,3 +2798,23 @@ body {
 :root[data-mode="light"] .meal-food-macros {
   color: #333;
 }
+
+
+/* Connections and progress sharing */
+.connection-email-input {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.connection-email-input::placeholder {
+  color: var(--text-muted);
+}
+
+.progress-sharing-option {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
