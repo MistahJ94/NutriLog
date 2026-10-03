@@ -1567,7 +1567,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
         </div>
         
         {/* Tab Navigation */}
-        <div className="tab-navigation">
+        <div className={`tab-navigation ${customizeTabs ? 'tab-navigation-customizing' : ''}`}>
           {tabOrder.map(tabId => {
             const Icon = tabIcons[tabId]
             return (
@@ -1575,7 +1575,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
                 key={tabId}
                 type="button"
                 data-tab-id={tabId}
-                className={`tab-btn ${activeTab === tabId ? 'active' : ''} ${customizeTabs ? 'tab-customizing' : ''} ${draggingTab === tabId ? 'tab-dragging' : ''}`}
+                className={`tab-btn ${activeTab === tabId ? 'active' : ''} ${['planner', 'tracker', 'foods', 'meals'].includes(tabId) ? 'mobile-primary-tab' : 'mobile-secondary-tab'} ${customizeTabs ? 'tab-customizing' : ''} ${draggingTab === tabId ? 'tab-dragging' : ''}`}
                 onClick={() => !customizeTabs && setActiveTab(tabId)}
                 onPointerDown={event => customizeTabs && beginTabDrag(event, tabId)}
                 title={customizeTabs ? `Drag to move ${tabLabels[tabId]}` : tabLabels[tabId]}
