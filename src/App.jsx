@@ -233,9 +233,9 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
   const [showMobileMore, setShowMobileMore] = useState(false)
   const tabDragRef = useRef(null)
   const [draggingTab, setDraggingTab] = useState(null)
-  const [theme, setTheme] = useState(() => initialServerData?.preferences?.theme || localStorage.getItem('nutrilog-theme') || 'green')
+  const [theme, setTheme] = useState(() => initialServerData?.preferences?.theme || localStorage.getItem('nutrilog-theme') || 'orange')
   const [mode, setMode] = useState(() => initialServerData?.preferences?.mode || localStorage.getItem('nutrilog-mode') || 'light')
-  const [customAccent, setCustomAccent] = useState(() => initialServerData?.preferences?.customAccent || localStorage.getItem('nutrilog-custom-accent') || '#6B9080')
+  const [customAccent, setCustomAccent] = useState(() => initialServerData?.preferences?.customAccent || localStorage.getItem('nutrilog-custom-accent') || '#F97316')
   const [trackerLayout, setTrackerLayout] = useState(() => {
     try {
       const serverLayout = initialServerData?.preferences?.trackerLayout
