@@ -81,6 +81,30 @@ const offlineApi = {
     testSmtp: async () => { throw new Error('Email settings require a NutriLog server.') },
     disableSmtp: async () => ({ ok: true }),
   },
+  connections: {
+    list: async () => ({ connections: localJson('nutrilog-offline-connections', []) }),
+    invite: async email => { throw new Error('Connections require a NutriLog server.') },
+    accept: async () => { throw new Error('Connections require a NutriLog server.') },
+    decline: async () => { throw new Error('Connections require a NutriLog server.') },
+    remove: async () => { throw new Error('Connections require a NutriLog server.') },
+  },
+  sharing: {
+    get: async () => ({ sharing: localJson('nutrilog-offline-sharing', { shareCalories: false, shareMacros: false, shareWeight: false, shareWeightHistory: false, shareActivity: false, shareGoals: false, shareCharts: false }) }),
+    save: async sharing => { saveLocalJson('nutrilog-offline-sharing', sharing); return { sharing } },
+    progress: async () => { throw new Error('Shared progress requires a NutriLog server.') },
+  },
+  connections: {
+    list: () => offlineEnabled() ? offlineApi.connections.list() : request('/connections'),
+    invite: email => offlineEnabled() ? offlineApi.connections.invite(email) : json('POST', '/connections/invite', { email }),
+    accept: id => offlineEnabled() ? offlineApi.connections.accept(id) : json('POST', '/connections/' + id + '/accept', {}),
+    decline: id => offlineEnabled() ? offlineApi.connections.decline(id) : json('POST', '/connections/' + id + '/decline', {}),
+    remove: id => offlineEnabled() ? offlineApi.connections.remove(id) : request('/connections/' + id, { method: 'DELETE' }),
+  },
+  sharing: {
+    get: () => offlineEnabled() ? offlineApi.sharing.get() : request('/progress/sharing'),
+    save: sharing => offlineEnabled() ? offlineApi.sharing.save(sharing) : json('PUT', '/progress/sharing', sharing),
+    progress: id => offlineEnabled() ? offlineApi.sharing.progress(id) : request('/progress/' + id),
+  },
   preferences: {
     get: async () => ({ preferences: localJson('nutrilog-offline-preferences', null) }),
     save: async preferences => { saveLocalJson('nutrilog-offline-preferences', preferences); return { preferences } },
