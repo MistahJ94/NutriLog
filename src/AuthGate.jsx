@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react'
 import { api, getConfiguredServerUrl, setConfiguredServerUrl, clearConfiguredServerUrl, isNutriLogNative, isOfflineMode, setOfflineMode } from './services'
 
 const blankGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65, fiber: 25 }
+const BrandMark = () => (
+  <div className="auth-brand">
+    <div className="auth-logo" aria-hidden="true">🥗</div>
+    <div className="auth-brand-name">NutriLog</div>
+    <div className="auth-brand-slogan">Track. Plan. Progress.</div>
+  </div>
+)
 const ModeChoiceScreen = ({ onOffline, onServer }) => (
   <div className="auth-screen">
     <div className="auth-card">
-      <div className="auth-logo">🥗</div>
-      <h1>NutriLog</h1>
+      <BrandMark />
+      <h1>Choose Your Mode</h1>
       <p>Choose how you want to use NutriLog on this device.</p>
       <button className="btn btn-primary" type="button" onClick={onOffline}>Use Offline</button>
       <button className="btn btn-secondary" type="button" style={{ marginTop: 12, width: '100%' }} onClick={onServer}>Connect to a Server</button>
@@ -46,7 +53,7 @@ const ServerConnectionScreen = ({ onConnected }) => {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <div className="auth-logo">🥗</div>
+        <BrandMark />
         <h1>Connect to NutriLog</h1>
         <p>Enter the address of the NutriLog server you want to use.</p>
         <form onSubmit={connect}>
@@ -103,7 +110,7 @@ const AuthScreen = ({ onAuthenticated }) => {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-logo">🥗</div>
+          <BrandMark />
           <h1>Reset Password</h1>
           <p>Enter your account email to request a password reset.</p>
           <form onSubmit={requestReset}>
@@ -121,8 +128,8 @@ const AuthScreen = ({ onAuthenticated }) => {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <div className="auth-logo">🥗</div>
-        <h1>NutriLog</h1>
+        <BrandMark />
+        <h1>Sign In</h1>
         <p>Sign in to your nutrition tracker</p>
         <form onSubmit={submit}>
           <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></label>
@@ -139,7 +146,7 @@ const AuthScreen = ({ onAuthenticated }) => {
 const OfflineStartScreen = ({ onStart, onServer }) => (
   <div className="auth-screen">
     <div className="auth-card">
-      <div className="auth-logo">🥗</div>
+      <BrandMark />
       <h1>Offline Mode</h1>
       <p>No server is required. Your foods, meals, goals, and food log will be stored on this device.</p>
       <button className="btn btn-primary" type="button" onClick={onStart}>Start NutriLog Offline</button>
@@ -176,7 +183,7 @@ const ResetPasswordScreen = ({ token }) => {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <div className="auth-logo">🥗</div>
+        <BrandMark />
         <h1>Set New Password</h1>
         {done ? (
           <>
@@ -221,7 +228,7 @@ const SetupScreen = ({ onAuthenticated }) => {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <div className="auth-logo">🥗</div>
+        <BrandMark />
         <h1>NutriLog Setup</h1>
         <p>Create the first administrator account. This setup is only available while no users exist.</p>
         <form onSubmit={submit}>
