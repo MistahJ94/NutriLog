@@ -3099,3 +3099,52 @@ body {
 :root[data-mode="dark"] h4 {
   color: var(--text);
 }
+
+/* NutriLog authentication branding */
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-brand-logo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  margin: 0 auto 10px;
+}
+
+.auth-brand-name {
+  color: var(--accent);
+  font-size: 1.8rem;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.auth-brand-slogan {
+  margin-top: 6px;
+  color: #636e72;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+}
+
+:root[data-mode="dark"] .auth-brand-slogan {
+  color: var(--text-muted, #CBD5E1);
+}
+
+@media (max-width: 640px) {
+  .auth-brand-logo {
+    width: 84px;
+    height: 84px;
+  }
+
+  .auth-brand-name {
+    font-size: 1.65rem;
+  }
+}
