@@ -296,6 +296,7 @@ export default function AuthGate({ App }) {
   const [data, setData] = useState(null)
   const [offline, setOffline] = useState(() => isOfflineMode())
   const [serverConnected, setServerConnected] = useState(() => isOfflineMode() || !isNutriLogNative() || Boolean(getConfiguredServerUrl()))
+  const [showServerConnection, setShowServerConnection] = useState(false)
 
   const authenticated = async currentUser => {
     const serverData = await loadServerData(currentUser.id)
@@ -320,12 +321,12 @@ export default function AuthGate({ App }) {
       .catch(() => setReady(true))
   }, [serverConnected])
 
-  if (!serverConnected && isNutriLogNative()) return <ModeChoiceScreen onOffline={() => { setOfflineMode(true); setOffline(true); setServerConnected(true); setReady(false) }} onServer={() => { setOfflineMode(false); setOffline(false); setServerConnected(false); setReady(false) }} />
-  if (!serverConnected) return <ServerConnectionScreen onConnected={() => { setOfflineMode(false); setServerConnected(true); setReady(false) }} />
+  if (!serverConnected && isNutriLogNative() && !showServerConnection) return <ModeChoiceScreen onOffline={() => { setOfflineMode(true); setOffline(true); setServerConnected(true); setReady(false) }} onServer={() => { setOfflineMode(false); setOffline(false); setShowServerConnection(true); setServerConnected(false); setReady(false) }} />
+  if (!serverConnected) return <ServerConnectionScreen onConnected={() => { setOfflineMode(false); setShowServerConnection(false); setServerConnected(true); setReady(false) }} />
   if (!ready) return <div className="auth-loading">Loading NutriLog…</div>
   const resetToken = new URLSearchParams(window.location.search).get('reset')
   if (resetToken && !user) return <ResetPasswordScreen token={resetToken} />
   if (setupRequired && !user) return <SetupScreen onAuthenticated={authenticated} />
-  if (!user) return offline ? <OfflineStartScreen onStart={() => { setUser({ id: 'offline-user', email: 'offline@local', role: 'user', is_active: true }); setData(null); setReady(true) }} onServer={() => { setOfflineMode(false); setOffline(false); setServerConnected(false); setReady(false) }} /> : <AuthScreen onAuthenticated={authenticated} />
-  return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} onChangeServer={async () => { await api.auth.logout(); clearConfiguredServerUrl(); setUser(null); setData(null); setReady(false); setServerConnected(false) }} />
+  if (!user) return offline ? <OfflineStartScreen onStart={() => { setUser({ id: 'offline-user', email: 'offline@local', role: 'user', is_active: true }); setData(null); setReady(true) }} onServer={() => { setOfflineMode(false); setOffline(false); setShowServerConnection(true); setServerConnected(false); setReady(false) }} /> : <AuthScreen onAuthenticated={authenticated} />
+  return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} onChangeServer={async () => { await api.auth.logout(); clearConfiguredServerUrl(); setUser(null); setData(null); setReady(false); setShowServerConnection(true); setServerConnected(false) }} />
 }
