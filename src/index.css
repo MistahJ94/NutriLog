@@ -1789,42 +1789,92 @@ body {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
+
 .theme-option {
-  border: 2px solid #e8e8e3;
-  background: white;
-  color: #2d3436;
-  border-radius: 10px;
+  min-height: 72px;
+  border: 2px solid transparent;
+  background: #e8e8e3;
+  color: #ffffff;
+  border-radius: 12px;
   padding: 12px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  text-align: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 7px rgba(0,0,0,0.08);
 }
+
+.theme-option:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 5px 14px rgba(0,0,0,0.12);
+}
+
 .theme-option.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px var(--accent), 0 6px 16px rgba(0,0,0,0.16);
+  transform: translateY(-1px);
 }
-.theme-swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
+
+.theme-option .theme-swatch {
+  display: none;
 }
-.theme-option-green .theme-swatch { background: #6B9080; }
-.theme-option-blue .theme-swatch { background: #3B82F6; }
-.theme-option-purple .theme-swatch { background: #8B5CF6; }
-.theme-option-orange .theme-swatch { background: #F97316; }
-.theme-option-teal .theme-swatch { background: #0D9488; }
-.theme-option-red .theme-swatch { background: #E11D48; }
-.theme-option-pink .theme-swatch { background: #DB2777; }
-.theme-option-indigo .theme-swatch { background: #4F46E5; }
-.theme-option-yellow .theme-swatch { background: #CA8A04; }
-.theme-option-slate .theme-swatch { background: #475569; }
-.theme-option-dark { background: #172033; color: #F8FAFC; border-color: #334155; }
-.theme-option-dark .theme-swatch { background: #60A5FA; }
+
+/* Rich, distinct theme tiles. */
+.theme-option-green {
+  background: linear-gradient(135deg, #6B9080 0%, #A4C3B2 100%);
+}
+.theme-option-blue {
+  background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+}
+.theme-option-purple {
+  background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+}
+.theme-option-orange {
+  background: linear-gradient(135deg, #F97316 0%, #FDBA74 100%);
+  color: #ffffff;
+}
+.theme-option-teal {
+  background: linear-gradient(135deg, #0F766E 0%, #2DD4BF 100%);
+}
+.theme-option-red {
+  background: linear-gradient(135deg, #BE123C 0%, #FB7185 100%);
+}
+.theme-option-pink {
+  background: linear-gradient(135deg, #BE185D 0%, #F472B6 100%);
+}
+.theme-option-indigo {
+  background: linear-gradient(135deg, #4338CA 0%, #818CF8 100%);
+}
+.theme-option-yellow {
+  background: linear-gradient(135deg, #A16207 0%, #FACC15 100%);
+  color: #1f2933;
+}
+.theme-option-slate {
+  background: linear-gradient(135deg, #334155 0%, #64748B 100%);
+}
+
+.theme-option-dark {
+  background: #172033;
+  color: #F8FAFC;
+  border-color: #334155;
+}
+
+@media (max-width: 640px) {
+  .theme-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .theme-option {
+    min-height: 64px;
+    padding: 10px 8px;
+  }
+}
 
 :root[data-theme="dark"] body {
   background: #0F172A;
