@@ -261,13 +261,13 @@ const loadServerData = async userId => {
   const localOwner = localStorage.getItem('nutrilog_owner_id')
   const canMigrateLegacyData = !localOwner && (local.foods.length || local.meals.length || local.logs.length)
 
-  if (emptyServer && canMigrateLegacyData) {
+  if (emptyServer && canMigrateLegacyData && !isOfflineMode()) {
     await api.sync.replace({ goals: local.goals, foods: local.foods, meals: local.meals, logs: local.logs })
     localStorage.setItem('nutrilog_owner_id', userId)
     return loadServerData(userId)
   }
 
-  localStorage.setItem('nutrilog_owner_id', userId)
+  if (!isOfflineMode()) localStorage.setItem('nutrilog_owner_id', userId)
   return {
     goals: goalsResult.goals || blankGoals,
     foods: foodsResult.items,
