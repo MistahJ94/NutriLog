@@ -452,12 +452,12 @@ body {
 
   .tab-navigation .mobile-more-toggle {
     display: flex;
-    flex: 0 0 auto;
-    min-width: 58px;
+    flex: 2 1 0;
+    min-width: 0;
     justify-content: center;
     padding: 10px 7px;
-    font-size: 0.78rem;
-    gap: 4px;
+    font-size: 0.82rem;
+    gap: 5px;
   }
 
   .tab-navigation .mobile-more-toggle span:first-child {
