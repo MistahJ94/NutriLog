@@ -2916,3 +2916,18 @@ body {
 :root[data-mode="light"] .tab-navigation .mobile-more-toggle {
   display: flex;
 }
+
+
+/* Light-mode expanded More menu: match the visible outlined panel used in dark mode. */
+:root[data-mode="light"] .tab-navigation .mobile-secondary-tabs {
+  border: 1px solid #c9cdc7 !important;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(31, 41, 51, 0.08);
+  background: #ffffff !important;
+  padding: 6px;
+}
+
+:root[data-mode="light"] .tab-navigation .mobile-secondary-tabs::before,
+:root[data-mode="light"] .tab-navigation .mobile-secondary-tabs::after {
+  border-color: #c9cdc7 !important;
+}
