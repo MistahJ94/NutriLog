@@ -1,7 +1,22 @@
 import { useEffect, useState } from 'react'
-import { api, getConfiguredServerUrl, setConfiguredServerUrl, clearConfiguredServerUrl, isNutriLogNative } from './services'
+import { api, getConfiguredServerUrl, setConfiguredServerUrl, clearConfiguredServerUrl, isNutriLogNative, isOfflineMode, setOfflineMode } from './services'
 
 const blankGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65, fiber: 25 }
+const ModeChoiceScreen = ({ onOffline, onServer }) => (
+  <div className="auth-screen">
+    <div className="auth-card">
+      <div className="auth-logo">🥗</div>
+      <h1>NutriLog</h1>
+      <p>Choose how you want to use NutriLog on this device.</p>
+      <button className="btn btn-primary" type="button" onClick={onOffline}>Use Offline</button>
+      <button className="btn btn-secondary" type="button" style={{ marginTop: 12, width: '100%' }} onClick={onServer}>Connect to a Server</button>
+      <p style={{ marginTop: 14, fontSize: '0.85rem', opacity: 0.75 }}>
+        Offline mode stores your NutriLog data on this device. A server is required for accounts and syncing between devices.
+      </p>
+    </div>
+  </div>
+)
+
 const ServerConnectionScreen = ({ onConnected }) => {
   const [serverUrl, setServerUrl] = useState(getConfiguredServerUrl())
   const [busy, setBusy] = useState(false)
@@ -120,6 +135,20 @@ const AuthScreen = ({ onAuthenticated }) => {
     </div>
   )
 }
+
+const OfflineStartScreen = ({ onStart }) => (
+  <div className="auth-screen">
+    <div className="auth-card">
+      <div className="auth-logo">🥗</div>
+      <h1>Offline Mode</h1>
+      <p>No server is required. Your foods, meals, goals, and food log will be stored on this device.</p>
+      <button className="btn btn-primary" type="button" onClick={onStart}>Start NutriLog Offline</button>
+      <p style={{ marginTop: 14, fontSize: '0.85rem', opacity: 0.75 }}>
+        Offline data does not automatically sync to another device.
+      </p>
+    </div>
+  </div>
+)
 
 const ResetPasswordScreen = ({ token }) => {
   const [password, setPassword] = useState('')
@@ -253,7 +282,8 @@ export default function AuthGate({ App }) {
   const [ready, setReady] = useState(false)
   const [setupRequired, setSetupRequired] = useState(false)
   const [data, setData] = useState(null)
-  const [serverConnected, setServerConnected] = useState(() => !isNutriLogNative() || Boolean(getConfiguredServerUrl()))
+  const [offline, setOffline] = useState(() => isOfflineMode())
+  const [serverConnected, setServerConnected] = useState(() => isOfflineMode() || !isNutriLogNative() || Boolean(getConfiguredServerUrl()))
 
   const authenticated = async currentUser => {
     const serverData = await loadServerData(currentUser.id)
@@ -278,11 +308,12 @@ export default function AuthGate({ App }) {
       .catch(() => setReady(true))
   }, [serverConnected])
 
-  if (!serverConnected) return <ServerConnectionScreen onConnected={() => { setServerConnected(true); setReady(false) }} />
+  if (!serverConnected && isNutriLogNative()) return <ModeChoiceScreen onOffline={() => { setOfflineMode(true); setOffline(true); setServerConnected(true); setReady(false) }} onServer={() => { setOfflineMode(false); setOffline(false) }} />
+  if (!serverConnected) return <ServerConnectionScreen onConnected={() => { setOfflineMode(false); setServerConnected(true); setReady(false) }} />
   if (!ready) return <div className="auth-loading">Loading NutriLog…</div>
   const resetToken = new URLSearchParams(window.location.search).get('reset')
   if (resetToken && !user) return <ResetPasswordScreen token={resetToken} />
   if (setupRequired && !user) return <SetupScreen onAuthenticated={authenticated} />
-  if (!user) return <AuthScreen onAuthenticated={authenticated} />
+  if (!user) return offline ? <OfflineStartScreen onStart={() => { setUser({ id: 'offline-user', email: 'offline@local', role: 'user', is_active: true }); setData(null); setReady(true) }} /> : <AuthScreen onAuthenticated={authenticated} />
   return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} onChangeServer={async () => { await api.auth.logout(); clearConfiguredServerUrl(); setUser(null); setData(null); setReady(false); setServerConnected(false) }} />
 }
