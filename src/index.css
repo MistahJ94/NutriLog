@@ -423,6 +423,12 @@ body {
   border-style: dashed;
 }
 
+/* Mobile tab controls are hidden on desktop; the mobile media rules below re-enable them. */
+.mobile-more-toggle,
+.mobile-secondary-tabs {
+  display: none;
+}
+
 .tab-customizer-hint {
   display: flex;
   justify-content: center;
