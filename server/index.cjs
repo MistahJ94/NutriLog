@@ -658,7 +658,7 @@ async function progressSharingFor(userId) {
 }
 
 async function connectionsApi(req, res, pathname, user) {
-  const searchMatch = pathname.match(/^\\/api\\/connections\\/search\\/(.+)$/i)
+  const searchMatch = pathname.match(/^\/api\/connections\/search\/(.+)$/i)
   if (searchMatch && req.method === "GET") {
     let query = ""
     try { query = decodeURIComponent(searchMatch[1]).trim().toLowerCase() } catch { return send(res, 400, { error: "Invalid search query" }) }
