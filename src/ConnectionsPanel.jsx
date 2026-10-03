@@ -97,10 +97,12 @@ function ProgressViewer({ progress, onClose }) {
 export default function ConnectionsPanel() {
   const [connections, setConnections] = useState([])
   const [sharing, setSharing] = useState(defaultSharing)
-  const [inviteEmail, setInviteEmail] = useState('')
+  const [serverSearch, setServerSearch] = useState('')
+  const [serverUsers, setServerUsers] = useState([])
   const [busy, setBusy] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [inviteBusy, setInviteBusy] = useState(false)
+  const [searchBusy, setSearchBusy] = useState(false)
+  const [connectBusy, setConnectBusy] = useState(null)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState(null)
   const [loadingProgress, setLoadingProgress] = useState(null)
@@ -124,16 +126,28 @@ export default function ConnectionsPanel() {
     finally { setSaving(false) }
   }
 
-  const invite = async event => {
+  const searchServerUsers = async event => {
     event.preventDefault()
-    setInviteBusy(true); setError('')
+    const query = serverSearch.trim()
+    if (query.length < 3) { setError('Enter at least 3 characters to search server users.'); return }
+    setSearchBusy(true); setError('')
     try {
-      await api.connections.invite(inviteEmail)
-      setInviteEmail('')
+      const result = await api.connections.search(query)
+      const connectedIds = new Set(connections.map(connection => connection.otherUserId))
+      setServerUsers((result.users || []).filter(serverUser => !connectedIds.has(serverUser.id)))
+    } catch (err) { setError(err.message); setServerUsers([]) }
+    finally { setSearchBusy(false) }
+  }
+
+  const connectUser = async serverUser => {
+    setConnectBusy(serverUser.id); setError('')
+    try {
+      await api.connections.invite(serverUser.email)
+      setServerUsers(items => items.filter(item => item.id !== serverUser.id))
       await load()
       alert('Connection request sent.')
     } catch (err) { setError(err.message) }
-    finally { setInviteBusy(false) }
+    finally { setConnectBusy(null) }
   }
 
   const respond = async (id, action) => {
@@ -201,11 +215,32 @@ export default function ConnectionsPanel() {
 
           <div className="section" style={{ marginTop: 16 }}>
             <h3><UserPlus size={20} style={{ verticalAlign: 'middle', marginRight: 6 }} />Add a Connection</h3>
-            <p className="settings-description">Enter the email address of another NutriLog account. They must accept your request before either person can view shared progress.</p>
-            <form onSubmit={invite} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-              <input className="connection-email-input" type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="person@example.com" required style={{ flex: '1 1 240px' }} />
-              <button className="btn btn-primary" type="submit" disabled={inviteBusy}><UserPlus size={18} />{inviteBusy ? 'Sending…' : 'Send Request'}</button>
+            <p className="settings-description">Find another NutriLog account on this server and send them an in-app connection request. SMTP or email setup is not required.</p>
+            <form onSubmit={searchServerUsers} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+              <input className="connection-email-input" type="text" value={serverSearch} onChange={event => setServerSearch(event.target.value)} placeholder="Search by account email" minLength={3} style={{ flex: '1 1 240px' }} />
+              <button className="btn btn-primary" type="submit" disabled={searchBusy}><UserPlus size={18} />{searchBusy ? 'Searching…' : 'Find User'}</button>
             </form>
+            {serverUsers.length > 0 && (
+              <div className="food-list" style={{ marginTop: 12 }}>
+                {serverUsers.map(serverUser => (
+                  <div className="food-item" key={serverUser.id}>
+                    <div className="food-info">
+                      <h3>{serverUser.email}</h3>
+                      <div className="food-details"><span>NutriLog user on this server</span></div>
+                    </div>
+                    <div className="food-actions">
+                      <button className="btn btn-primary" type="button" onClick={() => connectUser(serverUser)} disabled={connectBusy === serverUser.id}>
+                        <UserPlus size={16} />{connectBusy === serverUser.id ? 'Sending…' : 'Connect'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!searchBusy && serverSearch.trim().length >= 3 && serverUsers.length === 0 && (
+              <p className="settings-description" style={{ marginTop: 10 }}>No matching active NutriLog users were found.</p>
+            )}
+            <p className="settings-description" style={{ marginTop: 10 }}>Email invitations can still be used by the API, but the normal server-user connection flow does not send email.</p>
           </div>
 
           <div className="section" style={{ marginTop: 16 }}>
