@@ -229,6 +229,7 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     }
   })
   const [customizeTabs, setCustomizeTabs] = useState(false)
+  const [showMobileMore, setShowMobileMore] = useState(false)
   const tabDragRef = useRef(null)
   const [draggingTab, setDraggingTab] = useState(null)
   const [theme, setTheme] = useState(() => initialServerData?.preferences?.theme || localStorage.getItem('nutrilog-theme') || 'green')
@@ -1586,6 +1587,31 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               </button>
             )
           })}
+          <button
+            type="button"
+            className="tab-btn mobile-more-toggle"
+            onClick={() => setShowMobileMore(prev => !prev)}
+            aria-expanded={showMobileMore}
+          >
+            <span aria-hidden="true">☰</span>
+            <span>More</span>
+          </button>
+          <div className="mobile-secondary-tabs" aria-hidden={!showMobileMore}>
+            {tabOrder.filter(tabId => !['planner', 'tracker', 'foods', 'meals'].includes(tabId)).map(tabId => {
+              const Icon = tabIcons[tabId]
+              return (
+                <button
+                  key={tabId}
+                  type="button"
+                  className={`tab-btn mobile-secondary-menu-tab ${activeTab === tabId ? 'active' : ''}`}
+                  onClick={() => { setActiveTab(tabId); setShowMobileMore(false) }}
+                >
+                  <Icon size={18} />
+                  {tabLabels[tabId]}
+                </button>
+              )
+            })}
+          </div>
           <button
             type="button"
             className={`tab-btn tab-customize-toggle ${customizeTabs ? 'active' : ''}`}
