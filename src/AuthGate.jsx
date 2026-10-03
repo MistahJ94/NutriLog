@@ -7,8 +7,9 @@ const BrandMark = () => (
     <img
       className="auth-brand-logo"
       src="/branding/nutrilog-logo.png"
-      alt="NutriLog"
+      alt="NutriLog logo"
     />
+    <div className="auth-brand-name">NutriLog</div>
     <div className="auth-brand-slogan">Track. Plan. Progress.</div>
   </div>
 )
