@@ -435,13 +435,48 @@ body {
 
 @media (max-width: 640px) {
   .tab-navigation {
-    gap: 7px;
+    gap: 6px;
     margin-top: 20px;
+    flex-wrap: nowrap;
+    width: 100%;
   }
 
-  .tab-btn {
-    padding: 10px 14px;
-    font-size: 0.9rem;
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-secondary-tab,
+  .tab-navigation:not(.tab-navigation-customizing) .tab-customize-toggle {
+    display: none;
+  }
+
+  .tab-navigation .mobile-primary-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding: 10px 6px;
+    font-size: 0.82rem;
+    gap: 5px;
+  }
+
+  .tab-navigation .mobile-primary-tab svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .tab-navigation .mobile-primary-tab {
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .tab-navigation .mobile-primary-tab {
+    text-overflow: ellipsis;
+  }
+
+  .tab-navigation.tab-navigation-customizing {
+    flex-wrap: wrap;
+  }
+
+  .tab-navigation.tab-navigation-customizing .tab-btn {
+    padding: 10px 10px;
+    font-size: 0.85rem;
   }
 
   .tab-drag-grip {
