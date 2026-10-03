@@ -190,7 +190,7 @@ export default function ConnectionsPanel() {
                 ['shareGoals', 'Goals', 'Your calorie and macro targets'],
                 ['shareCharts', 'Progress Charts', 'Daily nutrition trend data for future chart views']
               ].map(([key, label, description]) => (
-                <label key={key} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, border: '1px solid var(--accent-border)', borderRadius: 10, cursor: 'pointer', background: 'var(--accent-pale)' }}>
+                <label key={key} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, border: '1px solid var(--border-color, #d6d6d6)', borderRadius: 10, cursor: 'pointer', background: 'var(--card-bg, transparent)' }}>
                   <input type="checkbox" checked={Boolean(sharing[key])} onChange={event => setSharing(prev => ({ ...prev, [key]: event.target.checked }))} />
                   <span><strong>{label}</strong><small style={{ display: 'block', color: 'var(--text-muted, #667)', marginTop: 2 }}>{description}</small></span>
                 </label>
@@ -203,7 +203,7 @@ export default function ConnectionsPanel() {
             <h3><UserPlus size={20} style={{ verticalAlign: 'middle', marginRight: 6 }} />Add a Connection</h3>
             <p className="settings-description">Enter the email address of another NutriLog account. They must accept your request before either person can view shared progress.</p>
             <form onSubmit={invite} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-              <input type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="person@example.com" required style={{ flex: '1 1 240px' }} />
+              <input className="connection-email-input" type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="person@example.com" required style={{ flex: '1 1 240px' }} />
               <button className="btn btn-primary" type="submit" disabled={inviteBusy}><UserPlus size={18} />{inviteBusy ? 'Sending…' : 'Send Request'}</button>
             </form>
           </div>
