@@ -2902,14 +2902,19 @@ body {
 :root[data-mode="light"] .tab-navigation .mobile-secondary-menu-tab {
   background: #ffffff;
   color: #1f2933 !important;
-  border-color: transparent;
+  border-color: #c9cdc7 !important;
 }
 
-:root[data-mode="light"] .tab-navigation .mobile-secondary-menu-tab:hover,
+:root[data-mode="light"] .tab-navigation .mobile-secondary-menu-tab:hover {
+  background: var(--accent-pale);
+  color: var(--accent-dark) !important;
+  border-color: var(--accent-border) !important;
+}
+
 :root[data-mode="light"] .tab-navigation .mobile-secondary-menu-tab.active {
   background: var(--accent-pale);
   color: var(--accent-dark) !important;
-  border-color: var(--accent-border);
+  border-color: var(--accent-border) !important;
 }
 
 /* Ensure the mobile More control remains visible in light mode. */
