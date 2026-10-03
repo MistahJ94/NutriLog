@@ -611,7 +611,199 @@ async function healthApi(req, res, pathname, user) {
   return false
 }
 
+
+const sharingDefaults = {
+  shareCalories: false,
+  shareMacros: false,
+  shareWeight: false,
+  shareWeightHistory: false,
+  shareActivity: false,
+  shareGoals: false,
+  shareCharts: false
+}
+
+const normalizeSharing = body => ({
+  shareCalories: Boolean(body.shareCalories),
+  shareMacros: Boolean(body.shareMacros),
+  shareWeight: Boolean(body.shareWeight),
+  shareWeightHistory: Boolean(body.shareWeightHistory),
+  shareActivity: Boolean(body.shareActivity),
+  shareGoals: Boolean(body.shareGoals),
+  shareCharts: Boolean(body.shareCharts)
+})
+
+async function connectionBetween(userId, otherId) {
+  const rows = await sql.unsafe(
+    "SELECT id, requester_user_id, recipient_user_id, status FROM connections WHERE (requester_user_id=$1 AND recipient_user_id=$2) OR (requester_user_id=$2 AND recipient_user_id=$1) ORDER BY updated_at DESC LIMIT 1",
+    [userId, otherId]
+  )
+  return rows[0] || null
+}
+
+async function progressSharingFor(userId) {
+  const rows = await sql.unsafe(
+    "SELECT share_calories, share_macros, share_weight, share_weight_history, share_activity, share_goals, share_charts FROM progress_sharing WHERE user_id=$1",
+    [userId]
+  )
+  const row = rows[0]
+  return row ? {
+    shareCalories: Boolean(row.share_calories),
+    shareMacros: Boolean(row.share_macros),
+    shareWeight: Boolean(row.share_weight),
+    shareWeightHistory: Boolean(row.share_weight_history),
+    shareActivity: Boolean(row.share_activity),
+    shareGoals: Boolean(row.share_goals),
+    shareCharts: Boolean(row.share_charts)
+  } : { ...sharingDefaults }
+}
+
+async function connectionsApi(req, res, pathname, user) {
+  if (pathname === "/api/connections") {
+    if (req.method !== "GET") return send(res, 405, { error: "Method not allowed" })
+    const rows = await sql.unsafe(
+      "SELECT c.id, c.requester_user_id, c.recipient_user_id, c.status, c.created_at, c.updated_at, " +
+      "CASE WHEN c.requester_user_id=$1 THEN c.recipient_user_id ELSE c.requester_user_id END AS other_user_id, " +
+      "CASE WHEN c.requester_user_id=$1 THEN ru.email ELSE su.email END AS other_email " +
+      "FROM connections c JOIN users ru ON ru.id=c.requester_user_id JOIN users su ON su.id=c.recipient_user_id " +
+      "WHERE c.requester_user_id=$1 OR c.recipient_user_id=$1 ORDER BY c.updated_at DESC",
+      [user.id]
+    )
+    return send(res, 200, { connections: rows.map(row => ({
+      id: row.id,
+      otherUserId: row.other_user_id,
+      otherEmail: row.other_email,
+      status: row.status,
+      direction: row.requester_user_id === user.id ? "outgoing" : "incoming",
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    })) })
+  }
+
+  if (req.method === "POST" && pathname === "/api/connections/invite") {
+    const body = await readBody(req)
+    const email = String(body.email || "").trim().toLowerCase()
+    if (!validEmail(email)) return send(res, 400, { error: "A valid email address is required" })
+    const target = (await sql.unsafe("SELECT id, email, is_active FROM users WHERE email=$1", [email]))[0]
+    if (!target || !target.is_active) return send(res, 404, { error: "No active NutriLog account was found for that email" })
+    if (target.id === user.id) return send(res, 400, { error: "You cannot connect to yourself" })
+    const existing = await connectionBetween(user.id, target.id)
+    if (existing?.status === "accepted") return send(res, 409, { error: "You are already connected to this user" })
+    if (existing?.status === "pending") return send(res, 409, { error: "A connection request is already pending" })
+    if (existing?.status === "declined") {
+      await sql.unsafe("DELETE FROM connections WHERE id=$1", [existing.id])
+    }
+    const row = (await sql.unsafe(
+      "INSERT INTO connections (requester_user_id, recipient_user_id, status) VALUES ($1,$2,'pending') RETURNING id, status, created_at, updated_at",
+      [user.id, target.id]
+    ))[0]
+    return send(res, 201, { connection: { id: row.id, otherUserId: target.id, otherEmail: target.email, status: row.status, direction: "outgoing", createdAt: row.created_at, updatedAt: row.updated_at } })
+  }
+
+  const acceptMatch = pathname.match(/^\/api\/connections\/([0-9a-f-]+)\/accept$/i)
+  if (acceptMatch && req.method === "POST") {
+    const row = (await sql.unsafe(
+      "SELECT c.id, c.requester_user_id, c.recipient_user_id FROM connections c WHERE c.id=$1 AND c.recipient_user_id=$2 AND c.status='pending'",
+      [acceptMatch[1], user.id]
+    ))[0]
+    if (!row) return send(res, 404, { error: "Pending connection not found" })
+    const updated = (await sql.unsafe(
+      "UPDATE connections SET status='accepted', updated_at=NOW() WHERE id=$1 RETURNING id, requester_user_id, recipient_user_id, status, created_at, updated_at",
+      [row.id]
+    ))[0]
+    const other = (await sql.unsafe("SELECT id,email FROM users WHERE id=$1", [row.requester_user_id]))[0]
+    return send(res, 200, { connection: { id: updated.id, otherUserId: other.id, otherEmail: other.email, status: updated.status, direction: "incoming", createdAt: updated.created_at, updatedAt: updated.updated_at } })
+  }
+
+  const declineMatch = pathname.match(/^\/api\/connections\/([0-9a-f-]+)\/decline$/i)
+  if (declineMatch && req.method === "POST") {
+    const row = (await sql.unsafe(
+      "SELECT id FROM connections WHERE id=$1 AND recipient_user_id=$2 AND status='pending'",
+      [declineMatch[1], user.id]
+    ))[0]
+    if (!row) return send(res, 404, { error: "Pending connection not found" })
+    await sql.unsafe("UPDATE connections SET status='declined', updated_at=NOW() WHERE id=$1", [row.id])
+    return send(res, 200, { ok: true })
+  }
+
+  const removeMatch = pathname.match(/^\/api\/connections\/([0-9a-f-]+)$/i)
+  if (removeMatch && req.method === "DELETE") {
+    const rows = await sql.unsafe("DELETE FROM connections WHERE id=$1 AND (requester_user_id=$2 OR recipient_user_id=$2) RETURNING id", [removeMatch[1], user.id])
+    return rows.length ? send(res, 200, { ok: true }) : send(res, 404, { error: "Connection not found" })
+  }
+
+  return false
+}
+
+async function progressApi(req, res, pathname, user) {
+  if (pathname === "/api/progress/sharing") {
+    if (req.method === "GET") return send(res, 200, { sharing: await progressSharingFor(user.id) })
+    if (req.method === "PUT") {
+      const sharing = normalizeSharing(await readBody(req))
+      await sql.unsafe(
+        "INSERT INTO progress_sharing (user_id,share_calories,share_macros,share_weight,share_weight_history,share_activity,share_goals,share_charts) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) " +
+        "ON CONFLICT(user_id) DO UPDATE SET share_calories=EXCLUDED.share_calories,share_macros=EXCLUDED.share_macros,share_weight=EXCLUDED.share_weight,share_weight_history=EXCLUDED.share_weight_history,share_activity=EXCLUDED.share_activity,share_goals=EXCLUDED.share_goals,share_charts=EXCLUDED.share_charts,updated_at=NOW()",
+        [user.id, sharing.shareCalories, sharing.shareMacros, sharing.shareWeight, sharing.shareWeightHistory, sharing.shareActivity, sharing.shareGoals, sharing.shareCharts]
+      )
+      return send(res, 200, { sharing })
+    }
+    return send(res, 405, { error: "Method not allowed" })
+  }
+
+  const match = pathname.match(/^\/api\/progress\/([0-9a-f-]+)$/i)
+  if (!match || req.method !== "GET") return false
+  const targetId = match[1]
+  const connection = await connectionBetween(user.id, targetId)
+  if (!connection || connection.status !== "accepted") return send(res, 403, { error: "You must be connected to view this progress" })
+
+  const sharing = await progressSharingFor(targetId)
+  const target = (await sql.unsafe("SELECT id,email FROM users WHERE id=$1 AND is_active=TRUE", [targetId]))[0]
+  if (!target) return send(res, 404, { error: "User not found" })
+
+  const progress = { user: { id: target.id, email: target.email }, sharing }
+
+  if (sharing.shareCalories || sharing.shareMacros || sharing.shareCharts) {
+    const rows = await sql.unsafe(
+      "SELECT DATE(consumed_at) AS day, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
+      "FROM log_entries WHERE user_id=$1 AND consumed_at >= CURRENT_DATE - INTERVAL '13 days' GROUP BY DATE(consumed_at) ORDER BY day ASC",
+      [targetId]
+    )
+    progress.dailyNutrition = rows.map(row => ({
+      day: row.day,
+      ...(sharing.shareCalories ? { calories: Number(row.calories || 0) } : {}),
+      ...(sharing.shareMacros ? { protein: Number(row.protein || 0), carbs: Number(row.carbs || 0), fat: Number(row.fat || 0), fiber: Number(row.fiber || 0) } : {})
+    }))
+  }
+
+  if (sharing.shareWeight || sharing.shareWeightHistory) {
+    const rows = await sql.unsafe(
+      "SELECT id, weight_kg, recorded_at FROM weight_entries WHERE user_id=$1 ORDER BY recorded_at DESC, created_at DESC LIMIT 90",
+      [targetId]
+    )
+    progress.weight = sharing.shareWeight ? (rows[0] ? { kg: Number(rows[0].weight_kg), recordedAt: rows[0].recorded_at } : null) : null
+    progress.weightHistory = sharing.shareWeightHistory ? rows.reverse().map(row => ({ kg: Number(row.weight_kg), recordedAt: row.recorded_at })) : []
+  }
+
+  if (sharing.shareActivity) {
+    const rows = await sql.unsafe(
+      "SELECT activity_date, SUM(duration_minutes) AS minutes, SUM(calories_burned) AS calories, COUNT(*)::int AS workouts FROM activities WHERE user_id=$1 AND activity_date >= CURRENT_DATE - INTERVAL '13 days' GROUP BY activity_date ORDER BY activity_date ASC",
+      [targetId]
+    )
+    progress.activity = rows.map(row => ({ date: row.activity_date, minutes: Number(row.minutes || 0), calories: Number(row.calories || 0), workouts: Number(row.workouts || 0) }))
+  }
+
+  if (sharing.shareGoals) {
+    const row = (await sql.unsafe("SELECT calories, protein, carbs, fat, fiber FROM user_goals WHERE user_id=$1", [targetId]))[0]
+    progress.goals = row ? { calories: Number(row.calories), protein: Number(row.protein), carbs: Number(row.carbs), fat: Number(row.fat), fiber: Number(row.fiber) } : null
+  }
+
+  return send(res, 200, progress)
+}
+
 async function protectedApi(req, res, pathname, user) {
+  const connectionHandled = await connectionsApi(req, res, pathname, user)
+  if (connectionHandled !== false) return
+  const progressHandled = await progressApi(req, res, pathname, user)
+  if (progressHandled !== false) return
   const healthHandled = await healthApi(req, res, pathname, user)
   if (healthHandled !== false) return
   if (pathname === "/api/preferences") {
