@@ -4,8 +4,11 @@ import { api, getConfiguredServerUrl, setConfiguredServerUrl, clearConfiguredSer
 const blankGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65, fiber: 25 }
 const BrandMark = () => (
   <div className="auth-brand">
-    <div className="auth-logo" aria-hidden="true">🥗</div>
-    <div className="auth-brand-name">NutriLog</div>
+    <img
+      className="auth-brand-logo"
+      src="/branding/nutrilog-logo.png"
+      alt="NutriLog"
+    />
     <div className="auth-brand-slogan">Track. Plan. Progress.</div>
   </div>
 )
