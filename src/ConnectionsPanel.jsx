@@ -103,6 +103,8 @@ export default function ConnectionsPanel() {
   const [saving, setSaving] = useState(false)
   const [searchBusy, setSearchBusy] = useState(false)
   const [connectBusy, setConnectBusy] = useState(null)
+  const [directEmail, setDirectEmail] = useState('')
+  const [directBusy, setDirectBusy] = useState(false)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState(null)
   const [loadingProgress, setLoadingProgress] = useState(null)
@@ -137,6 +139,20 @@ export default function ConnectionsPanel() {
       setServerUsers((result.users || []).filter(serverUser => !connectedIds.has(serverUser.id)))
     } catch (err) { setError(err.message); setServerUsers([]) }
     finally { setSearchBusy(false) }
+  }
+
+  const addByEmail = async event => {
+    event.preventDefault()
+    const email = directEmail.trim()
+    if (!email) { setError('Enter the account email address.'); return }
+    setDirectBusy(true); setError('')
+    try {
+      await api.connections.invite(email)
+      setDirectEmail('')
+      await load()
+      alert('Connection request sent.')
+    } catch (err) { setError(err.message) }
+    finally { setDirectBusy(false) }
   }
 
   const connectUser = async serverUser => {
@@ -217,8 +233,12 @@ export default function ConnectionsPanel() {
             <h3><UserPlus size={20} style={{ verticalAlign: 'middle', marginRight: 6 }} />Add a Connection</h3>
             <p className="settings-description">Find another NutriLog account on this server and send them an in-app connection request. SMTP or email setup is not required.</p>
             <form onSubmit={searchServerUsers} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-              <input className="connection-email-input" type="text" value={serverSearch} onChange={event => setServerSearch(event.target.value)} placeholder="Search by account email" minLength={3} style={{ flex: '1 1 240px' }} />
+              <input className="connection-email-input" type="email" value={serverSearch} onChange={event => setServerSearch(event.target.value)} placeholder="Search by account email" minLength={3} style={{ flex: '1 1 240px' }} />
               <button className="btn btn-primary" type="submit" disabled={searchBusy}><UserPlus size={18} />{searchBusy ? 'Searching…' : 'Find User'}</button>
+            </form>
+            <form onSubmit={addByEmail} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+              <input className="connection-email-input" type="email" value={directEmail} onChange={event => setDirectEmail(event.target.value)} placeholder="Enter exact email to add" style={{ flex: '1 1 240px' }} />
+              <button className="btn btn-secondary" type="submit" disabled={directBusy}><UserPlus size={18} />{directBusy ? 'Sending…' : 'Add by Email'}</button>
             </form>
             {serverUsers.length > 0 && (
               <div className="food-list" style={{ marginTop: 12 }}>
