@@ -659,6 +659,17 @@ async function progressSharingFor(userId) {
 
 async function connectionsApi(req, res, pathname, user) {
   const searchMatch = pathname.match(/^\/api\/connections\/search\/(.+)$/i)
+  if (pathname === "/api/connections/search" && req.method === "GET") {
+    const searchUrl = new URL(req.url, "http://localhost")
+    const query = String(searchUrl.searchParams.get("q") || "").trim().toLowerCase()
+    if (query.length < 3) return send(res, 400, { error: "Enter at least 3 characters to search server users" })
+    const rows = await sql.unsafe(
+      "SELECT id, email FROM users WHERE is_active=TRUE AND id<>$1 AND email ILIKE $2 ORDER BY email ASC LIMIT 10",
+      [user.id, "%" + query + "%"]
+    )
+    return send(res, 200, { users: rows.map(row => ({ id: row.id, email: row.email })) })
+  }
+
   if (searchMatch && req.method === "GET") {
     let query = ""
     try { query = decodeURIComponent(searchMatch[1]).trim().toLowerCase() } catch { return send(res, 400, { error: "Invalid search query" }) }
