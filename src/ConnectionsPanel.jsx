@@ -231,9 +231,9 @@ export default function ConnectionsPanel() {
 
           <div className="section" style={{ marginTop: 16 }}>
             <h3><UserPlus size={20} style={{ verticalAlign: 'middle', marginRight: 6 }} />Add a Connection</h3>
-            <p className="settings-description">Find another NutriLog account on this server and send them an in-app connection request. SMTP or email setup is not required.</p>
+            <p className="settings-description">Search for another NutriLog account using 3 or more characters. You do not need to enter an @ symbol or an exact email address.</p>
             <form onSubmit={searchServerUsers} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-              <input className="connection-email-input" type="email" value={serverSearch} onChange={event => setServerSearch(event.target.value)} placeholder="Search by account email" minLength={3} style={{ flex: '1 1 240px' }} />
+              <input className="connection-email-input" type="search" value={serverSearch} onChange={event => setServerSearch(event.target.value)} placeholder="Search server users" minLength={3} style={{ flex: '1 1 240px' }} />
               <button className="btn btn-primary" type="submit" disabled={searchBusy}><UserPlus size={18} />{searchBusy ? 'Searching…' : 'Find User'}</button>
             </form>
             <form onSubmit={addByEmail} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
@@ -260,7 +260,7 @@ export default function ConnectionsPanel() {
             {!searchBusy && serverSearch.trim().length >= 3 && serverUsers.length === 0 && (
               <p className="settings-description" style={{ marginTop: 10 }}>No matching active NutriLog users were found.</p>
             )}
-            <p className="settings-description" style={{ marginTop: 10 }}>Email invitations can still be used by the API, but the normal server-user connection flow does not send email.</p>
+            <p className="settings-description" style={{ marginTop: 10 }}>The normal connection flow sends an in-app request. Email is only needed when you use the separate Add by Email option.</p>
           </div>
 
           <div className="section" style={{ marginTop: 16 }}>
