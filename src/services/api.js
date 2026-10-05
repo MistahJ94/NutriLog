@@ -204,7 +204,7 @@ export const api = {
   },
   connections: {
     list: () => offlineEnabled() ? offlineApi.connections.list() : request('/connections'),
-    search: query => offlineEnabled() ? offlineApi.connections.search(query) : request('/connections/search/' + encodeURIComponent(query)),
+    search: query => offlineEnabled() ? offlineApi.connections.search(query) : request('/connections/search?q=' + encodeURIComponent(query)),
     invite: email => offlineEnabled() ? offlineApi.connections.invite(email) : json('POST', '/connections/invite', { email }),
     accept: id => offlineEnabled() ? offlineApi.connections.accept(id) : json('POST', '/connections/' + id + '/accept', {}),
     decline: id => offlineEnabled() ? offlineApi.connections.decline(id) : json('POST', '/connections/' + id + '/decline', {}),
