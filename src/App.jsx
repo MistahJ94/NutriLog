@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, BarChart3 } from 'lucide-react'
+import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, Save, BarChart3 } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
 import ConnectionsPanel from './ConnectionsPanel'
