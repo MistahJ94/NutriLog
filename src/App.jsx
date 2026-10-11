@@ -187,6 +187,8 @@ function AdminPanel({ user }) {
   )
 }
 function App({ user, initialServerData, onLogout, onChangeServer }) {
+  const [profileName, setProfileName] = useState(user?.displayName || '')
+  const [profileSaving, setProfileSaving] = useState(false)
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
   const [graphType, setGraphType] = useState('bars')
@@ -2792,6 +2794,25 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               <h2>Settings</h2>
               <p>Manage your data with import and export options</p>
             </div>
+
+            {!isOfflineMode() && <div className="section">
+              <h3>Profile Information</h3>
+              <p className="settings-description">Your display name appears in connection requests and shared progress.</p>
+              <form className="settings-form" onSubmit={async event => {
+                event.preventDefault()
+                setProfileSaving(true)
+                try {
+                  const result = await api.auth.updateProfile(profileName)
+                  setProfileName(result.user.displayName || '')
+                  alert('Display name saved.')
+                } catch (err) { alert(err.message) }
+                finally { setProfileSaving(false) }
+              }}>
+                <div className="form-group"><label>Display Name<input type="text" value={profileName} onChange={event => setProfileName(event.target.value)} maxLength={80} placeholder="Enter your name" /></label></div>
+                <div className="form-group"><label>Email Address<input type="email" value={user.email} readOnly /></label></div>
+                <button className="btn btn-primary" type="submit" disabled={profileSaving}><Save size={18} />{profileSaving ? 'Saving…' : 'Save Display Name'}</button>
+              </form>
+            </div>}
 
             <div className="section">
               <h3>Account Security</h3>
