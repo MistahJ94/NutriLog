@@ -535,10 +535,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     setLogEntries(data.logEntries)
     const goals = data.macroGoals || local.macroGoals
     const calories = Number(goals?.calories || local.dailyGoal || 2000)
+    setGoalInput(previous =>
+      previous === dailyGoal ? calories : previous
+    )
+    setMacroGoalsInput(previous =>
+      JSON.stringify(previous) === JSON.stringify(macroGoals)
+        ? goals
+        : previous
+    )
     setDailyGoal(calories)
-    setGoalInput(calories)
     setMacroGoals(goals)
-    setMacroGoalsInput(goals)
     setIsInitialLoadComplete(true)
   }, [initialServerData])
 
@@ -1625,14 +1631,24 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           !user ||
           isOfflineMode() ||
           customizeTabs ||
-          Boolean(editingFoodId || editingMealId || editingLogMeal) ||
-          Object.entries(foodFormData).some(([key, value]) =>
-            value !== (key === 'servingAmount' ? '1' : key === 'servingUnit' ? 'serving' : '')
-          ) ||
-          Boolean(mealFormData.name.trim() || mealFormData.selectedFoods.length) ||
-          Boolean(quickLogForm.selectedItem) ||
-          goalInput !== dailyGoal ||
-          JSON.stringify(macroGoalsInput) !== JSON.stringify(macroGoals)
+          (activeTab === 'foods' && (
+            Boolean(editingFoodId) ||
+            Object.entries(foodFormData).some(([key, value]) =>
+              value !== (key === 'servingAmount' ? '1' : key === 'servingUnit' ? 'serving' : '')
+            )
+          )) ||
+          (activeTab === 'meals' && (
+            Boolean(editingMealId) ||
+            Boolean(mealFormData.name.trim() || mealFormData.selectedFoods.length)
+          )) ||
+          (activeTab === 'tracker' && (
+            Boolean(editingLogMeal) ||
+            Boolean(quickLogForm.selectedItem)
+          )) ||
+          (activeTab === 'goals' && (
+            goalInput !== dailyGoal ||
+            JSON.stringify(macroGoalsInput) !== JSON.stringify(macroGoals)
+          ))
         }
       />
       <div className="header">

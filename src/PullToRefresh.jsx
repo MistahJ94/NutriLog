@@ -1,3 +1,4 @@
+import './PullToRefresh.css'
 import { useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 
@@ -150,7 +151,12 @@ export default function PullToRefresh({ onRefresh, disabled = false }) {
         boxShadow: '0 3px 14px #0003'
       }}
     >
-      <RefreshCw size={17} className={refreshing ? 'refresh-spin' : ''} />
+      <RefreshCw
+        size={17}
+        style={refreshing ? {
+          animation: 'nutrilog-refresh-spin 0.8s linear infinite'
+        } : undefined}
+      />
       <span>
         {error || (refreshing ? 'Refreshing…' : distance >= THRESHOLD ? 'Release to refresh' : 'Pull to refresh')}
       </span>
