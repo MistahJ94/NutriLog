@@ -217,10 +217,10 @@ async function userFromRequest(req) {
   const token = requestSessionToken(req)
   if (!token) return null
   const rows = await sql.unsafe(
-    "SELECT u.id, u.email, u.role, u.is_active FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > NOW()",
+    "SELECT u.id, u.email, u.role, u.is_active, u.display_name AS display_name FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > NOW()",
     [tokenHash(token)]
   )
-  return rows[0] || null
+  return rows[0] ? { ...rows[0], displayName: rows[0].display_name } : null
 }
 
 async function isAdmin(user) {
@@ -239,6 +239,17 @@ async function authApi(req, res, pathname) {
 
   if (req.method === "GET" && pathname === "/api/auth/me") {
     return send(res, 200, { user: await userFromRequest(req) })
+  }
+
+  if (req.method === "PUT" && pathname === "/api/auth/profile") {
+    const user = await userFromRequest(req)
+    if (!user || !user.is_active) return send(res, 401, { error: "Authentication required" })
+    const body = await readBody(req)
+    if (typeof body.displayName !== "string") return send(res, 400, { error: "Display name must be text" })
+    const name = body.displayName.trim()
+    if (name.length > 80 || /[\x00-\x1f\x7f]/.test(name)) return send(res, 400, { error: "Display name must be 80 characters or fewer without control characters" })
+    const rows = await sql.unsafe('UPDATE users SET display_name=$1, updated_at=NOW() WHERE id=$2 RETURNING id, email, role, is_active, display_name', [name || null, user.id])
+    return send(res, 200, { user: { ...rows[0], displayName: rows[0].display_name } })
   }
 
   if (req.method === "POST" && pathname === "/api/auth/setup") {
@@ -664,10 +675,10 @@ async function connectionsApi(req, res, pathname, user) {
     const query = String(searchUrl.searchParams.get("q") || "").trim().toLowerCase()
     if (query.length < 3) return send(res, 400, { error: "Enter at least 3 characters to search server users" })
     const rows = await sql.unsafe(
-      "SELECT id, email FROM users WHERE is_active=TRUE AND id<>$1 AND email ILIKE $2 ORDER BY email ASC LIMIT 10",
+      "SELECT id, email, display_name FROM users WHERE is_active=TRUE AND id<>$1 AND (email ILIKE $2 OR display_name ILIKE $2) ORDER BY email ASC LIMIT 10",
       [user.id, "%" + query + "%"]
     )
-    return send(res, 200, { users: rows.map(row => ({ id: row.id, email: row.email })) })
+    return send(res, 200, { users: rows.map(row => ({ id: row.id, email: row.email, displayName: row.display_name })) })
   }
 
   if (searchMatch && req.method === "GET") {
@@ -678,7 +689,7 @@ async function connectionsApi(req, res, pathname, user) {
       "SELECT id, email FROM users WHERE is_active=TRUE AND id<>$1 AND email ILIKE $2 ORDER BY email ASC LIMIT 10",
       [user.id, "%" + query + "%"]
     )
-    return send(res, 200, { users: rows.map(row => ({ id: row.id, email: row.email })) })
+    return send(res, 200, { users: rows.map(row => ({ id: row.id, email: row.email, displayName: row.display_name })) })
   }
 
   if (pathname === "/api/connections") {
@@ -686,7 +697,8 @@ async function connectionsApi(req, res, pathname, user) {
     const rows = await sql.unsafe(
       "SELECT c.id, c.requester_user_id, c.recipient_user_id, c.status, c.created_at, c.updated_at, " +
       "CASE WHEN c.requester_user_id=$1 THEN c.recipient_user_id ELSE c.requester_user_id END AS other_user_id, " +
-      "CASE WHEN c.requester_user_id=$1 THEN ru.email ELSE su.email END AS other_email " +
+      "CASE WHEN c.requester_user_id=$1 THEN su.email ELSE ru.email END AS other_email, " +
+      "CASE WHEN c.requester_user_id=$1 THEN su.display_name ELSE ru.display_name END AS other_name " +
       "FROM connections c JOIN users ru ON ru.id=c.requester_user_id JOIN users su ON su.id=c.recipient_user_id " +
       "WHERE c.requester_user_id=$1 OR c.recipient_user_id=$1 ORDER BY c.updated_at DESC",
       [user.id]
@@ -695,6 +707,7 @@ async function connectionsApi(req, res, pathname, user) {
       id: row.id,
       otherUserId: row.other_user_id,
       otherEmail: row.other_email,
+      otherName: row.other_name,
       status: row.status,
       direction: row.requester_user_id === user.id ? "outgoing" : "incoming",
       createdAt: row.created_at,
@@ -706,7 +719,7 @@ async function connectionsApi(req, res, pathname, user) {
     const body = await readBody(req)
     const email = String(body.email || "").trim().toLowerCase()
     if (!validEmail(email)) return send(res, 400, { error: "A valid email address is required" })
-    const target = (await sql.unsafe("SELECT id, email, is_active FROM users WHERE email=$1", [email]))[0]
+    const target = (await sql.unsafe("SELECT id, email, is_active, display_name FROM users WHERE email=$1", [email]))[0]
     if (!target || !target.is_active) return send(res, 404, { error: "No active NutriLog account was found for that email" })
     if (target.id === user.id) return send(res, 400, { error: "You cannot connect to yourself" })
     const existing = await connectionBetween(user.id, target.id)
@@ -719,7 +732,7 @@ async function connectionsApi(req, res, pathname, user) {
       "INSERT INTO connections (requester_user_id, recipient_user_id, status) VALUES ($1,$2,'pending') RETURNING id, status, created_at, updated_at",
       [user.id, target.id]
     ))[0]
-    return send(res, 201, { connection: { id: row.id, otherUserId: target.id, otherEmail: target.email, status: row.status, direction: "outgoing", createdAt: row.created_at, updatedAt: row.updated_at } })
+    return send(res, 201, { connection: { id: row.id, otherUserId: target.id, otherEmail: target.email, otherName: target.display_name, status: row.status, direction: "outgoing", createdAt: row.created_at, updatedAt: row.updated_at } })
   }
 
   const acceptMatch = pathname.match(/^\/api\/connections\/([0-9a-f-]+)\/accept$/i)
@@ -733,8 +746,8 @@ async function connectionsApi(req, res, pathname, user) {
       "UPDATE connections SET status='accepted', updated_at=NOW() WHERE id=$1 RETURNING id, requester_user_id, recipient_user_id, status, created_at, updated_at",
       [row.id]
     ))[0]
-    const other = (await sql.unsafe("SELECT id,email FROM users WHERE id=$1", [row.requester_user_id]))[0]
-    return send(res, 200, { connection: { id: updated.id, otherUserId: other.id, otherEmail: other.email, status: updated.status, direction: "incoming", createdAt: updated.created_at, updatedAt: updated.updated_at } })
+    const other = (await sql.unsafe("SELECT id,email,display_name FROM users WHERE id=$1", [row.requester_user_id]))[0]
+    return send(res, 200, { connection: { id: updated.id, otherUserId: other.id, otherEmail: other.email, otherName: other.display_name, status: updated.status, direction: "incoming", createdAt: updated.created_at, updatedAt: updated.updated_at } })
   }
 
   const declineMatch = pathname.match(/^\/api\/connections\/([0-9a-f-]+)\/decline$/i)
@@ -779,10 +792,10 @@ async function progressApi(req, res, pathname, user) {
   if (!connection || connection.status !== "accepted") return send(res, 403, { error: "You must be connected to view this progress" })
 
   const sharing = await progressSharingFor(targetId)
-  const target = (await sql.unsafe("SELECT id,email FROM users WHERE id=$1 AND is_active=TRUE", [targetId]))[0]
+  const target = (await sql.unsafe("SELECT id,email,display_name FROM users WHERE id=$1 AND is_active=TRUE", [targetId]))[0]
   if (!target) return send(res, 404, { error: "User not found" })
 
-  const progress = { user: { id: target.id, email: target.email }, sharing }
+  const progress = { user: { id: target.id, email: target.email, displayName: target.display_name }, sharing }
 
   if (sharing.shareCalories || sharing.shareMacros || sharing.shareCharts) {
     const rows = await sql.unsafe(

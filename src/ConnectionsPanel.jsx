@@ -25,7 +25,8 @@ function ProgressViewer({ progress, onClose }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h3 style={{ marginBottom: 4 }}><Eye size={20} style={{ verticalAlign: 'middle', marginRight: 6 }} />Shared Progress</h3>
-          <p className="settings-description" style={{ margin: 0 }}>{progress.user.email}</p>
+          <p className="settings-description" style={{ margin: 0 }}>{progress.user.displayName || progress.user.email}</p>
+          {progress.user.displayName && <p className="settings-description" style={{ margin: 0 }}>{progress.user.email}</p>}
         </div>
         <button className="btn btn-secondary" type="button" onClick={onClose}>Close</button>
       </div>
@@ -245,7 +246,8 @@ export default function ConnectionsPanel() {
                 {serverUsers.map(serverUser => (
                   <div className="food-item" key={serverUser.id}>
                     <div className="food-info">
-                      <h3>{serverUser.email}</h3>
+                      <h3>{serverUser.displayName || serverUser.email}</h3>
+                      {serverUser.displayName && <div className="food-details"><span>{serverUser.email}</span></div>}
                       <div className="food-details"><span>NutriLog user on this server</span></div>
                     </div>
                     <div className="food-actions">
@@ -270,7 +272,8 @@ export default function ConnectionsPanel() {
                 {connections.map(connection => (
                   <div className="food-item" key={connection.id}>
                     <div className="food-info">
-                      <h3>{connection.otherEmail}</h3>
+                      <h3>{connection.otherName || connection.otherEmail}</h3>
+                      {connection.otherName && <div className="food-details"><span>{connection.otherEmail}</span></div>}
                       <div className="food-details">
                         <span className="time-badge">{connection.status}</span>
                         <span>{connection.direction === 'incoming' ? 'Incoming request' : 'Outgoing request'}</span>
