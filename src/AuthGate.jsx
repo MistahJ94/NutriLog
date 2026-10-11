@@ -305,6 +305,27 @@ export default function AuthGate({ App }) {
     setReady(true)
   }
 
+  // Refresh existing account data without running legacy-data migration.
+  const refreshServerData = async () => {
+    if (isOfflineMode()) return
+
+    const [goalsResult, foodsResult, mealsResult, logsResult, preferencesResult] = await Promise.all([
+      api.goals.get(),
+      api.foods.list(),
+      api.meals.list(),
+      api.logs.list(),
+      api.preferences.get(),
+    ])
+
+    setData({
+      goals: goalsResult.goals || blankGoals,
+      foods: foodsResult.items,
+      meals: mealsResult.items,
+      logs: logsResult.items,
+      preferences: preferencesResult.preferences || null,
+    })
+  }
+
   useEffect(() => {
     if (!serverConnected) return
     api.setup()
@@ -328,5 +349,5 @@ export default function AuthGate({ App }) {
   if (resetToken && !user) return <ResetPasswordScreen token={resetToken} />
   if (setupRequired && !user) return <SetupScreen onAuthenticated={authenticated} />
   if (!user) return offline ? <OfflineStartScreen onStart={() => { setUser({ id: 'offline-user', email: 'offline@local', role: 'user', is_active: true }); setData(null); setReady(true) }} onServer={() => { setOfflineMode(false); setOffline(false); setShowServerConnection(true); setServerConnected(false); setReady(false) }} /> : <AuthScreen onAuthenticated={authenticated} />
-  return <App user={user} initialServerData={data} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} onChangeServer={async () => { await api.auth.logout(); clearConfiguredServerUrl(); setUser(null); setData(null); setReady(false); setShowServerConnection(true); setServerConnected(false) }} />
+  return <App user={user} initialServerData={data} onRefresh={refreshServerData} onLogout={async () => { await api.auth.logout(); ['savedFoods','savedMeals','logEntries','dailyGoal','macroGoals'].forEach(key => localStorage.removeItem(key)); setUser(null); setData(null) }} onChangeServer={async () => { await api.auth.logout(); clearConfiguredServerUrl(); setUser(null); setData(null); setReady(false); setShowServerConnection(true); setServerConnected(false) }} />
 }

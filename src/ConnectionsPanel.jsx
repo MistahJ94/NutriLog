@@ -95,7 +95,7 @@ function ProgressViewer({ progress, onClose }) {
   )
 }
 
-export default function ConnectionsPanel() {
+export default function ConnectionsPanel({ refreshToken = 0, onRefreshComplete }) {
   const [connections, setConnections] = useState([])
   const [sharing, setSharing] = useState(defaultSharing)
   const [serverSearch, setServerSearch] = useState('')
@@ -116,11 +116,24 @@ export default function ConnectionsPanel() {
       const [connectionsResult, sharingResult] = await Promise.all([api.connections.list(), api.sharing.get()])
       setConnections(connectionsResult.connections || [])
       setSharing({ ...defaultSharing, ...(sharingResult.sharing || {}) })
-    } catch (err) { setError(err.message) }
-    finally { setBusy(false) }
+    } catch (err) {
+      setError(err.message)
+      return { ok: false, error: err.message }
+    } finally {
+      setBusy(false)
+    }
+    return { ok: true }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    let active = true
+    load().then(result => {
+      if (active && onRefreshComplete && refreshToken > 0) {
+        onRefreshComplete(result)
+      }
+    })
+    return () => { active = false }
+  }, [refreshToken])
 
   const saveSharing = async () => {
     setSaving(true); setError('')

@@ -55,6 +55,26 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Configure Android app version
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION_CODE=$((100000 + BUILD_NUMBER))
+          VERSION_NAME="${RELEASE_TAG}"
+          if [[ "$VERSION_NAME" != v* ]]; then
+            VERSION_NAME="1.0.${BUILD_NUMBER}"
+          else
+            VERSION_NAME="${VERSION_NAME#v}"
+          fi
+          sed -i -E "s/versionCode [0-9]+/versionCode ${VERSION_CODE}/" android/app/build.gradle
+          sed -i -E "s/versionName \"[^\"]+\"/versionName \"${VERSION_NAME}\"/" android/app/build.gradle
+          grep -E 'versionCode|versionName' android/app/build.gradle
+          grep -Fq "versionCode ${VERSION_CODE}" android/app/build.gradle
+          grep -Fq "versionName \"${VERSION_NAME}\"" android/app/build.gradle
+          echo "Verified Android version: ${VERSION_NAME} (${VERSION_CODE})"
+
       - name: Configure Android release signing
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

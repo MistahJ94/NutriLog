@@ -3,6 +3,7 @@ import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookO
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
 import ConnectionsPanel from './ConnectionsPanel'
+import PullToRefresh from './PullToRefresh'
 
 const getLocalDateString = (date = new Date()) => {
   const year = date.getFullYear()
@@ -186,11 +187,67 @@ function AdminPanel({ user }) {
     </div>
   )
 }
-function App({ user, initialServerData, onLogout, onChangeServer }) {
+function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [profileName, setProfileName] = useState(user?.displayName || '')
   const [profileSaving, setProfileSaving] = useState(false)
   // Navigation
   const [activeTab, setActiveTab] = useState('tracker')
+  const [connectionsRefreshToken, setConnectionsRefreshToken] = useState(0)
+
+  const connectionsRefreshResolve = useRef(null)
+
+  const handlePullRefresh = async () => {
+    if (typeof onRefresh !== 'function') return
+
+    await onRefresh()
+
+    if (activeTab !== 'settings' || isOfflineMode()) return
+
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (connectionsRefreshResolve.current?.timer === timer) {
+          connectionsRefreshResolve.current = null
+          reject(new Error('Connections refresh timed out. Please try again.'))
+        }
+      }, 15000)
+
+      connectionsRefreshResolve.current = { resolve, reject, timer }
+      setConnectionsRefreshToken(value => value + 1)
+    })
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'settings') {
+      const pending = connectionsRefreshResolve.current
+      if (pending) {
+        connectionsRefreshResolve.current = null
+        clearTimeout(pending.timer)
+        pending.resolve()
+      }
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    return () => {
+      const pending = connectionsRefreshResolve.current
+      if (pending) {
+        connectionsRefreshResolve.current = null
+        clearTimeout(pending.timer)
+        pending.resolve()
+      }
+    }
+  }, [])
+
+  const handleConnectionsRefreshComplete = result => {
+    const pending = connectionsRefreshResolve.current
+    if (!pending) return
+
+    connectionsRefreshResolve.current = null
+    clearTimeout(pending.timer)
+
+    if (result?.ok) pending.resolve()
+    else pending.reject(new Error(result?.error || 'Unable to refresh connections.'))
+  }
   const [graphType, setGraphType] = useState('bars')
   const [graphMetric, setGraphMetric] = useState('calories')
   const [activeGraphPoint, setActiveGraphPoint] = useState(null)
@@ -478,10 +535,16 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
     setLogEntries(data.logEntries)
     const goals = data.macroGoals || local.macroGoals
     const calories = Number(goals?.calories || local.dailyGoal || 2000)
+    setGoalInput(previous =>
+      previous === dailyGoal ? calories : previous
+    )
+    setMacroGoalsInput(previous =>
+      JSON.stringify(previous) === JSON.stringify(macroGoals)
+        ? goals
+        : previous
+    )
     setDailyGoal(calories)
-    setGoalInput(calories)
     setMacroGoals(goals)
-    setMacroGoalsInput(goals)
     setIsInitialLoadComplete(true)
   }, [initialServerData])
 
@@ -1562,6 +1625,32 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
 
   return (
     <div className={`app theme-${theme}`}>
+      <PullToRefresh
+        onRefresh={handlePullRefresh}
+        disabled={
+          !user ||
+          isOfflineMode() ||
+          customizeTabs ||
+          (activeTab === 'foods' && (
+            Boolean(editingFoodId) ||
+            Object.entries(foodFormData).some(([key, value]) =>
+              value !== (key === 'servingAmount' ? '1' : key === 'servingUnit' ? 'serving' : '')
+            )
+          )) ||
+          (activeTab === 'meals' && (
+            Boolean(editingMealId) ||
+            Boolean(mealFormData.name.trim() || mealFormData.selectedFoods.length)
+          )) ||
+          (activeTab === 'tracker' && (
+            Boolean(editingLogMeal) ||
+            Boolean(quickLogForm.selectedItem)
+          )) ||
+          (activeTab === 'goals' && (
+            goalInput !== dailyGoal ||
+            JSON.stringify(macroGoalsInput) !== JSON.stringify(macroGoals)
+          ))
+        }
+      />
       <div className="header">
         <h1>🥗 NutriLog</h1>
         <p>Track your nutrition, macros, and daily goals</p>
@@ -2830,7 +2919,10 @@ function App({ user, initialServerData, onLogout, onChangeServer }) {
               </div>
             </div>
 
-            {!isOfflineMode() && <ConnectionsPanel />}
+            {!isOfflineMode() && <ConnectionsPanel
+              refreshToken={connectionsRefreshToken}
+              onRefreshComplete={handleConnectionsRefreshComplete}
+            />}
 
             <div className="section theme-settings">
               <h3>Appearance</h3>
