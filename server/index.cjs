@@ -217,10 +217,10 @@ async function userFromRequest(req) {
   const token = requestSessionToken(req)
   if (!token) return null
   const rows = await sql.unsafe(
-    "SELECT u.id, u.email, u.role, u.is_active, u.display_name AS "displayName" FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > NOW()",
+    "SELECT u.id, u.email, u.role, u.is_active, u.display_name AS display_name FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > NOW()",
     [tokenHash(token)]
   )
-  return rows[0] || null
+  return rows[0] ? { ...rows[0], displayName: rows[0].display_name } : null
 }
 
 async function isAdmin(user) {
@@ -248,8 +248,8 @@ async function authApi(req, res, pathname) {
     if (typeof body.displayName !== "string") return send(res, 400, { error: "Display name must be text" })
     const name = body.displayName.trim()
     if (name.length > 80 || /[\x00-\x1f\x7f]/.test(name)) return send(res, 400, { error: "Display name must be 80 characters or fewer without control characters" })
-    const rows = await sql.unsafe('UPDATE users SET display_name=$1, updated_at=NOW() WHERE id=$2 RETURNING id, email, role, is_active, display_name AS "displayName"', [name || null, user.id])
-    return send(res, 200, { user: rows[0] })
+    const rows = await sql.unsafe('UPDATE users SET display_name=$1, updated_at=NOW() WHERE id=$2 RETURNING id, email, role, is_active, display_name', [name || null, user.id])
+    return send(res, 200, { user: { ...rows[0], displayName: rows[0].display_name } })
   }
 
   if (req.method === "POST" && pathname === "/api/auth/setup") {
