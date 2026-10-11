@@ -55,26 +55,67 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build debug APK
+      - name: Configure Android release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/nutrilog-release.jks
+          test -s android/app/nutrilog-release.jks
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          // NutriLog release signing (GitHub Actions)
+          android {
+              signingConfigs {
+                  nutrilogRelease {
+                      storeFile file('nutrilog-release.jks')
+                      storePassword System.getenv('KEYSTORE_PASSWORD')
+                      keyAlias System.getenv('KEY_ALIAS')
+                      keyPassword System.getenv('KEY_PASSWORD')
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.nutrilogRelease
+                  }
+              }
+          }
+          GRADLE
+
+      - name: Build signed APK and AAB
         working-directory: android
-        run: ./gradlew --no-daemon assembleDebug
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease bundleRelease
 
-      - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk nutrilog.apk
+      - name: Rename signed release files
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk nutrilog-release.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab nutrilog-release.aab
 
-      - name: Upload APK artifact
+      - name: Upload signed Android artifacts
         uses: actions/upload-artifact@v5
         with:
-          name: nutrilog-android-debug
-          path: nutrilog.apk
+          name: nutrilog-android-release
+          path: |
+            nutrilog-release.apk
+            nutrilog-release.aab
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
-      - name: Publish APK to GitHub Release
+      - name: Publish signed Android release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: nutrilog.apk
+          files: |
+            nutrilog-release.apk
+            nutrilog-release.aab
           name: NutriLog ${{ github.ref_name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
