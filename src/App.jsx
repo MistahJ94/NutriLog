@@ -3,6 +3,7 @@ import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookO
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
 import ConnectionsPanel from './ConnectionsPanel'
+import SharedProgress from './SharedProgress'
 import PullToRefresh from './PullToRefresh'
 
 const getLocalDateString = (date = new Date()) => {
@@ -251,7 +252,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [graphType, setGraphType] = useState('bars')
   const [graphMetric, setGraphMetric] = useState('calories')
   const [activeGraphPoint, setActiveGraphPoint] = useState(null)
-  const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'graphs', 'settings']
+  const tabDefaults = ['tracker', 'planner', 'foods', 'meals', 'goals', 'activity', 'graphs', 'shared', 'settings']
   const tabLabels = {
     tracker: 'Tracker',
     planner: 'Planner',
@@ -260,6 +261,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     goals: 'Goals',
     activity: 'Activity',
     graphs: 'Graphs',
+    shared: 'Shared Progress',
     settings: 'Settings',
     admin: 'Admin'
   }
@@ -271,6 +273,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     goals: Target,
     activity: TrendingUp,
     graphs: BarChart3,
+    shared: Users,
     settings: Settings,
     admin: Shield
   }
@@ -2760,6 +2763,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         {activeTab === 'goals' && <HealthGoals />}
 
         {activeTab === 'activity' && <ActivityBoard />}
+
+        {activeTab === 'shared' && <SharedProgress />}
 
         {activeTab === 'graphs' && (
           <div className="graphs-page">
