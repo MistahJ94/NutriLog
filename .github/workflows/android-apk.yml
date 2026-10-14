@@ -124,7 +124,7 @@ jobs:
 
       - name: Rename signed release files
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk nutrilog-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk nutrilog.apk
           cp android/app/build/outputs/bundle/release/app-release.aab nutrilog-release.aab
 
       - name: Upload signed Android artifacts
@@ -132,7 +132,7 @@ jobs:
         with:
           name: nutrilog-android-release
           path: |
-            nutrilog-release.apk
+            nutrilog.apk
             nutrilog-release.aab
           if-no-files-found: error
           retention-days: 30
@@ -142,7 +142,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            nutrilog-release.apk
+            nutrilog.apk
             nutrilog-release.aab
           name: NutriLog ${{ github.ref_name }}
           generate_release_notes: true
