@@ -71,7 +71,7 @@ export default function SharedProgress() {
 
   const permissions = progress?.sharing || {}
   const nutrition = Array.isArray(progress?.dailyNutrition) ? progress.dailyNutrition : []
-  const sorted = [...nutrition].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+  const sorted = [...nutrition].sort((a, b) => String(a.day || '').localeCompare(String(b.day || '')))
   const latest = sorted[sorted.length - 1]
   const goals = permissions.shareGoals ? progress?.goals : null
   const visibleNutrition = permissions.shareCalories || permissions.shareMacros
@@ -99,7 +99,7 @@ export default function SharedProgress() {
       <div className="section">
         <h3>{progress.user?.displayName || selected?.otherName || selected?.otherEmail || 'Connection'} — overview</h3>
         {visibleNutrition && latest ? <>
-          <p className="settings-description">Latest recorded nutrition: {dayLabel(latest.date)}</p>
+          <p className="settings-description">Latest recorded nutrition: {dayLabel(latest.day)}</p>
           <div className="shared-metrics">
             {permissions.shareCalories && <Metric label="Calories" value={latest.calories} goal={goals?.calories} unit=" kcal" />}
             {permissions.shareMacros && <>
@@ -114,8 +114,8 @@ export default function SharedProgress() {
       {permissions.shareCharts && visibleNutrition && sorted.length > 0 && <div className="section">
         <h3><TrendingUp size={19} style={{ verticalAlign: 'middle', marginRight: 7 }} />Recent nutrition — last 7 records</h3>
         <div className="shared-history">
-          {sorted.slice(-7).reverse().map((day, index) => <div className="shared-history-row" key={String(day.date) + index}>
-            <strong>{dayLabel(day.date)}</strong>
+          {sorted.slice(-7).reverse().map((day, index) => <div className="shared-history-row" key={String(day.day) + index}>
+            <strong>{dayLabel(day.day)}</strong>
             <span>{permissions.shareCalories ? `${Math.round(num(day.calories))} kcal` : ''}{permissions.shareCalories && permissions.shareMacros ? ' · ' : ''}{permissions.shareMacros ? `P ${Math.round(num(day.protein))}g · C ${Math.round(num(day.carbs))}g · F ${Math.round(num(day.fat))}g` : ''}</span>
           </div>)}
         </div>
