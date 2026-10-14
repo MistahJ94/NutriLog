@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { UserPlus, Users, Check, X, Trash2, Eye, Lock, Save, RefreshCw } from 'lucide-react'
+import { UserPlus, Users, Check, X, Trash2, Lock, Save, RefreshCw } from 'lucide-react'
 import { api, isOfflineMode } from './services'
 
 const defaultSharing = {
@@ -10,89 +10,6 @@ const defaultSharing = {
   shareActivity: false,
   shareGoals: false,
   shareCharts: false
-}
-
-const formatDate = value => value ? new Date(value).toLocaleDateString() : ''
-
-function ProgressViewer({ progress, onClose }) {
-  if (!progress) return null
-  const nutrition = progress.dailyNutrition || []
-  const latestNutrition = nutrition[nutrition.length - 1]
-  const activity = progress.activity || []
-
-  return (
-    <div className="section" style={{ marginTop: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <h3 style={{ marginBottom: 4 }}><Eye size={20} style={{ verticalAlign: 'middle', marginRight: 6 }} />Shared Progress</h3>
-          <p className="settings-description" style={{ margin: 0 }}>{progress.user.displayName || progress.user.email}</p>
-          {progress.user.displayName && <p className="settings-description" style={{ margin: 0 }}>{progress.user.email}</p>}
-        </div>
-        <button className="btn btn-secondary" type="button" onClick={onClose}>Close</button>
-      </div>
-
-      {progress.sharing.shareWeight && (
-        <div className="food-item">
-          <div className="food-info">
-            <h3>Current Weight</h3>
-            <div className="food-details"><span>{progress.weight ? progress.weight.kg.toFixed(1) + ' kg' : 'No weight recorded'}</span>{progress.weight?.recordedAt && <span>{formatDate(progress.weight.recordedAt)}</span>}</div>
-          </div>
-        </div>
-      )}
-
-      {progress.sharing.shareGoals && progress.goals && (
-        <div className="section" style={{ marginTop: 12 }}>
-          <h3>Shared Goals</h3>
-          <div className="data-stats">
-            <div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{progress.goals.calories}</span><span className="data-stat-label">Calories</span></div></div>
-            <div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{progress.goals.protein}g</span><span className="data-stat-label">Protein</span></div></div>
-            <div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{progress.goals.carbs}g</span><span className="data-stat-label">Carbs</span></div></div>
-            <div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{progress.goals.fat}g</span><span className="data-stat-label">Fat</span></div></div>
-          </div>
-        </div>
-      )}
-
-      {(progress.sharing.shareCalories || progress.sharing.shareMacros) && latestNutrition && (
-        <div className="section" style={{ marginTop: 12 }}>
-          <h3>Latest Day</h3>
-          <div className="data-stats">
-            {progress.sharing.shareCalories && <div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{Math.round(latestNutrition.calories || 0)}</span><span className="data-stat-label">Calories</span></div></div>}
-            {progress.sharing.shareMacros && <><div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{Math.round(latestNutrition.protein || 0)}g</span><span className="data-stat-label">Protein</span></div></div><div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{Math.round(latestNutrition.carbs || 0)}g</span><span className="data-stat-label">Carbs</span></div></div><div className="data-stat-item"><div className="data-stat-info"><span className="data-stat-value">{Math.round(latestNutrition.fat || 0)}g</span><span className="data-stat-label">Fat</span></div></div></>}
-          </div>
-        </div>
-      )}
-
-      {progress.sharing.shareWeightHistory && progress.weightHistory?.length > 0 && (
-        <div className="section" style={{ marginTop: 12 }}>
-          <h3>Weight History</h3>
-          <div className="food-list">
-            {progress.weightHistory.slice().reverse().map((entry, index) => (
-              <div className="food-item" key={entry.recordedAt + '-' + index}>
-                <div className="food-info"><h3>{entry.kg.toFixed(1)} kg</h3><div className="food-details"><span>{formatDate(entry.recordedAt)}</span></div></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {progress.sharing.shareActivity && activity.length > 0 && (
-        <div className="section" style={{ marginTop: 12 }}>
-          <h3>Activity — Last 14 Days</h3>
-          <div className="food-list">
-            {activity.slice().reverse().map(entry => (
-              <div className="food-item" key={entry.date}>
-                <div className="food-info"><h3>{formatDate(entry.date)}</h3><div className="food-details"><span>{Math.round(entry.minutes)} min</span><span>{Math.round(entry.calories)} kcal</span><span>{entry.workouts} workouts</span></div></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!progress.sharing.shareCalories && !progress.sharing.shareMacros && !progress.sharing.shareWeight && !progress.sharing.shareWeightHistory && !progress.sharing.shareActivity && !progress.sharing.shareGoals && !progress.sharing.shareCharts && (
-        <p className="empty-state">This user has not enabled any progress categories for sharing.</p>
-      )}
-    </div>
-  )
 }
 
 export default function ConnectionsPanel({ refreshToken = 0, onRefreshComplete }) {
@@ -107,8 +24,6 @@ export default function ConnectionsPanel({ refreshToken = 0, onRefreshComplete }
   const [directEmail, setDirectEmail] = useState('')
   const [directBusy, setDirectBusy] = useState(false)
   const [error, setError] = useState('')
-  const [progress, setProgress] = useState(null)
-  const [loadingProgress, setLoadingProgress] = useState(null)
 
   const load = async () => {
     setBusy(true); setError('')
@@ -191,23 +106,15 @@ export default function ConnectionsPanel({ refreshToken = 0, onRefreshComplete }
 
   const remove = async id => {
     if (!confirm('Remove this connection? They will no longer be able to view your shared progress.')) return
-    try { await api.connections.remove(id); setConnections(items => items.filter(item => item.id !== id)); if (progress?.connectionId === id) setProgress(null) }
+    try { await api.connections.remove(id); setConnections(items => items.filter(item => item.id !== id)) }
     catch (err) { setError(err.message) }
   }
 
-  const viewProgress = async connection => {
-    setLoadingProgress(connection.id); setError('')
-    try {
-      const result = await api.sharing.progress(connection.otherUserId)
-      setProgress({ ...result, connectionId: connection.id })
-    } catch (err) { setError(err.message) }
-    finally { setLoadingProgress(null) }
-  }
 
   return (
     <div className="section" style={{ marginBottom: 20 }}>
       <div className="planner-intro" style={{ marginBottom: 20 }}>
-        <h2><Users size={26} style={{ verticalAlign: 'middle', marginRight: 8 }} />Connections & Progress Sharing</h2>
+        <h2><Users size={26} style={{ verticalAlign: 'middle', marginRight: 8 }} />Connections & Sharing Settings</h2>
         <p>Connect with people you trust and choose exactly what progress they can see.</p>
       </div>
 
@@ -297,7 +204,6 @@ export default function ConnectionsPanel({ refreshToken = 0, onRefreshComplete }
                         <button className="btn btn-primary" type="button" onClick={() => respond(connection.id, 'accept')}><Check size={16} />Accept</button>
                         <button className="btn btn-danger" type="button" onClick={() => respond(connection.id, 'decline')}><X size={16} />Decline</button>
                       </>}
-                      {connection.status === 'accepted' && <button className="btn btn-secondary" type="button" onClick={() => viewProgress(connection)} disabled={loadingProgress === connection.id}><Eye size={16} />{loadingProgress === connection.id ? 'Loading…' : 'View Progress'}</button>}
                       <button className="btn btn-danger" type="button" onClick={() => remove(connection.id)}><Trash2 size={16} />Remove</button>
                     </div>
                   </div>
@@ -306,7 +212,6 @@ export default function ConnectionsPanel({ refreshToken = 0, onRefreshComplete }
             )}
           </div>
 
-          {progress && <ProgressViewer progress={progress} onClose={() => setProgress(null)} />}
         </>
       )}
     </div>
