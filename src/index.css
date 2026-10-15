@@ -4214,3 +4214,84 @@ body {
   .food-library-section .food-item .food-actions { width: 100%; }
   .food-library-section .food-item .food-serving-actions { max-width: 100%; }
 }
+
+/* v1.0.5 mobile: force five navigation targets onto ONE compact row.
+   Earlier generic .tab-navigation flex-wrap rules caused 2+ rows on phones. */
+@media (max-width: 640px) {
+  body { padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  .header .tab-navigation:not(.tab-navigation-customizing) {
+    display: flex !important;
+    flex-flow: row nowrap !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 7px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    height: auto;
+    max-width: 100vw;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .tab-btn.mobile-primary-tab,
+  .header .tab-navigation:not(.tab-navigation-customizing) > .tab-btn.mobile-more-toggle {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    flex-basis: 0% !important;
+    width: 0 !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 50px;
+    margin: 0 !important;
+    padding: 5px 1px !important;
+    align-self: stretch;
+    font-size: .67rem;
+    line-height: 1.15;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .mobile-secondary-tab,
+  .header .tab-navigation:not(.tab-navigation-customizing) > .tab-customize-toggle {
+    display: none !important;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .mobile-secondary-tabs {
+    flex: none;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .tab-btn.mobile-primary-tab svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+}
+
+/* Your Foods: compact action row on small phones; Delete remains icon-sized. */
+@media (max-width: 640px) {
+  .food-library-section .food-item { align-items: stretch; }
+  .food-library-section .food-actions {
+    display: flex;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .food-library-section .food-serving-actions {
+    display: inline-flex;
+    flex: 0 1 auto;
+    width: auto !important;
+    min-width: 0;
+    margin: 0;
+    gap: 5px;
+  }
+  .food-library-section .food-actions > button.btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    align-self: center;
+  }
+  .food-library-section .food-actions > button.food-library-delete {
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    align-self: center;
+  }
+}
