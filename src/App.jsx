@@ -164,7 +164,7 @@ function AdminPanel({ user }) {
           <h2>Accounts ({users.length})</h2>
           {error && <div className="auth-error">{error}</div>}
           {busy ? <div className="empty-state"><RefreshCw className="spinner" size={32} /><p>Loading users…</p></div> : (
-            <div className="food-list">
+            <div className="food-list nutrilog-admin-account-list">
               {users.map(account => (
                 <div className="food-item" key={account.id}>
                   <div className="food-info">
