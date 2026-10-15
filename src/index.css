@@ -4074,3 +4074,47 @@ body {
   .meals-page > .section { min-width: 0; }
   .nutrilog-meal-food-choice { padding: 10px 8px; gap: 8px; }
 }
+
+/* Logged meal editor: mobile-first sheet above the fixed bottom navigation. */
+.logged-meal-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.logged-meal-editor-heading h3 { margin: 0; font-size: 1.1rem; }
+@media (max-width: 640px) {
+  .logged-meal-editor-panel {
+    position: fixed !important;
+    inset: 0 0 0 0;
+    z-index: 300;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: none;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px calc(110px + env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--surface, #171c20) !important;
+    color: var(--text, #f2f4f5);
+    -webkit-overflow-scrolling: touch;
+  }
+  .logged-meal-editor-panel .logged-meal-editor-heading {
+    position: sticky;
+    top: calc(-18px - env(safe-area-inset-top, 0px));
+    z-index: 2;
+    padding: 12px 0;
+    background: var(--surface, #171c20);
+    border-bottom: 1px solid var(--border, rgba(150,160,170,.2));
+  }
+  .logged-meal-editor-panel .meal-food-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    border: 1px solid var(--border, rgba(150,160,170,.2));
+    border-radius: 14px;
+    padding: 14px;
+    background: var(--surface-raised, #232b30);
+    color: var(--text, #f2f4f5);
+  }
+  .logged-meal-editor-panel .meal-food-info span:first-child { color: inherit; overflow-wrap: anywhere; }
+  .logged-meal-editor-panel .meal-food-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .logged-meal-editor-panel .quantity-input { width: 100px; min-height: 44px; box-sizing: border-box; font-size: 16px; }
+  .logged-meal-editor-panel .btn { min-height: 42px; }
+  .logged-meal-editor-panel input { font-size: 16px; }
+}
