@@ -122,7 +122,7 @@ jobs:
           test -n "$APKSIGNER"
           "$APKSIGNER" verify --verbose --print-certs "$APK"
 
-      - name: Rename signed release files
+      - name: Prepare signed release APK
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk nutrilog.apk
 
@@ -141,7 +141,6 @@ jobs:
         with:
           files: |
             nutrilog.apk
-            nutrilog-release.aab
           name: NutriLog ${{ github.ref_name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
