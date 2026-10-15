@@ -1995,6 +1995,54 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 </div>
               </section>
 
+            {/* Quick Add uses the existing saved foods, meals and log API. */}
+            <section className="section nutrilog-quick-add" aria-label="Quick Add Food">
+              <div className="nutrilog-quick-add-heading">
+                <div><h2>Quick Add Food</h2><p>Search your saved foods and meals, choose servings, and log in one step.</p></div>
+              </div>
+              <form onSubmit={handleQuickLog} className="nutrilog-quick-add-form">
+                <div className="nutrilog-quick-search" ref={quickLogSearchRef}>
+                  <label htmlFor="quick-add-search">Food or meal</label>
+                  <input id="quick-add-search" type="search" value={quickLogForm.searchQuery}
+                    onChange={handleQuickLogSearchChange}
+                    onFocus={() => setQuickLogForm(prev => ({ ...prev, showSuggestions: Boolean(prev.searchQuery) }))}
+                    placeholder="Search saved foods and meals…" autoComplete="off" />
+                  {quickLogForm.showSuggestions && quickLogForm.searchQuery.trim() && (
+                    <div className="nutrilog-quick-results" role="listbox" aria-label="Matching foods and meals">
+                      {[
+                        ...getFilteredSuggestions().foods.slice(0, 8).map(item => ({ item, type: 'food' })),
+                        ...getFilteredSuggestions().meals.slice(0, 5).map(item => ({ item, type: 'meal' }))
+                      ].length ? [
+                        ...getFilteredSuggestions().foods.slice(0, 8).map(item => ({ item, type: 'food' })),
+                        ...getFilteredSuggestions().meals.slice(0, 5).map(item => ({ item, type: 'meal' }))
+                      ].map(({ item, type }) => (
+                        <button type="button" key={type + '-' + item.id} className="nutrilog-quick-result"
+                          onClick={() => handleSelectSuggestion(item, type)}>
+                          <span><strong>{item.name}</strong><small>{type === 'meal' ? 'Saved meal' : 'Saved food'}</small></span>
+                          <span>{Math.round(Number(item.calories || 0))} kcal</span>
+                        </button>
+                      )) : <p className="nutrilog-quick-empty">No matches. Create a food in the Foods tab first.</p>}
+                    </div>
+                  )}
+                </div>
+                <label className="nutrilog-quick-field">Servings
+                  <input type="number" min="0.01" step="0.01" inputMode="decimal" value={quickLogForm.quantity}
+                    onChange={e => setQuickLogForm(prev => ({ ...prev, quantity: e.target.value }))} />
+                </label>
+                <label className="nutrilog-quick-field">Date
+                  <input type="date" value={quickLogForm.date} onChange={handleQuickLogDateChange} />
+                </label>
+                <button type="submit" className="btn btn-primary nutrilog-quick-submit" disabled={!quickLogForm.selectedItem}>
+                  + Log Food
+                </button>
+              </form>
+              {quickLogForm.selectedItem && (
+                <p className="nutrilog-quick-selection">
+                  Selected: <strong>{quickLogForm.selectedItem.name}</strong> · {Number(scaleNutrition(quickLogForm.selectedItem, Number(quickLogForm.quantity) || 0).calories || 0).toFixed(0)} kcal
+                </p>
+              )}
+            </section>
+
             {/* Food Log / History */}
             <div className="section" style={{ margin: '0 auto' }}>
               <div>
