@@ -192,7 +192,32 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [profileName, setProfileName] = useState(user?.displayName || '')
   const [profileSaving, setProfileSaving] = useState(false)
   // Navigation
-  const [activeTab, setActiveTab] = useState('tracker')
+  const [activeTab, setActiveTabState] = useState('tracker')
+  const activeTabRef = useRef('tracker')
+  const navigationStack = useRef([])
+  const navigatingBack = useRef(false)
+  const setActiveTab = next => {
+    const tab = typeof next === 'function' ? next(activeTabRef.current) : next
+    if (!tab || tab === activeTabRef.current) return
+    if (!navigatingBack.current) {
+      navigationStack.current.push(activeTabRef.current)
+      window.history.pushState({ nutrilogTab: tab }, '')
+    }
+    activeTabRef.current = tab
+    setActiveTabState(tab)
+  }
+  useEffect(() => {
+    const onPopState = () => {
+      const previous = navigationStack.current.pop()
+      if (previous) {
+        navigatingBack.current = true
+        setActiveTab(previous)
+        navigatingBack.current = false
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
   const [connectionsRefreshToken, setConnectionsRefreshToken] = useState(0)
 
   const connectionsRefreshResolve = useRef(null)
@@ -387,6 +412,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [showMealHistory, setShowMealHistory] = useState(false)
   const [expandedLogEntryId, setExpandedLogEntryId] = useState(null)
   const [editingLogMeal, setEditingLogMeal] = useState(null)
+  const [loggedMealFoodSearch, setLoggedMealFoodSearch] = useState('')
+  const [editingLogEntry, setEditingLogEntry] = useState(null)
   
   const [quickLogForm, setQuickLogForm] = useState({
     selectedItem: null,
@@ -410,18 +437,37 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     localStorage.setItem('nutrilog-tracker-layout', JSON.stringify(trackerLayout))
   }, [trackerLayout])
 
+  // Recheck the device timezone when returning to the app and periodically while open.
+  // This also catches travel and daylight-saving-related timezone configuration changes.
+  const [deviceTimeZone, setDeviceTimeZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC')
+  useEffect(() => {
+    const checkTimeZone = () => {
+      const current = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      setDeviceTimeZone(previous => previous === current ? previous : current)
+    }
+    const onVisible = () => { if (document.visibilityState === 'visible') checkTimeZone() }
+    window.addEventListener('focus', checkTimeZone)
+    document.addEventListener('visibilitychange', onVisible)
+    const interval = setInterval(checkTimeZone, 60000)
+    return () => {
+      window.removeEventListener('focus', checkTimeZone)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(interval)
+    }
+  }, [])
+
   useEffect(() => {
     if (!isInitialLoadComplete) return
     const preferences = {
       theme,
       mode,
       customAccent,
-      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order },
+      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: deviceTimeZone },
       tabOrder
     }
     const timer = setTimeout(() => { api.preferences.save(preferences).catch(() => {}) }, 600)
     return () => clearTimeout(timer)
-  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete])
+  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, deviceTimeZone])
 
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
@@ -429,6 +475,17 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     if (normalized.join('|') !== tabOrder.join('|')) setTabOrder(normalized)
     localStorage.setItem('nutrilog-tab-order-' + (user?.id || 'default'), JSON.stringify(normalized))
   }, [tabOrder, user?.id, user?.role])
+
+  const moveTab = (tabId, direction) => {
+    setTabOrder(prev => {
+      const index = prev.indexOf(tabId)
+      const target = index + direction
+      if (index < 0 || target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
 
   const beginTabDrag = (event, tabId) => {
     if (!customizeTabs) return
@@ -947,6 +1004,66 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     } catch (error) { alert(error.message) }
   }
 
+  const startEditingLogEntry = entry => {
+    const date = new Date(entry.timestamp)
+    const pad = n => String(n).padStart(2, '0')
+    const localTime = Number.isNaN(date.getTime()) ? '' : [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes())
+    setEditingLogEntry({ ...entry, localTime, quantity: String(entry.quantity || 1) })
+  }
+
+  const saveEditingLogEntry = async () => {
+    if (!editingLogEntry) return
+    const entry = editingLogEntry
+    const quantity = Number(entry.quantity)
+    const timestamp = new Date(entry.localTime)
+    if (!entry.name.trim() || !Number.isFinite(quantity) || quantity <= 0 || Number.isNaN(timestamp.getTime())) {
+      alert('Enter a name, valid serving quantity, and date/time.')
+      return
+    }
+    const nutrition = {}
+    for (const field of ['calories', 'protein', 'carbs', 'fat', 'fiber']) {
+      const value = Number(entry[field])
+      if (!Number.isFinite(value) || value < 0) { alert('Nutrition values must be valid nonnegative numbers.'); return }
+      nutrition[field] = Number(value.toFixed(2))
+    }
+    const updated = { ...entry, ...nutrition, name: entry.name.trim(), quantity, timestamp: timestamp.toISOString() }
+    try {
+      const saved = user ? (await api.logs.update(entry.id, updated)).item : null
+      const next = saved ? { ...updated, name: saved.name, calories: Number(saved.calories), protein: Number(saved.protein), carbs: Number(saved.carbs), fat: Number(saved.fat), fiber: Number(saved.fiber), quantity: Number(saved.quantity), timestamp: saved.consumed_at } : updated
+      setLogEntries(prev => prev.map(item => item.id === entry.id ? next : item))
+      setEditingLogEntry(null)
+    } catch (error) { alert(error.message) }
+  }
+
+  const logEntryEditor = editingLogEntry && (
+    <div className="section" role="region" aria-label="Edit food log entry">
+      <h3>Edit food log entry</h3>
+      <div className="form-group"><label>Name<input value={editingLogEntry.name} onChange={e => setEditingLogEntry(prev => ({ ...prev, name: e.target.value }))} /></label></div>
+      <div className="form-group"><label>Date and time<input type="datetime-local" value={editingLogEntry.localTime} onChange={e => setEditingLogEntry(prev => ({ ...prev, localTime: e.target.value }))} /></label></div>
+      <div className="form-group"><label>Servings<input type="number" min="0.01" step="0.01" inputMode="decimal" value={editingLogEntry.quantity} onChange={e => {
+        const value = e.target.value
+        setEditingLogEntry(prev => {
+          const oldQuantity = Number(prev.quantity) || 1
+          const newQuantity = Number(value)
+          if (!Number.isFinite(newQuantity) || newQuantity <= 0) return { ...prev, quantity: value }
+          const scale = newQuantity / oldQuantity
+          return { ...prev, quantity: value, ...Object.fromEntries(['calories', 'protein', 'carbs', 'fat', 'fiber'].map(key => [key, Number((Number(prev[key] || 0) * scale).toFixed(2))])) }
+        })
+      }} /></label></div>
+      <div className="meal-totals-grid">
+        {['calories', 'protein', 'carbs', 'fat', 'fiber'].map(field => <div className="form-group" key={field}>
+          <label>{field.charAt(0).toUpperCase() + field.slice(1)}{field === 'calories' ? ' (kcal)' : ' (g)'}
+            <input type="number" min="0" step="0.01" inputMode="decimal" value={editingLogEntry[field]} onChange={e => setEditingLogEntry(prev => ({ ...prev, [field]: e.target.value }))} />
+          </label>
+        </div>)}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn-primary" onClick={saveEditingLogEntry}>Save Changes</button>
+        <button type="button" className="btn btn-secondary" onClick={() => setEditingLogEntry(null)}>Cancel</button>
+      </div>
+    </div>
+  )
+
   const handleToggleLogMeal = entry => {
     if (entry.type !== 'meal') return
     setExpandedLogEntryId(prev => prev === entry.id ? null : entry.id)
@@ -956,6 +1073,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const handleEditLoggedMeal = entry => {
     if (entry.type !== 'meal') return
     setExpandedLogEntryId(entry.id)
+    setLoggedMealFoodSearch('')
     setEditingLogMeal({
       ...entry,
       name: entry.name,
@@ -969,6 +1087,33 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       foods: prev.foods.map((food, i) => i === index ? { ...food, quantity: value } : food)
     }) : prev)
   }
+
+  const addFoodToLoggedMeal = food => {
+    setEditingLogMeal(prev => prev ? { ...prev, foods: [...prev.foods, {
+      name: food.name, calories: Number(food.calories || 0), protein: Number(food.protein || 0),
+      carbs: Number(food.carbs || 0), fat: Number(food.fat || 0), fiber: Number(food.fiber || 0), quantity: 1
+    }] } : prev)
+    setLoggedMealFoodSearch('')
+  }
+
+  const removeFoodFromLoggedMeal = index => {
+    setEditingLogMeal(prev => prev ? { ...prev, foods: prev.foods.filter((_, i) => i !== index) } : prev)
+  }
+
+  const loggedMealFoodPicker = editingLogMeal && (
+    <div className="form-group" style={{ marginTop: 12 }}>
+      <label>Add food from saved foods
+        <input type="search" placeholder="Search saved foods…" value={loggedMealFoodSearch} onChange={e => setLoggedMealFoodSearch(e.target.value)} />
+      </label>
+      {loggedMealFoodSearch.trim() && <div style={{ maxHeight: 180, overflowY: 'auto', display: 'grid', gap: 6 }}>
+        {savedFoods.filter(food => food.name.toLowerCase().includes(loggedMealFoodSearch.trim().toLowerCase())).slice(0, 20).map(food =>
+          <button type="button" key={food.id} className="btn btn-secondary" onClick={() => addFoodToLoggedMeal(food)}>
+            + {food.name} ({Number(food.calories || 0).toFixed(2)} kcal)
+          </button>
+        )}
+      </div>}
+    </div>
+  )
 
   const handleSaveLoggedMeal = async () => {
     if (!editingLogMeal) return
@@ -1719,8 +1864,15 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
         {customizeTabs && (
           <div className="tab-customizer-hint">
-            <span>↔ Drag the tabs into any order</span>
+            <span>Drag tabs or use the controls below to change their order</span>
             <span>Your layout is saved for this account</span>
+            <div className="tab-order-controls">
+              {tabOrder.map((tabId, index) => <div className="tab-order-item" key={tabId}>
+                <span>{tabLabels[tabId]}</span>
+                <button type="button" disabled={index === 0} onClick={() => moveTab(tabId, -1)} aria-label={`Move ${tabLabels[tabId]} earlier`}>↑</button>
+                <button type="button" disabled={index === tabOrder.length - 1} onClick={() => moveTab(tabId, 1)} aria-label={`Move ${tabLabels[tabId]} later`}>↓</button>
+              </div>)}
+            </div>
           </div>
         )}
       </div>
@@ -1818,15 +1970,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                         <div className="date-header">
                           <h3>{formatDate(dateKey)}</h3>
                           <div className="date-totals">
-                            <span className="total-calories">{Math.round(dateData.totals.calories)} kcal</span>
-                            <span>P: {dateData.totals.protein}g</span>
-                            <span>C: {dateData.totals.carbs}g</span>
-                            <span>F: {dateData.totals.fat}g</span>
-                            {dateData.totals.fiber > 0 && <span>Fiber: {dateData.totals.fiber}g</span>}
+                            <span className="total-calories">{dateData.totals.calories.toFixed(2)} kcal</span>
+                            <span>P: {dateData.totals.protein.toFixed(2)}g</span>
+                            <span>C: {dateData.totals.carbs.toFixed(2)}g</span>
+                            <span>F: {dateData.totals.fat.toFixed(2)}g</span>
+                            {dateData.totals.fiber > 0 && <span>Fiber: {dateData.totals.fiber.toFixed(2)}g</span>}
                           </div>
                         </div>
+                        {editingLogEntry && dateData.entries.some(entry => entry.id === editingLogEntry.id) && logEntryEditor}
                         <div className="date-entries">
-                          <table className="entries-table">
+                          <table className="entries-table current-log">
                             <thead>
                               <tr><th>Time</th><th>Food</th><th>Qty</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                             </thead>
@@ -1850,12 +2003,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
                                   </td>
                                   <td><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={entry.quantity ?? 1} onChange={e => setLogEntries(prev => prev.map(item => item.id === entry.id ? { ...item, quantity: e.target.value } : item))} onBlur={e => handleUpdateLogQuantity(entry, e.target.value)} aria-label={"Quantity for " + entry.name} /></td>
-                                  <td><strong>{entry.calories}</strong></td>
-                                  <td>{entry.protein}g</td>
-                                  <td>{entry.carbs}g</td>
-                                  <td>{entry.fat}g</td>
-                                  <td>{entry.fiber || 0}g</td>
-                                  <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                  <td><strong>{Number(entry.calories || 0).toFixed(2)}</strong></td>
+                                  <td>{Number(entry.protein || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.carbs || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fat || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fiber || 0).toFixed(2)}g</td>
+                                  <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr>
@@ -1874,10 +2027,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                 </div>
                                                 <div className="meal-food-controls">
                                                   <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                   <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
                                             ))}
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                            {loggedMealFoodPicker}
+                                             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                                               <button type="button" className="btn btn-primary" onClick={handleSaveLoggedMeal}>Save Changes</button>
                                               <button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)}>Cancel</button>
                                             </div>
@@ -1933,11 +2088,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   <div className="section" style={{ margin: 0, padding: 16 }}>
                     <h3 style={{ marginTop: 0, textAlign: 'center' }}>{formatHistoryDate(trackerHistoryDate)}</h3>
                     <div className="date-totals" style={{ justifyContent: 'center', marginBottom: 16 }}>
-                      <span className="total-calories">{trackerHistoryTotals.calories} kcal</span>
-                      <span>P: {trackerHistoryTotals.protein}g</span>
-                      <span>C: {trackerHistoryTotals.carbs}g</span>
-                      <span>F: {trackerHistoryTotals.fat}g</span>
-                      <span>Fiber: {trackerHistoryTotals.fiber}g</span>
+                      <span className="total-calories">{trackerHistoryTotals.calories.toFixed(2)} kcal</span>
+                      <span>P: {trackerHistoryTotals.protein.toFixed(2)}g</span>
+                      <span>C: {trackerHistoryTotals.carbs.toFixed(2)}g</span>
+                      <span>F: {trackerHistoryTotals.fat.toFixed(2)}g</span>
+                      <span>Fiber: {trackerHistoryTotals.fiber.toFixed(2)}g</span>
                     </div>
 
                     {trackerHistoryEntries.length === 0 ? (
@@ -1947,7 +2102,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       </div>
                     ) : (
                       <div className="date-entries">
-                        <table className="entries-table">
+                        {editingLogEntry && trackerHistoryEntries.some(entry => entry.id === editingLogEntry.id) && logEntryEditor}
+                        <table className="entries-table history-log">
                           <thead>
                             <tr><th>Time</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                           </thead>
@@ -1970,16 +2126,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
                                   </td>
-                                  <td><strong>{entry.calories}</strong></td>
-                                  <td>{entry.protein}g</td>
-                                  <td>{entry.carbs}g</td>
-                                  <td>{entry.fat}g</td>
-                                  <td>{entry.fiber || 0}g</td>
-                                  <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                  <td><strong>{Number(entry.calories || 0).toFixed(2)}</strong></td>
+                                  <td>{Number(entry.protein || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.carbs || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fat || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fiber || 0).toFixed(2)}g</td>
+                                  <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr>
-                                    <td colSpan="8" style={{ padding: 0 }}>
+                                    <td colSpan="9" style={{ padding: 0 }}>
                                       <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
                                         {editingLogMeal?.id === entry.id ? (
                                           <>
@@ -1994,10 +2150,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                 </div>
                                                 <div className="meal-food-controls">
                                                   <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                   <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
                                             ))}
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                            {loggedMealFoodPicker}
+                                             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                                               <button type="button" className="btn btn-primary" onClick={handleSaveLoggedMeal}>Save Changes</button>
                                               <button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)}>Cancel</button>
                                             </div>
@@ -2384,7 +2542,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       </div>
                     </div>
                     <div className="food-actions">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={foodLogQuantities[food.id] ?? 1} onChange={e => setFoodLogQuantities(prev => ({ ...prev, [food.id]: e.target.value }))} aria-label={"Quantity for " + food.name} /><button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food, foodLogQuantities[food.id] ?? 1)}><Plus size={16} />Log</button></div>
+                      <div className="food-serving-actions"><button type="button" className="btn btn-secondary" onClick={() => setFoodLogQuantities(prev => ({ ...prev, [food.id]: '0.5' }))} aria-label={'Half serving of ' + food.name}>½</button><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={foodLogQuantities[food.id] ?? 1} onChange={e => setFoodLogQuantities(prev => ({ ...prev, [food.id]: e.target.value }))} aria-label={"Quantity for " + food.name} /><button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food, foodLogQuantities[food.id] ?? 1)}><Plus size={16} />Log</button></div>
                       <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
                       <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
                     </div>
@@ -2522,10 +2680,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     <div className="meal-totals" style={{ marginBottom: '12px' }}>
                       <h4>Meal Totals:</h4>
                       <div className="meal-totals-grid">
-                        <span><strong>Calories:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).calories} kcal</span>
-                        <span><strong>Protein:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).protein}g</span>
-                        <span><strong>Carbs:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).carbs}g</span>
-                        <span><strong>Fat:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).fat}g</span>
+                        <span><strong>Calories:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).calories.toFixed(2)} kcal</span>
+                        <span><strong>Protein:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).protein.toFixed(2)}g</span>
+                        <span><strong>Carbs:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).carbs.toFixed(2)}g</span>
+                        <span><strong>Fat:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).fat.toFixed(2)}g</span>
+                        <span><strong>Fiber:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).fiber.toFixed(2)}g</span>
                       </div>
                     </div>
 
