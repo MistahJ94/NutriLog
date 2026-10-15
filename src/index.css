@@ -3803,3 +3803,22 @@ body {
   .date-entries .entries-table tbody tr.nutrilog-meal-group-row td::before { display: none !important; }
   .nutrilog-meal-group-row td span { float: none; white-space: nowrap; }
 }
+
+/* Administrator: explain account actions before an administrator chooses them. */
+.nutrilog-account-options { flex: 1 0 100%; width: 100%; margin-top: 10px; }
+.nutrilog-account-options-toggle { display: inline-flex; align-items: center; gap: 7px; }
+.nutrilog-account-actions { margin-top: 12px; border-top: 1px solid var(--border, #ddd); }
+.nutrilog-account-action {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 14px 0; border-bottom: 1px solid var(--border, #ddd);
+}
+.nutrilog-account-action > div { flex: 1; min-width: 0; }
+.nutrilog-account-action strong { font-size: .92rem; }
+.nutrilog-account-action p { margin: 5px 0 0; color: var(--text-muted, #777); font-size: .8rem; line-height: 1.45; }
+.nutrilog-account-action .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; min-width: 108px; }
+.nutrilog-account-action-danger strong { color: var(--danger, #dc3545); }
+.nutrilog-account-self-note { font-size: .8rem; color: var(--text-muted, #777); }
+@media (max-width: 600px) {
+  .nutrilog-account-action { align-items: stretch; flex-direction: column; gap: 9px; }
+  .nutrilog-account-action .btn { align-self: flex-start; min-width: 130px; }
+}
