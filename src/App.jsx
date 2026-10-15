@@ -412,6 +412,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [showMealHistory, setShowMealHistory] = useState(false)
   const [expandedLogEntryId, setExpandedLogEntryId] = useState(null)
   const [editingLogMeal, setEditingLogMeal] = useState(null)
+  const [editingLogEntry, setEditingLogEntry] = useState(null)
   
   const [quickLogForm, setQuickLogForm] = useState({
     selectedItem: null,
@@ -1001,6 +1002,66 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       setLogEntries(prev => prev.map(item => item.id === entry.id ? next : item))
     } catch (error) { alert(error.message) }
   }
+
+  const startEditingLogEntry = entry => {
+    const date = new Date(entry.timestamp)
+    const pad = n => String(n).padStart(2, '0')
+    const localTime = Number.isNaN(date.getTime()) ? '' : [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes())
+    setEditingLogEntry({ ...entry, localTime, quantity: String(entry.quantity || 1) })
+  }
+
+  const saveEditingLogEntry = async () => {
+    if (!editingLogEntry) return
+    const entry = editingLogEntry
+    const quantity = Number(entry.quantity)
+    const timestamp = new Date(entry.localTime)
+    if (!entry.name.trim() || !Number.isFinite(quantity) || quantity <= 0 || Number.isNaN(timestamp.getTime())) {
+      alert('Enter a name, valid serving quantity, and date/time.')
+      return
+    }
+    const nutrition = {}
+    for (const field of ['calories', 'protein', 'carbs', 'fat', 'fiber']) {
+      const value = Number(entry[field])
+      if (!Number.isFinite(value) || value < 0) { alert('Nutrition values must be valid nonnegative numbers.'); return }
+      nutrition[field] = Number(value.toFixed(2))
+    }
+    const updated = { ...entry, ...nutrition, name: entry.name.trim(), quantity, timestamp: timestamp.toISOString() }
+    try {
+      const saved = user ? (await api.logs.update(entry.id, updated)).item : null
+      const next = saved ? { ...updated, name: saved.name, calories: Number(saved.calories), protein: Number(saved.protein), carbs: Number(saved.carbs), fat: Number(saved.fat), fiber: Number(saved.fiber), quantity: Number(saved.quantity), timestamp: saved.consumed_at } : updated
+      setLogEntries(prev => prev.map(item => item.id === entry.id ? next : item))
+      setEditingLogEntry(null)
+    } catch (error) { alert(error.message) }
+  }
+
+  const logEntryEditor = editingLogEntry && (
+    <div className="section" role="region" aria-label="Edit food log entry">
+      <h3>Edit food log entry</h3>
+      <div className="form-group"><label>Name<input value={editingLogEntry.name} onChange={e => setEditingLogEntry(prev => ({ ...prev, name: e.target.value }))} /></label></div>
+      <div className="form-group"><label>Date and time<input type="datetime-local" value={editingLogEntry.localTime} onChange={e => setEditingLogEntry(prev => ({ ...prev, localTime: e.target.value }))} /></label></div>
+      <div className="form-group"><label>Servings<input type="number" min="0.01" step="0.01" inputMode="decimal" value={editingLogEntry.quantity} onChange={e => {
+        const value = e.target.value
+        setEditingLogEntry(prev => {
+          const oldQuantity = Number(prev.quantity) || 1
+          const newQuantity = Number(value)
+          if (!Number.isFinite(newQuantity) || newQuantity <= 0) return { ...prev, quantity: value }
+          const scale = newQuantity / oldQuantity
+          return { ...prev, quantity: value, ...Object.fromEntries(['calories', 'protein', 'carbs', 'fat', 'fiber'].map(key => [key, Number((Number(prev[key] || 0) * scale).toFixed(2))])) }
+        })
+      }} /></label></div>
+      <div className="meal-totals-grid">
+        {['calories', 'protein', 'carbs', 'fat', 'fiber'].map(field => <div className="form-group" key={field}>
+          <label>{field.charAt(0).toUpperCase() + field.slice(1)}{field === 'calories' ? ' (kcal)' : ' (g)'}
+            <input type="number" min="0" step="0.01" inputMode="decimal" value={editingLogEntry[field]} onChange={e => setEditingLogEntry(prev => ({ ...prev, [field]: e.target.value }))} />
+          </label>
+        </div>)}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn-primary" onClick={saveEditingLogEntry}>Save Changes</button>
+        <button type="button" className="btn btn-secondary" onClick={() => setEditingLogEntry(null)}>Cancel</button>
+      </div>
+    </div>
+  )
 
   const handleToggleLogMeal = entry => {
     if (entry.type !== 'meal') return
@@ -1880,13 +1941,14 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                         <div className="date-header">
                           <h3>{formatDate(dateKey)}</h3>
                           <div className="date-totals">
-                            <span className="total-calories">{Math.round(dateData.totals.calories)} kcal</span>
-                            <span>P: {dateData.totals.protein}g</span>
-                            <span>C: {dateData.totals.carbs}g</span>
-                            <span>F: {dateData.totals.fat}g</span>
-                            {dateData.totals.fiber > 0 && <span>Fiber: {dateData.totals.fiber}g</span>}
+                            <span className="total-calories">{dateData.totals.calories.toFixed(2)} kcal</span>
+                            <span>P: {dateData.totals.protein.toFixed(2)}g</span>
+                            <span>C: {dateData.totals.carbs.toFixed(2)}g</span>
+                            <span>F: {dateData.totals.fat.toFixed(2)}g</span>
+                            {dateData.totals.fiber > 0 && <span>Fiber: {dateData.totals.fiber.toFixed(2)}g</span>}
                           </div>
                         </div>
+                        {editingLogEntry && dateData.entries.some(entry => entry.id === editingLogEntry.id) && logEntryEditor}
                         <div className="date-entries">
                           <table className="entries-table current-log">
                             <thead>
@@ -1912,12 +1974,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
                                   </td>
                                   <td><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={entry.quantity ?? 1} onChange={e => setLogEntries(prev => prev.map(item => item.id === entry.id ? { ...item, quantity: e.target.value } : item))} onBlur={e => handleUpdateLogQuantity(entry, e.target.value)} aria-label={"Quantity for " + entry.name} /></td>
-                                  <td><strong>{entry.calories}</strong></td>
-                                  <td>{entry.protein}g</td>
-                                  <td>{entry.carbs}g</td>
-                                  <td>{entry.fat}g</td>
-                                  <td>{entry.fiber || 0}g</td>
-                                  <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                  <td><strong>{Number(entry.calories || 0).toFixed(2)}</strong></td>
+                                  <td>{Number(entry.protein || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.carbs || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fat || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fiber || 0).toFixed(2)}g</td>
+                                  <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr>
@@ -2032,12 +2094,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
                                   </td>
-                                  <td><strong>{entry.calories}</strong></td>
-                                  <td>{entry.protein}g</td>
-                                  <td>{entry.carbs}g</td>
-                                  <td>{entry.fat}g</td>
-                                  <td>{entry.fiber || 0}g</td>
-                                  <td><button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                  <td><strong>{Number(entry.calories || 0).toFixed(2)}</strong></td>
+                                  <td>{Number(entry.protein || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.carbs || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fat || 0).toFixed(2)}g</td>
+                                  <td>{Number(entry.fiber || 0).toFixed(2)}g</td>
+                                  <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr>
@@ -2584,10 +2646,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     <div className="meal-totals" style={{ marginBottom: '12px' }}>
                       <h4>Meal Totals:</h4>
                       <div className="meal-totals-grid">
-                        <span><strong>Calories:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).calories} kcal</span>
-                        <span><strong>Protein:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).protein}g</span>
-                        <span><strong>Carbs:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).carbs}g</span>
-                        <span><strong>Fat:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).fat}g</span>
+                        <span><strong>Calories:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).calories.toFixed(2)} kcal</span>
+                        <span><strong>Protein:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).protein.toFixed(2)}g</span>
+                        <span><strong>Carbs:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).carbs.toFixed(2)}g</span>
+                        <span><strong>Fat:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).fat.toFixed(2)}g</span>
+                        <span><strong>Fiber:</strong> {calculateMealTotals(mealFormData.selectedFoods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 }))).fiber.toFixed(2)}g</span>
                       </div>
                     </div>
 
