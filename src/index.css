@@ -3575,3 +3575,15 @@ body {
   .nutrilog-macro-summary strong { font-size: .76rem; }
   .nutrilog-macro-summary small { font-size: .68rem; }
 }
+
+/* Tracker overview is now the sole daily summary. Use horizontal desktop layout. */
+@media (min-width: 900px) {
+  .nutrilog-daily-overview {
+    grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+    justify-items: center;
+    align-items: center;
+    gap: clamp(18px, 4vw, 60px);
+    padding: 24px clamp(20px, 4vw, 50px);
+  }
+  .nutrilog-macro-overview { width: 100%; max-width: 660px; }
+}
