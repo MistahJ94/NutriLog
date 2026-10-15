@@ -3164,12 +3164,17 @@ body {
   .date-entries .entries-table tbody td.name-cell { grid-column: 1 / -1; font-weight: 700; }
   .date-entries .entries-table tbody td.time-cell { grid-column: 1 / -1; color: var(--text-muted); font-size: .82rem; }
   .date-entries .entries-table tbody td:not(.name-cell):not(.time-cell)::before { content: ''; display: block; font-size: .72rem; color: var(--text-muted); }
-  .date-entries .entries-table tbody td:nth-child(3)::before { content: 'Quantity / Calories'; }
-  .date-entries .entries-table tbody td:nth-child(4)::before { content: 'Calories / Protein'; }
-  .date-entries .entries-table tbody td:nth-child(5)::before { content: 'Protein / Carbs'; }
-  .date-entries .entries-table tbody td:nth-child(6)::before { content: 'Carbs / Fat'; }
-  .date-entries .entries-table tbody td:nth-child(7)::before { content: 'Fat / Fiber'; }
-  .date-entries .entries-table tbody td:nth-child(8)::before { content: 'Fiber / Actions'; }
+  .date-entries .current-log tbody td:nth-child(3)::before { content: 'Servings'; }
+  .date-entries .current-log tbody td:nth-child(4)::before { content: 'Calories'; }
+  .date-entries .current-log tbody td:nth-child(5)::before { content: 'Protein'; }
+  .date-entries .current-log tbody td:nth-child(6)::before { content: 'Carbs'; }
+  .date-entries .current-log tbody td:nth-child(7)::before { content: 'Fat'; }
+  .date-entries .current-log tbody td:nth-child(8)::before { content: 'Fiber'; }
+  .date-entries .history-log tbody td:nth-child(3)::before { content: 'Calories'; }
+  .date-entries .history-log tbody td:nth-child(4)::before { content: 'Protein'; }
+  .date-entries .history-log tbody td:nth-child(5)::before { content: 'Carbs'; }
+  .date-entries .history-log tbody td:nth-child(6)::before { content: 'Fat'; }
+  .date-entries .history-log tbody td:nth-child(7)::before { content: 'Fiber'; }
   .date-entries .entries-table tbody td:last-child::before { content: none; }
   .date-entries .entries-table tbody tr:has(> td[colspan]) { display: block; }
   .date-entries .entries-table tbody td[colspan] { width: 100%; }
