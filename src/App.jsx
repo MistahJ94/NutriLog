@@ -1851,6 +1851,14 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 </button>
               )
             })}
+            <button
+              type="button"
+              className="tab-btn mobile-secondary-menu-tab mobile-arrange-tabs"
+              onClick={() => { setCustomizeTabs(true); setShowMobileMore(false) }}
+            >
+              <Settings size={18} />
+              Arrange Tabs
+            </button>
           </div>
           <button
             type="button"
