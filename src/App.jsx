@@ -358,15 +358,20 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [customAccent, setCustomAccent] = useState(() => initialServerData?.preferences?.customAccent || localStorage.getItem('nutrilog-custom-accent') || '#F97316')
   const [trackerLayout, setTrackerLayout] = useState(() => {
     try {
+      // Prefer the account's server-backed layout, then its device backup.
+      // Keep the legacy key as a migration fallback for existing APK installs.
       const serverLayout = initialServerData?.preferences?.trackerLayout
-      if (serverLayout && typeof serverLayout === 'object' && Object.keys(serverLayout).length) return { ...serverLayout, customize: false }
-      const saved = JSON.parse(localStorage.getItem('nutrilog-tracker-layout'))
+      const accountKey = 'nutrilog-tracker-layout-' + (user?.id || 'default')
+      const accountLayout = JSON.parse(localStorage.getItem(accountKey) || 'null')
+      const legacyLayout = JSON.parse(localStorage.getItem('nutrilog-tracker-layout') || 'null')
+      const saved = (serverLayout && typeof serverLayout === 'object' && Object.keys(serverLayout).length)
+        ? serverLayout : (accountLayout || legacyLayout)
       return {
         template: saved?.template || 'balanced',
         columns: Number(saved?.columns) || 3,
-        customize: Boolean(saved?.customize),
-        cards: saved?.cards || {},
-        order: Array.isArray(saved?.order) ? saved.order : ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber']
+        customize: false,
+        cards: saved?.cards && typeof saved.cards === 'object' ? saved.cards : {},
+        order: Array.isArray(saved?.order) && saved.order.length ? saved.order : ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber']
       }
     } catch {
       return { template: 'custom', columns: 3, customize: false, cards: {}, order: ['calories', 'remaining', 'protein', 'carbs', 'fat', 'fiber'] }
@@ -477,8 +482,17 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   }, [theme, mode, customAccent])
 
   useEffect(() => {
-    localStorage.setItem('nutrilog-tracker-layout', JSON.stringify(trackerLayout))
-  }, [trackerLayout])
+    // APK upgrades retain WebView storage; an account-scoped backup also avoids
+    // one user's tile arrangement overwriting another user's arrangement.
+    const persisted = JSON.stringify({
+      template: trackerLayout.template,
+      columns: trackerLayout.columns,
+      cards: trackerLayout.cards,
+      order: trackerLayout.order
+    })
+    localStorage.setItem('nutrilog-tracker-layout-' + (user?.id || 'default'), persisted)
+    localStorage.setItem('nutrilog-tracker-layout', persisted)
+  }, [trackerLayout, user?.id])
 
   // Recheck the device timezone when returning to the app and periodically while open.
   // This also catches travel and daylight-saving-related timezone configuration changes.
