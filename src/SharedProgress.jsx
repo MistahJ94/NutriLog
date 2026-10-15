@@ -5,7 +5,9 @@ import './SharedProgress.css'
 
 const dayLabel = value => {
   if (!value) return 'Unknown date'
-  const date = new Date(value)
+  // Server sends the sharer's local calendar day, not a UTC instant.
+  const day = typeof value === 'string' ? value.slice(0, 10) : ''
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(day + 'T12:00:00') : new Date(value)
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString()
 }
 const num = value => Number.isFinite(Number(value)) ? Number(value) : 0
