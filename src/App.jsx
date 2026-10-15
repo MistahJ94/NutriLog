@@ -1707,6 +1707,19 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   }
 
   const todayDateString = getLocalDateString()
+  // Legacy log entries do not have a meal category. Group by local time of day.
+  const mealPeriodForEntry = entry => {
+    const date = new Date(entry.timestamp)
+    if (Number.isNaN(date.getTime())) return 'Other'
+    const hour = date.getHours()
+    return hour >= 5 && hour < 11 ? 'Breakfast'
+      : hour >= 11 && hour < 16 ? 'Lunch'
+      : hour >= 16 && hour < 21 ? 'Dinner' : 'Snacks'
+  }
+  const groupLogEntries = entries => ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Other']
+    .map(label => ({ label, entries: entries.filter(entry => mealPeriodForEntry(entry) === label) }))
+    .filter(group => group.entries.length)
+
   const todayLogEntries = logEntries.filter(entry => {
     if (!entry.timestamp) return false
     const date = new Date(entry.timestamp)
@@ -2088,7 +2101,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                               <tr><th>Time</th><th>Food</th><th>Qty</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                             </thead>
                             <tbody>
-                              {dateData.entries.map(entry => (
+                              {groupLogEntries(dateData.entries).flatMap(group => [<tr key={'group-' + group.label} className="nutrilog-meal-group-row"><td colSpan="9"><strong>{group.label}</strong><span>{group.entries.length} entries · {Math.round(group.entries.reduce((sum, entry) => sum + Number(entry.calories || 0), 0))} kcal</span></td></tr>, ...group.entries.map(entry => (
                                 <Fragment key={entry.id}>
                                   <tr>
                                   <td className="time-cell">{formatTime(entry.timestamp)}</td>
@@ -2162,7 +2175,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                   </tr>
                                 )}
                                 </Fragment>
-                              ))}
+                              ))])}
                             </tbody>
                           </table>
                         </div>
@@ -2212,7 +2225,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                             <tr><th>Time</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                           </thead>
                           <tbody>
-                            {trackerHistoryEntries.map(entry => (
+                            {groupLogEntries(trackerHistoryEntries).flatMap(group => [<tr key={'history-group-' + group.label} className="nutrilog-meal-group-row"><td colSpan="8"><strong>{group.label}</strong><span>{group.entries.length} entries · {Math.round(group.entries.reduce((sum, entry) => sum + Number(entry.calories || 0), 0))} kcal</span></td></tr>, ...group.entries.map(entry => (
                               <Fragment key={entry.id}>
                                 <tr>
                                   <td className="time-cell">{formatTime(entry.timestamp)}</td>
@@ -2285,7 +2298,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                   </tr>
                                 )}
                               </Fragment>
-                            ))}
+                            ))])}
                           </tbody>
                         </table>
                       </div>
