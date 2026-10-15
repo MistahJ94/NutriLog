@@ -3349,3 +3349,16 @@ body {
     flex-shrink: 0;
   }
 }
+
+/* Center the two-column More menu beneath the mobile navigation row. */
+@media (max-width: 640px) {
+  .tab-navigation:not(.tab-navigation-customizing) {
+    position: relative;
+  }
+  .tab-navigation:not(.tab-navigation-customizing) .mobile-secondary-tabs {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    margin: 0;
+  }
+}
