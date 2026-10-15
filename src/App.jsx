@@ -2057,11 +2057,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   <div className="section" style={{ margin: 0, padding: 16 }}>
                     <h3 style={{ marginTop: 0, textAlign: 'center' }}>{formatHistoryDate(trackerHistoryDate)}</h3>
                     <div className="date-totals" style={{ justifyContent: 'center', marginBottom: 16 }}>
-                      <span className="total-calories">{trackerHistoryTotals.calories} kcal</span>
-                      <span>P: {trackerHistoryTotals.protein}g</span>
-                      <span>C: {trackerHistoryTotals.carbs}g</span>
-                      <span>F: {trackerHistoryTotals.fat}g</span>
-                      <span>Fiber: {trackerHistoryTotals.fiber}g</span>
+                      <span className="total-calories">{trackerHistoryTotals.calories.toFixed(2)} kcal</span>
+                      <span>P: {trackerHistoryTotals.protein.toFixed(2)}g</span>
+                      <span>C: {trackerHistoryTotals.carbs.toFixed(2)}g</span>
+                      <span>F: {trackerHistoryTotals.fat.toFixed(2)}g</span>
+                      <span>Fiber: {trackerHistoryTotals.fiber.toFixed(2)}g</span>
                     </div>
 
                     {trackerHistoryEntries.length === 0 ? (
@@ -2071,6 +2071,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       </div>
                     ) : (
                       <div className="date-entries">
+                        {editingLogEntry && trackerHistoryEntries.some(entry => entry.id === editingLogEntry.id) && logEntryEditor}
                         <table className="entries-table history-log">
                           <thead>
                             <tr><th>Time</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
@@ -2103,7 +2104,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr>
-                                    <td colSpan="8" style={{ padding: 0 }}>
+                                    <td colSpan="9" style={{ padding: 0 }}>
                                       <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
                                         {editingLogMeal?.id === entry.id ? (
                                           <>
