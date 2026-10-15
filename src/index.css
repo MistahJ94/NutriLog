@@ -3822,3 +3822,37 @@ body {
   .nutrilog-account-action { align-items: stretch; flex-direction: column; gap: 9px; }
   .nutrilog-account-action .btn { align-self: flex-start; min-width: 130px; }
 }
+
+/* Accounts overflow correction: keep controls below the identity, never beside it. */
+.nutrilog-admin-account-list { max-height: none; overflow: visible; min-width: 0; width: 100%; }
+.nutrilog-admin-account-list .food-item {
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
+  width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; gap: 0;
+  overflow: visible; transform: none;
+}
+.nutrilog-admin-account-list .food-item:hover { transform: none; }
+.nutrilog-admin-account-list .food-info {
+  width: 100%; min-width: 0; flex: 0 1 auto; overflow-wrap: anywhere;
+}
+.nutrilog-admin-account-list .food-info h3 {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  overflow-wrap: anywhere; word-break: break-word; line-height: 1.35;
+  margin: 0 0 9px;
+}
+.nutrilog-admin-account-list .food-details {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 7px 12px;
+}
+.nutrilog-admin-account-list .nutrilog-account-options {
+  display: block; width: 100%; max-width: 100%; min-width: 0;
+  flex: none; margin-top: 14px;
+}
+.nutrilog-admin-account-list .nutrilog-account-options-toggle {
+  display: inline-flex; width: auto; max-width: 100%; min-width: 0;
+  box-sizing: border-box; white-space: normal; overflow-wrap: anywhere;
+  padding: 9px 13px;
+}
+.nutrilog-admin-account-list .nutrilog-account-actions { min-width: 0; }
+.nutrilog-admin-account-list .nutrilog-account-action { min-width: 0; }
+@media (max-width: 600px) {
+  .nutrilog-admin-account-list .nutrilog-account-options-toggle { width: 100%; justify-content: center; }
+}
