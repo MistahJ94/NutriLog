@@ -2583,7 +2583,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
 
             {/* Saved Foods List */}
-            <div className="section">
+            <div className="section food-library-section">
               <h2>Your Foods ({savedFoods.length})</h2>
                           <div className="food-library-controls">
               <div className="food-search-wrap"><Search size={18} /><input type="search" value={foodSearch} onChange={e => setFoodSearch(e.target.value)} placeholder="Search your foods..." aria-label="Search your foods" /></div>
