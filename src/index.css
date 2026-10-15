@@ -3587,3 +3587,86 @@ body {
   }
   .nutrilog-macro-overview { width: 100%; max-width: 660px; }
 }
+
+/* NutriLog refreshed food diary and food library.
+   Layout-only: keeps all existing entry edit, delete, quantity and meal actions. */
+@media (max-width: 700px) {
+  .date-entries .entries-table tbody { gap: 12px; }
+  .date-entries .entries-table tbody tr:not(:has(> td[colspan])) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 14px 12px;
+    gap: 10px 4px;
+    border-radius: 16px;
+    background: var(--surface-alt, #fff);
+    border: 1px solid var(--border, #ddd);
+    box-shadow: 0 2px 8px rgba(0,0,0,.045);
+  }
+  .date-entries .entries-table tbody td.time-cell {
+    grid-column: 1 / -1;
+    font-size: .73rem;
+    opacity: .78;
+    order: -2;
+  }
+  .date-entries .entries-table tbody td.name-cell {
+    grid-column: 1 / -1;
+    font-size: 1rem;
+    font-weight: 700;
+    order: -1;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--border, #ddd);
+  }
+  .date-entries .entries-table tbody td.log-macro-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 1px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--accent, #f97316) 5%, transparent);
+    min-width: 0;
+  }
+  .date-entries .entries-table tbody td.log-macro-cell .log-macro-label {
+    font-size: .68rem;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+  .date-entries .entries-table tbody td.log-macro-cell strong {
+    font-size: clamp(.64rem, 2.3vw, .86rem);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+  .date-entries .current-log tbody td:nth-child(3) {
+    grid-column: 1 / -1;
+    order: 1;
+    padding: 7px 0 0;
+    border-top: 1px solid var(--border, #ddd);
+  }
+  .date-entries .entries-table tbody td:last-child {
+    grid-column: 1 / -1;
+    order: 2;
+    margin-top: 0;
+  }
+  .date-entries .entries-table tbody tr:has(> td[colspan]) { border: 0; padding: 0; background: transparent; box-shadow: none; }
+  .date-header { align-items: flex-start; gap: 8px; }
+  .date-totals { justify-content: flex-start; }
+}
+@media (max-width: 380px) {
+  .date-entries .entries-table tbody tr:not(:has(> td[colspan])) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .date-entries .entries-table tbody td.log-macro-cell { min-height: 56px; }
+}
+@media (min-width: 701px) {
+  .date-entries .entries-table {
+    border-collapse: separate;
+    border-spacing: 0 6px;
+  }
+  .date-entries .entries-table tbody tr:not(:has(> td[colspan])) { background: var(--surface-raised, #fff); }
+  .date-entries .entries-table tbody tr:not(:has(> td[colspan])) td:first-child { border-radius: 10px 0 0 10px; }
+  .date-entries .entries-table tbody tr:not(:has(> td[colspan])) td:last-child { border-radius: 0 10px 10px 0; }
+}
+.food-library-section .food-item { border-radius: 15px; }
+.food-library-section .food-item .btn { border-radius: 10px; }
+.food-library-section .food-info h3 { line-height: 1.3; }
