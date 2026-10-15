@@ -4118,3 +4118,99 @@ body {
   .logged-meal-editor-panel .btn { min-height: 42px; }
   .logged-meal-editor-panel input { font-size: 16px; }
 }
+
+/* Mobile bottom bar: explicitly override legacy two-column tab layouts. */
+@media (max-width: 640px) {
+  body { padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+  .header .tab-navigation:not(.tab-navigation-customizing) {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-auto-flow: row;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 4px;
+    min-height: 0;
+    padding: 7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
+    flex-wrap: nowrap !important;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .mobile-primary-tab,
+  .header .tab-navigation:not(.tab-navigation-customizing) > .mobile-more-toggle {
+    display: flex !important;
+    grid-row: 1;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+    min-height: 52px;
+    height: 52px;
+    flex: none !important;
+    padding: 5px 1px !important;
+    margin: 0 !important;
+    font-size: .68rem;
+    box-sizing: border-box;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .mobile-secondary-tab,
+  .header .tab-navigation:not(.tab-navigation-customizing) > .tab-customize-toggle {
+    display: none !important;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .mobile-secondary-tabs {
+    grid-row: auto;
+  }
+  .header .tab-navigation:not(.tab-navigation-customizing) > .mobile-secondary-tabs[aria-hidden="false"] {
+    display: grid !important;
+  }
+}
+
+/* Your Foods: compact, consistent actions independent of legacy button sizing. */
+.food-library-section .food-item .food-actions {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  width: auto;
+  max-width: 100%;
+}
+.food-library-section .food-item .food-actions > .btn {
+  display: inline-flex;
+  flex: 0 0 auto !important;
+  align-self: center;
+  width: auto !important;
+  max-width: max-content;
+  min-width: 0 !important;
+  min-height: 40px;
+  padding: 8px 12px !important;
+}
+.food-library-section .food-item .food-actions > .food-library-delete.btn {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  aspect-ratio: 1;
+}
+.food-library-section .food-item .food-serving-actions {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  flex-wrap: nowrap;
+  width: auto !important;
+  min-width: 0;
+  margin: 0;
+}
+.food-library-section .food-item .food-serving-actions > .btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 36px;
+  min-height: 40px;
+}
+.food-library-section .food-item .food-serving-actions > .quantity-input {
+  flex: 0 0 58px !important;
+  width: 58px !important;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .food-library-section .food-item .food-actions { width: 100%; }
+  .food-library-section .food-item .food-serving-actions { max-width: 100%; }
+}
