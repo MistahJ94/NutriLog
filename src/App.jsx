@@ -14,6 +14,30 @@ const getLocalDateString = (date = new Date()) => {
 }
 import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition, getConfiguredServerUrl, isNutriLogNative, isOfflineMode } from './services'
 
+function LoggedMealServingInput({ quantity, foodName, onCommit }) {
+  const [draft, setDraft] = useState(String(quantity ?? 1))
+  useEffect(() => { setDraft(String(quantity ?? 1)) }, [quantity])
+  const commit = () => {
+    const trimmed = draft.trim()
+    const parsed = Number(trimmed)
+    if (!trimmed || !Number.isFinite(parsed) || parsed <= 0) {
+      setDraft(String(quantity ?? 1))
+      return
+    }
+    const normalized = String(parsed)
+    setDraft(normalized)
+    if (parsed !== Number(quantity)) onCommit(normalized)
+  }
+  return <input className="quantity-input" type="text" inputMode="decimal"
+    value={draft} onChange={event => {
+      const next = event.target.value.replace(',', '.')
+      if (/^\d*(?:\.\d*)?$/.test(next)) setDraft(next)
+    }}
+    onBlur={commit}
+    onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
+    aria-label={`Servings of ${foodName}`} title="Enter a positive quantity, such as 0.5" />
+}
+
 function AdminPanel({ user }) {
   const [users, setUsers] = useState([])
   const [expandedAccountId, setExpandedAccountId] = useState(null)
@@ -2177,7 +2201,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" defaultValue={food.quantity ?? 1} onBlur={e => { const value = e.target.value.trim(); if (!Number.isFinite(Number(value)) || Number(value) <= 0) { e.target.value = String(food.quantity ?? 1); return; } handleLoggedMealFoodQuantityChange(index, value); }} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
+                                                  <LoggedMealServingInput quantity={food.quantity} foodName={food.name} onCommit={value => handleLoggedMealFoodQuantityChange(index, value)} />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
@@ -2300,7 +2324,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" defaultValue={food.quantity ?? 1} onBlur={e => { const value = e.target.value.trim(); if (!Number.isFinite(Number(value)) || Number(value) <= 0) { e.target.value = String(food.quantity ?? 1); return; } handleLoggedMealFoodQuantityChange(index, value); }} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
+                                                  <LoggedMealServingInput quantity={food.quantity} foodName={food.name} onCommit={value => handleLoggedMealFoodQuantityChange(index, value)} />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
