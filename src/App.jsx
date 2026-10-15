@@ -1962,22 +1962,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             <div className="tracker-dashboard-header">
               <div>
                 <h2>Daily Dashboard</h2>
-                <p>{showTrackerHistory ? 'Showing the selected history date on your nutrition cards.' : 'Arrange your nutrition cards to fit the way you track.'}</p>
+                <p>{showTrackerHistory ? 'Showing nutrition progress for the selected date.' : 'Your daily calorie and macro progress at a glance.'}</p>
               </div>
-              <div className="tracker-layout-actions">
-                {trackerLayout.customize && (
-                  <button type="button" className="btn btn-secondary tracker-reset-colors-btn" onClick={resetAllTrackerColors}>
-                    Reset All Colors
-                  </button>
-                )}
-                <button type="button" className={trackerLayout.customize ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTrackerLayout(prev => ({ ...prev, customize: !prev.customize }))}>
-                  <Settings size={16} /> {trackerLayout.customize ? 'Done Customizing' : 'Customize Cards'}
-                </button>
-              </div>
+  
             </div>
 
-            {!trackerLayout.customize && (
-              <section className="nutrilog-daily-overview" aria-label="Daily nutrition overview">
+            <section className="nutrilog-daily-overview" aria-label="Daily nutrition overview">
                 <div className="nutrilog-calorie-ring" style={{ '--daily-progress': `${Math.max(0, Math.min(100, Number(selectedTrackerProgress) || 0))}%` }}>
                   <div className="nutrilog-calorie-ring-inner">
                     <Flame size={25} aria-hidden="true" />
@@ -2004,44 +1994,6 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   ))}
                 </div>
               </section>
-            )}
-
-            {trackerLayout.customize && (
-              <div className="tracker-customizer-inline">
-                <span>↔ Drag the grip on a card to move it</span>
-                <span>↘ Drag the corner to resize it</span>
-              </div>
-            )}
-            <div className={`stats-grid tracker-stats-grid ${trackerLayout.customize ? 'tracker-grid-customizing' : ''}`} style={{ '--tracker-columns': trackerLayout.columns || 3 }}>
-              {orderedTrackerCards.map(card => {
-                const config = trackerLayout.cards[card.id] || {}
-                return (
-                  <div key={card.id} data-tracker-card-id={card.id} className={`stat-card ${card.className || ''} tracker-card-size-${config.size || 'normal'} tracker-card-orientation-${config.orientation || 'vertical'} ${draggingTrackerCard === card.id ? 'tracker-card-dragging' : ''}`}>
-                    <div className="stat-label">{trackerLayout.customize && <button type="button" className="tracker-card-drag-dot" aria-label={`Move ${card.label} card`} onPointerDown={event => beginTrackerDrag(event, card.id)}>⠿</button>}{card.label}</div>
-                    <div className="stat-value" style={{ fontSize: card.id === 'calories' || card.id === 'remaining' ? undefined : '2rem', color: card.id === 'remaining' && selectedTrackerRemaining < 0 ? '#D86C70' : undefined }}>{card.value}</div>
-                    <div className="stat-subtext">{card.subtext}</div>
-                    {card.progress !== undefined && (() => {
-                      const visual = (trackerLayout.cards[card.id] || {}).visual || 'bar'
-                      if (visual === 'none') return null
-                      if (visual === 'ring') return <div className="tracker-visual-ring" style={{ '--tracker-progress': `${card.progress}%`, '--tracker-color': (trackerLayout.cards[card.id] || {}).color || 'var(--accent)' }}><div>{Math.round(card.progress)}%</div></div>
-                      if (visual === 'circle') return <div className="tracker-visual-circle" style={{ '--tracker-progress': `${card.progress}%`, '--tracker-color': (trackerLayout.cards[card.id] || {}).color || 'var(--accent)' }}><span>{Math.round(card.progress)}%</span></div>
-                      return <div className="progress-bar"><div className="progress-fill" style={{ width: `${card.progress}%`, background: (trackerLayout.cards[card.id] || {}).color || undefined }}></div></div>
-                    })()}
-                    {trackerLayout.customize && card.progress !== undefined && <div className="tracker-visual-controls">
-                      <select className="tracker-visual-select" value={(trackerLayout.cards[card.id] || {}).visual || 'bar'} onChange={event => updateTrackerCard(card.id, 'visual', event.target.value)} aria-label={`Visual style for ${card.label}`}>
-                        <option value="bar">Bar</option><option value="ring">Ring</option><option value="circle">Circle</option><option value="none">Number only</option>
-                      </select>
-                      <label className="tracker-color-control">Fill <input type="color" value={(trackerLayout.cards[card.id] || {}).color || '#6B9080'} onChange={event => updateTrackerCard(card.id, 'color', event.target.value)} aria-label={`Fill color for ${card.label}`} /></label>
-                      <div className="tracker-color-actions">
-                        <button type="button" className="tracker-color-action" onClick={() => applyTrackerColorToAll(card.id)} disabled={!(trackerLayout.cards[card.id] || {}).color} title="Apply this tile's custom color to all tiles">Apply to All</button>
-                        <button type="button" className="tracker-color-action" onClick={() => resetTrackerCardColor(card.id)} disabled={!(trackerLayout.cards[card.id] || {}).color} title="Reset this tile to its original color">Reset</button>
-                      </div>
-                    </div>}
-                    {trackerLayout.customize && <button type="button" className="tracker-card-resize-handle" aria-label={`Resize ${card.label} card`} onPointerDown={event => beginTrackerResize(event, card.id)} title="Drag to resize">↘</button>}
-                  </div>
-                )
-              })}
-            </div>
 
             {/* Food Log / History */}
             <div className="section" style={{ margin: '0 auto' }}>
