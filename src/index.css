@@ -3287,3 +3287,35 @@ body {
     color: var(--text);
   }
 }
+
+/* Arrange Tabs on phones: use readable, evenly sized drag targets rather than
+   the narrow widths reserved for the normal four-tab navigation bar. */
+@media (max-width: 640px) {
+  .tab-navigation.tab-navigation-customizing {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: stretch;
+  }
+  .tab-navigation.tab-navigation-customizing > .tab-btn.tab-customizing {
+    width: 100% !important;
+    min-width: 0;
+    flex: none !important;
+    padding: 11px 9px;
+    justify-content: center;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    font-size: .82rem;
+  }
+  .tab-navigation.tab-navigation-customizing > .mobile-more-toggle,
+  .tab-navigation.tab-navigation-customizing > .mobile-secondary-tabs {
+    display: none;
+  }
+  .tab-navigation.tab-navigation-customizing > .tab-customize-toggle {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+  }
+}
