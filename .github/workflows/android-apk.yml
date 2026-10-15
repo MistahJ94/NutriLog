@@ -106,13 +106,13 @@ jobs:
           }
           GRADLE
 
-      - name: Build signed APK and AAB
+      - name: Build signed APK
         working-directory: android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease bundleRelease
+        run: ./gradlew --no-daemon assembleRelease
 
       - name: Verify Android release APK signature
         run: |
@@ -125,7 +125,6 @@ jobs:
       - name: Rename signed release files
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk nutrilog.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab nutrilog-release.aab
 
       - name: Upload signed Android artifacts
         uses: actions/upload-artifact@v5
@@ -133,7 +132,6 @@ jobs:
           name: nutrilog-android-release
           path: |
             nutrilog.apk
-            nutrilog-release.aab
           if-no-files-found: error
           retention-days: 30
 
