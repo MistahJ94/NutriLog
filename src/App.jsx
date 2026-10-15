@@ -1869,7 +1869,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                           </div>
                         </div>
                         <div className="date-entries">
-                          <table className="entries-table">
+                          <table className="entries-table current-log">
                             <thead>
                               <tr><th>Time</th><th>Food</th><th>Qty</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                             </thead>
@@ -1990,7 +1990,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       </div>
                     ) : (
                       <div className="date-entries">
-                        <table className="entries-table">
+                        <table className="entries-table history-log">
                           <thead>
                             <tr><th>Time</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th></th></tr>
                           </thead>
