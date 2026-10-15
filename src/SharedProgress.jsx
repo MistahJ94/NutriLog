@@ -145,6 +145,16 @@ export default function SharedProgress() {
         <h3>{progress.user?.displayName || selected?.otherName || selected?.otherEmail || 'Connection'} — overview</h3>
         {visibleNutrition && latest ? <>
           <p className="settings-description">Today: {dayLabel(latest.day)} · {progress.timeZone || 'UTC'} · {latest.entryCount} logged entries</p>
+          {permissions.shareCalories && <div className="shared-calorie-feature">
+            <div className="shared-calorie-ring" style={{ '--shared-progress': `${Math.max(0, Math.min(100, num(goals?.calories) > 0 ? num(latest.calories) / num(goals.calories) * 100 : 0))}%` }}>
+              <div className="shared-calorie-ring-inner">
+                <span aria-hidden="true">🔥</span>
+                <strong>{Math.round(num(latest.calories)).toLocaleString()}</strong>
+                <small>{num(goals?.calories) > 0 ? `of ${Math.round(num(goals.calories)).toLocaleString()} kcal` : 'kcal today'}</small>
+                {num(goals?.calories) > 0 && <em>{Math.abs(Math.round(num(goals.calories) - num(latest.calories))).toLocaleString()} {num(latest.calories) > num(goals.calories) ? 'over' : 'left'}</em>}
+              </div>
+            </div>
+          </div>}
           <div className="shared-metrics">
             {permissions.shareCalories && <Metric label="Calories" value={latest.calories} goal={goals?.calories} unit=" kcal" />}
             {permissions.shareMacros && <>
