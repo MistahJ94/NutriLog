@@ -3253,3 +3253,37 @@ body {
   .date-entries .entries-table tbody td[colspan] { display: block; text-align: left; width: 100%; }
   .date-entries .entries-table tbody td[colspan]::before { display: none !important; }
 }
+
+/* Explicit nutrient labels and icons: readable on every Food Log card. */
+.date-entries .log-macro-label { display: none; }
+@media (max-width: 700px) {
+  .date-entries .entries-table tbody td.log-macro-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    text-align: center;
+  }
+  .date-entries .entries-table tbody td.log-macro-cell::before { display: none !important; }
+  .date-entries .log-macro-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: .69rem;
+    line-height: 1.25;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .date-entries .log-macro-label > span { font-size: 1.05rem; line-height: 1.1; }
+  .date-entries .entries-table tbody td.log-macro-cell strong {
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .date-entries .entries-table tbody td.log-macro-cell[data-macro="calories"] strong {
+    color: var(--text);
+  }
+}
