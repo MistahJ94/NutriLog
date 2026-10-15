@@ -412,6 +412,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [showMealHistory, setShowMealHistory] = useState(false)
   const [expandedLogEntryId, setExpandedLogEntryId] = useState(null)
   const [editingLogMeal, setEditingLogMeal] = useState(null)
+  const [loggedMealFoodSearch, setLoggedMealFoodSearch] = useState('')
   const [editingLogEntry, setEditingLogEntry] = useState(null)
   
   const [quickLogForm, setQuickLogForm] = useState({
@@ -1072,6 +1073,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const handleEditLoggedMeal = entry => {
     if (entry.type !== 'meal') return
     setExpandedLogEntryId(entry.id)
+    setLoggedMealFoodSearch('')
     setEditingLogMeal({
       ...entry,
       name: entry.name,
@@ -1085,6 +1087,33 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       foods: prev.foods.map((food, i) => i === index ? { ...food, quantity: value } : food)
     }) : prev)
   }
+
+  const addFoodToLoggedMeal = food => {
+    setEditingLogMeal(prev => prev ? { ...prev, foods: [...prev.foods, {
+      name: food.name, calories: Number(food.calories || 0), protein: Number(food.protein || 0),
+      carbs: Number(food.carbs || 0), fat: Number(food.fat || 0), fiber: Number(food.fiber || 0), quantity: 1
+    }] } : prev)
+    setLoggedMealFoodSearch('')
+  }
+
+  const removeFoodFromLoggedMeal = index => {
+    setEditingLogMeal(prev => prev ? { ...prev, foods: prev.foods.filter((_, i) => i !== index) } : prev)
+  }
+
+  const loggedMealFoodPicker = editingLogMeal && (
+    <div className="form-group" style={{ marginTop: 12 }}>
+      <label>Add food from saved foods
+        <input type="search" placeholder="Search saved foods…" value={loggedMealFoodSearch} onChange={e => setLoggedMealFoodSearch(e.target.value)} />
+      </label>
+      {loggedMealFoodSearch.trim() && <div style={{ maxHeight: 180, overflowY: 'auto', display: 'grid', gap: 6 }}>
+        {savedFoods.filter(food => food.name.toLowerCase().includes(loggedMealFoodSearch.trim().toLowerCase())).slice(0, 20).map(food =>
+          <button type="button" key={food.id} className="btn btn-secondary" onClick={() => addFoodToLoggedMeal(food)}>
+            + {food.name} ({Number(food.calories || 0).toFixed(2)} kcal)
+          </button>
+        )}
+      </div>}
+    </div>
+  )
 
   const handleSaveLoggedMeal = async () => {
     if (!editingLogMeal) return
@@ -1998,10 +2027,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                 </div>
                                                 <div className="meal-food-controls">
                                                   <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                   <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
                                             ))}
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                            {loggedMealFoodPicker}
+                                             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                                               <button type="button" className="btn btn-primary" onClick={handleSaveLoggedMeal}>Save Changes</button>
                                               <button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)}>Cancel</button>
                                             </div>
@@ -2119,10 +2150,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                 </div>
                                                 <div className="meal-food-controls">
                                                   <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                   <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
                                             ))}
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                            {loggedMealFoodPicker}
+                                             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                                               <button type="button" className="btn btn-primary" onClick={handleSaveLoggedMeal}>Save Changes</button>
                                               <button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)}>Cancel</button>
                                             </div>
