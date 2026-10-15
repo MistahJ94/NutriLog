@@ -196,6 +196,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const activeTabRef = useRef('tracker')
   const navigationStack = useRef([])
   const navigatingBack = useRef(false)
+  const backActionRef = useRef(() => false)
   const setActiveTab = next => {
     const tab = typeof next === 'function' ? next(activeTabRef.current) : next
     if (!tab || tab === activeTabRef.current) return
@@ -208,6 +209,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   }
   useEffect(() => {
     const onPopState = () => {
+      // An open editor takes priority over changing tabs.
+      if (backActionRef.current()) {
+        window.history.pushState({ nutrilogTab: activeTabRef.current }, '')
+        return
+      }
       const previous = navigationStack.current.pop()
       if (previous) {
         navigatingBack.current = true
@@ -215,8 +221,35 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         navigatingBack.current = false
       }
     }
+    const onKeyDown = event => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      if (backActionRef.current()) { event.preventDefault(); return }
+      if (navigationStack.current.length) { event.preventDefault(); window.history.back() }
+    }
     window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
+    window.addEventListener('keydown', onKeyDown)
+    // Capacitor Android hardware Back is not guaranteed to emit a web popstate.
+    const nativeApp = window.Capacitor?.Plugins?.App
+    let listener
+    let cancelled = false
+    if (isNutriLogNative() && nativeApp?.addListener) {
+      Promise.resolve(nativeApp.addListener('backButton', () => {
+        if (backActionRef.current()) return
+        if (navigationStack.current.length) { window.history.back(); return }
+        if (activeTabRef.current !== 'tracker') {
+          activeTabRef.current = 'tracker'
+          setActiveTabState('tracker')
+          return
+        }
+        nativeApp.exitApp?.()
+      })).then(handle => { if (cancelled) handle?.remove?.(); else listener = handle }).catch(console.error)
+    }
+    return () => {
+      cancelled = true
+      listener?.remove?.()
+      window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [])
   const [connectionsRefreshToken, setConnectionsRefreshToken] = useState(0)
 
@@ -414,6 +447,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [editingLogMeal, setEditingLogMeal] = useState(null)
   const [loggedMealFoodSearch, setLoggedMealFoodSearch] = useState('')
   const [editingLogEntry, setEditingLogEntry] = useState(null)
+  // Latest overlay state is read by native Back, browser Back and Escape.
+  // Priority: entry editor, meal editor, food editor, meal form, expanded meal.
+  backActionRef.current = () => {
+    if (editingLogEntry) { setEditingLogEntry(null); return true }
+    if (editingLogMeal) { setEditingLogMeal(null); return true }
+    if (editingFoodId) { setEditingFoodId(null); return true }
+    if (editingMealId) { setEditingMealId(null); return true }
+    if (expandedLogEntryId) { setExpandedLogEntryId(null); return true }
+    return false
+  }
   
   const [quickLogForm, setQuickLogForm] = useState({
     selectedItem: null,
