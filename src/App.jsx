@@ -1086,10 +1086,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }
   }
 
-  const handleUpdateLogQuantity = async (entry, requestedQuantity) => {
+  const handleUpdateLogQuantity = async (entry, requestedQuantity, originalQuantity = entry.quantity) => {
     const quantity = Number(requestedQuantity)
     if (!Number.isFinite(quantity) || quantity <= 0) { alert('Please enter a valid serving quantity.'); return }
-    const currentQuantity = Number(entry.quantity) > 0 ? Number(entry.quantity) : 1
+    const currentQuantity = Number(originalQuantity) > 0 ? Number(originalQuantity) : 1
     const scale = quantity / currentQuantity
     const updated = { ...entry, quantity, calories: Number((entry.calories * scale).toFixed(2)), protein: Number((entry.protein * scale).toFixed(2)), carbs: Number((entry.carbs * scale).toFixed(2)), fat: Number((entry.fat * scale).toFixed(2)), fiber: Number(((entry.fiber || 0) * scale).toFixed(2)) }
     try {
@@ -2148,7 +2148,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
                                   </td>
-                                  <td><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={entry.quantity ?? 1} onChange={e => setLogEntries(prev => prev.map(item => item.id === entry.id ? { ...item, quantity: e.target.value } : item))} onBlur={e => handleUpdateLogQuantity(entry, e.target.value)} aria-label={"Quantity for " + entry.name} /></td>
+                                  <td><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={entry.quantity ?? 1} onFocus={e => { e.target.dataset.originalQuantity = String(entry.quantity ?? 1) }} onChange={e => setLogEntries(prev => prev.map(item => item.id === entry.id ? { ...item, quantity: e.target.value } : item))} onBlur={e => handleUpdateLogQuantity(entry, e.target.value, e.target.dataset.originalQuantity)} aria-label={"Quantity for " + entry.name} /></td>
                                   <td className="log-macro-cell" data-macro="calories"><span className="log-macro-label"><span aria-hidden="true">🔥</span> Calories</span><strong>{Number(entry.calories || 0).toFixed(2)}kcal</strong></td>
                                   <td className="log-macro-cell" data-macro="protein"><span className="log-macro-label"><span aria-hidden="true">💪</span> Protein</span><strong>{Number(entry.protein || 0).toFixed(2)}g</strong></td>
                                   <td className="log-macro-cell" data-macro="carbs"><span className="log-macro-label"><span aria-hidden="true">🌾</span> Carbs</span><strong>{Number(entry.carbs || 0).toFixed(2)}g</strong></td>
