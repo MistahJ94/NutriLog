@@ -32,6 +32,7 @@ export default function SharedProgress() {
   const [progress, setProgress] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   const loadConnections = async () => {
     setBusy(true); setError('')
@@ -53,7 +54,7 @@ export default function SharedProgress() {
     if (!selectedId) return () => { active = false }
     setBusy(true); setError('')
     api.sharing.progress(selectedId)
-      .then(result => { if (active) setProgress(result) })
+      .then(result => { if (active) { setProgress(result); setLastUpdated(new Date()) } })
       .catch(err => { if (active) setError(err.message || 'Unable to load shared progress') })
       .finally(() => { if (active) setBusy(false) })
     return () => { active = false }
@@ -62,10 +63,27 @@ export default function SharedProgress() {
   const refresh = async () => {
     if (!selectedId) return loadConnections()
     setBusy(true); setError('')
-    try { setProgress(await api.sharing.progress(selectedId)) }
+    try { setProgress(await api.sharing.progress(selectedId)); setLastUpdated(new Date()) }
     catch (err) { setError(err.message || 'Unable to refresh progress') }
     finally { setBusy(false) }
   }
+
+  useEffect(() => {
+    if (!selectedId || isOfflineMode()) return
+    let active = true
+    const sync = async () => {
+      if (!active || document.visibilityState === 'hidden') return
+      try {
+        const result = await api.sharing.progress(selectedId)
+        if (active) { setProgress(result); setLastUpdated(new Date()); setError('') }
+      } catch (err) {
+        if (active) setError(err.message || 'Unable to refresh shared progress')
+      }
+    }
+    const timer = window.setInterval(sync, 60000)
+    document.addEventListener('visibilitychange', sync)
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', sync) }
+  }, [selectedId])
 
   if (isOfflineMode()) return <div className="section"><h2>Shared Progress</h2><p>Connect to a NutriLog server to view shared progress.</p></div>
 
@@ -91,6 +109,7 @@ export default function SharedProgress() {
         {connections.map(item => <option key={item.id} value={String(item.otherUserId)}>{item.otherName || item.otherEmail}</option>)}
       </select>
       <button className="btn btn-secondary" type="button" onClick={refresh} disabled={busy}><RefreshCw size={17} />{busy ? 'Loading…' : 'Refresh'}</button>
+      {lastUpdated && <small>Updated {lastUpdated.toLocaleTimeString()} · refreshes every minute</small>}
     </div>
     {error && <div className="auth-error" role="alert">{error}</div>}
     {!busy && !connections.length && <div className="section empty-state">No accepted connections yet. Manage invitations in Settings → Connections.</div>}
