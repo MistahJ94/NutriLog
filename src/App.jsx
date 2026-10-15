@@ -3191,7 +3191,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           <div className="settings-container">
             <div className="planner-intro">
               <h2>Settings</h2>
-              <p>Manage your data with import and export options</p>
+              <p>Personalize NutriLog, manage account security, and review your data and connections.</p>
             </div>
 
             {!isOfflineMode() && <div className="section">
@@ -3224,8 +3224,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               </form>
               <div style={{marginTop:24}}>
                 <h4>Other Devices</h4>
-                <p style={{color:'#666',marginBottom:12}}>Sign out every other active session while keeping this device signed in.</p>
-                <button className="btn btn-secondary" onClick={async()=>{try{await api.auth.revokeOtherSessions();alert('All other sessions were revoked.')}catch(err){alert(err.message)}}}><RefreshCw size={18}/>Sign Out Other Devices</button>
+                <p className="settings-description">Sign out every other active session while keeping this device signed in.</p>
+                <button className="btn btn-secondary" onClick={async()=>{if(!confirm('Sign out all other devices? You will stay signed in on this device.'))return;try{await api.auth.revokeOtherSessions();alert('All other sessions were revoked.')}catch(err){alert(err.message)}}}><RefreshCw size={18}/>Sign Out Other Devices</button>
               </div>
             </div>
 
@@ -3272,8 +3272,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 <div className="appearance-group">
                   <span className="appearance-label">Mode</span>
                   <div className="mode-toggle" role="group" aria-label="Color mode">
-                    <button type="button" className={mode === 'light' ? 'selected' : ''} onClick={() => setMode('light')}>☀ Light</button>
-                    <button type="button" className={mode === 'dark' ? 'selected' : ''} onClick={() => setMode('dark')}>☾ Dark</button>
+                    <button type="button" aria-pressed={mode === 'light'} className={mode === 'light' ? 'selected' : ''} onClick={() => setMode('light')}>☀ Light</button>
+                    <button type="button" aria-pressed={mode === 'dark'} className={mode === 'dark' ? 'selected' : ''} onClick={() => setMode('dark')}>☾ Dark</button>
                   </div>
                 </div>
                 <div className="appearance-group">
