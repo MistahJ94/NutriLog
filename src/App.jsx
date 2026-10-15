@@ -2690,7 +2690,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     <div className="food-actions">
                       <div className="food-serving-actions"><button type="button" className="btn btn-secondary" onClick={() => setFoodLogQuantities(prev => ({ ...prev, [food.id]: '0.5' }))} aria-label={'Half serving of ' + food.name}>½</button><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={foodLogQuantities[food.id] ?? 1} onChange={e => setFoodLogQuantities(prev => ({ ...prev, [food.id]: e.target.value }))} aria-label={"Quantity for " + food.name} /><button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food, foodLogQuantities[food.id] ?? 1)}><Plus size={16} />Log</button></div>
                       <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
-                      <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
+                      <button type="button" className="btn btn-danger food-library-delete" onClick={() => handleDeleteFood(food.id)} aria-label={"Delete " + food.name} title={"Delete " + food.name}><Trash2 size={16} /></button>
                     </div>
                   </div>
                 ))
