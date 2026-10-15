@@ -798,10 +798,22 @@ async function progressApi(req, res, pathname, user) {
   const progress = { user: { id: target.id, email: target.email, displayName: target.display_name }, sharing }
 
   if (sharing.shareCalories || sharing.shareMacros || sharing.shareCharts) {
+    // Use the sharer's saved device timezone, never the viewer's or database server's.
+    // The client synchronizes this IANA timezone with its existing preferences.
+    const pref = (await sql.unsafe("SELECT tracker_layout FROM user_preferences WHERE user_id=$1", [targetId]))[0]
+    const candidateZone = pref?.tracker_layout?.timeZone
+    let timeZone = "UTC"
+    if (typeof candidateZone === "string" && candidateZone.length <= 80) {
+      try {
+        Intl.DateTimeFormat("en-US", { timeZone: candidateZone })
+        timeZone = candidateZone
+      } catch { /* Invalid stored zone: retain UTC fallback */ }
+    }
     const rows = await sql.unsafe(
-      "SELECT DATE(consumed_at) AS day, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
-      "FROM log_entries WHERE user_id=$1 AND consumed_at >= CURRENT_DATE - INTERVAL '13 days' GROUP BY DATE(consumed_at) ORDER BY day ASC",
-      [targetId]
+      "SELECT (consumed_at AT TIME ZONE $2)::date AS day, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
+      "FROM log_entries WHERE user_id=$1 AND consumed_at >= NOW() - INTERVAL '15 days' " +
+      "GROUP BY (consumed_at AT TIME ZONE $2)::date ORDER BY day ASC",
+      [targetId, timeZone]
     )
     progress.dailyNutrition = rows.map(row => ({
       day: row.day,
