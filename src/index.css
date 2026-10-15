@@ -3448,3 +3448,64 @@ body {
     bottom: auto;
   }
 }
+
+/* Saved Foods: prevent oversized action buttons and cramped nutrition data
+   at desktop window widths and in responsive tablet/mobile layouts. */
+.food-library-section { container-type: inline-size; }
+.food-library-section .food-item { gap: 14px; min-width: 0; }
+.food-library-section .food-info { flex: 1 1 auto; min-width: 0; }
+.food-library-section .food-info h3 { overflow-wrap: anywhere; }
+.food-library-section .food-details { flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.food-library-section .food-actions {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.food-library-section .food-actions > .btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 42px;
+  min-height: 40px;
+  align-self: center;
+  white-space: nowrap;
+}
+.food-library-section .food-serving-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.food-library-section .food-serving-actions > .btn {
+  width: auto;
+  min-height: 40px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.food-library-section .food-serving-actions > .quantity-input {
+  width: 65px;
+  min-width: 0;
+  flex: 0 0 65px;
+  box-sizing: border-box;
+}
+@container (max-width: 850px) {
+  .food-library-section .food-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .food-library-section .food-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .food-library-section .food-serving-actions { margin-right: auto; }
+}
+@container (max-width: 440px) {
+  .food-library-section .food-actions { gap: 6px; }
+  .food-library-section .food-serving-actions { width: 100%; }
+  .food-library-section .food-serving-actions > .btn:last-child { flex: 1 1 auto; }
+  .food-library-section .food-actions > .btn { flex: 1 1 auto; }
+}
