@@ -2177,7 +2177,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" defaultValue={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
+                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" defaultValue={food.quantity ?? 1} onBlur={e => { const value = e.target.value.trim(); if (!Number.isFinite(Number(value)) || Number(value) <= 0) { e.target.value = String(food.quantity ?? 1); return; } handleLoggedMealFoodQuantityChange(index, value); }} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
@@ -2300,7 +2300,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" defaultValue={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
+                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" defaultValue={food.quantity ?? 1} onBlur={e => { const value = e.target.value.trim(); if (!Number.isFinite(Number(value)) || Number(value) <= 0) { e.target.value = String(food.quantity ?? 1); return; } handleLoggedMealFoodQuantityChange(index, value); }} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
