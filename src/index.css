@@ -3148,3 +3148,30 @@ body {
     font-size: 1.65rem;
   }
 }
+
+/* Mobile food log: stacked cards instead of a horizontally scrolling table */
+.tab-order-controls { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; margin-top: 10px; }
+.tab-order-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.tab-order-item button { min-width: 34px; min-height: 34px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-raised); color: var(--text); }
+.tab-order-item button:disabled { opacity: .35; }
+.food-serving-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 700px) {
+  .date-entries .entries-table { display: block; width: 100%; overflow-x: visible; white-space: normal; }
+  .date-entries .entries-table thead { display: none; }
+  .date-entries .entries-table tbody { display: block; }
+  .date-entries .entries-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 12px; padding: 14px; border-bottom: 1px solid var(--border); }
+  .date-entries .entries-table tbody td { display: block; min-width: 0; padding: 2px 0; overflow-wrap: anywhere; }
+  .date-entries .entries-table tbody td.name-cell { grid-column: 1 / -1; font-weight: 700; }
+  .date-entries .entries-table tbody td.time-cell { grid-column: 1 / -1; color: var(--text-muted); font-size: .82rem; }
+  .date-entries .entries-table tbody td:not(.name-cell):not(.time-cell)::before { content: ''; display: block; font-size: .72rem; color: var(--text-muted); }
+  .date-entries .entries-table tbody td:nth-child(3)::before { content: 'Quantity / Calories'; }
+  .date-entries .entries-table tbody td:nth-child(4)::before { content: 'Calories / Protein'; }
+  .date-entries .entries-table tbody td:nth-child(5)::before { content: 'Protein / Carbs'; }
+  .date-entries .entries-table tbody td:nth-child(6)::before { content: 'Carbs / Fat'; }
+  .date-entries .entries-table tbody td:nth-child(7)::before { content: 'Fat / Fiber'; }
+  .date-entries .entries-table tbody td:nth-child(8)::before { content: 'Fiber / Actions'; }
+  .date-entries .entries-table tbody td:last-child::before { content: none; }
+  .date-entries .entries-table tbody tr:has(> td[colspan]) { display: block; }
+  .date-entries .entries-table tbody td[colspan] { width: 100%; }
+  .date-entries .entries-table .quantity-input { max-width: 90px; }
+}
