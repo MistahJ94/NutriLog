@@ -3670,3 +3670,32 @@ body {
 .food-library-section .food-item { border-radius: 15px; }
 .food-library-section .food-item .btn { border-radius: 10px; }
 .food-library-section .food-info h3 { line-height: 1.3; }
+
+/* Analytics refresh: card-based responsive progress charts. */
+.graphs-page .planner-intro { margin-bottom: 16px; }
+.graphs-page > .section,
+.graphs-page .graphs-macro-grid > .section {
+  border-radius: 16px;
+  border: 1px solid var(--border, #ddd);
+  background: var(--surface-alt, #fff);
+}
+.graphs-page .graph-controls { padding: 14px 18px; }
+.graphs-page .graph-control-row { gap: 12px; }
+.graphs-page .graph-control-row select {
+  min-height: 40px;
+  border-radius: 10px;
+  background: var(--surface-raised, #fff);
+  color: var(--text, #111827);
+  border: 1px solid var(--border, #ddd);
+}
+.graphs-page .nutrition-graph-bars { min-height: 220px; }
+.graphs-page .nutrition-graph-track { border-radius: 8px 8px 4px 4px; overflow: hidden; }
+.graphs-page .nutrition-graph-fill { border-radius: 7px 7px 0 0; }
+@media (max-width: 700px) {
+  .graphs-page .graph-control-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .graphs-page .graph-control-row label { min-width: 0; }
+  .graphs-page .graph-control-row select { width: 100%; min-width: 0; }
+  .graphs-page .nutrition-graph-bars { overflow-x: auto; padding-bottom: 8px; }
+  .graphs-page .nutrition-graph-day { min-width: 21px; }
+  .graphs-page .graphs-macro-grid { grid-template-columns: 1fr; }
+}
