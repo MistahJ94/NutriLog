@@ -31,6 +31,17 @@ const send = (res, status, body, headers = {}) => {
   res.end(JSON.stringify(body))
 }
 
+// Connections are notified after committed writes. Clients also poll as a fallback.
+const progressSubscribers = new Map()
+const notifyProgressChanged = userId => {
+  const clients = progressSubscribers.get(String(userId))
+  if (!clients) return
+  for (const res of clients) {
+    try { res.write("event: changed\\ndata: {}\\n\\n".replace(/\\n/g, "\n")) }
+    catch { clients.delete(res) }
+  }
+}
+
 const readBody = req => new Promise((resolve, reject) => {
   let body = ""
   req.on("data", chunk => {
@@ -785,6 +796,28 @@ async function progressApi(req, res, pathname, user) {
     return send(res, 405, { error: "Method not allowed" })
   }
 
+  const streamMatch = pathname.match(/^\/api\/progress\/([0-9a-f-]+)\/events$/i)
+  if (streamMatch && req.method === "GET") {
+    const targetId = streamMatch[1]
+    const connection = await connectionBetween(user.id, targetId)
+    if (!connection || connection.status !== "accepted") return send(res, 403, { error: "Not connected" })
+    res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "Connection": "keep-alive", "X-Accel-Buffering": "no" })
+    res.write("event: ready\ndata: {}\n\n")
+    const key = String(targetId)
+    if (!progressSubscribers.has(key)) progressSubscribers.set(key, new Set())
+    const clients = progressSubscribers.get(key)
+    clients.add(res)
+    const heartbeat = setInterval(() => {
+      try { res.write(": heartbeat\n\n") } catch { clearInterval(heartbeat) }
+    }, 25000)
+    req.on("close", () => {
+      clearInterval(heartbeat)
+      clients.delete(res)
+      if (!clients.size) progressSubscribers.delete(key)
+    })
+    return
+  }
+
   const match = pathname.match(/^\/api\/progress\/([0-9a-f-]+)$/i)
   if (!match || req.method !== "GET") return false
   const targetId = match[1]
@@ -795,7 +828,7 @@ async function progressApi(req, res, pathname, user) {
   const target = (await sql.unsafe("SELECT id,email,display_name FROM users WHERE id=$1 AND is_active=TRUE", [targetId]))[0]
   if (!target) return send(res, 404, { error: "User not found" })
 
-  const progress = { user: { id: target.id, email: target.email, displayName: target.display_name }, sharing }
+  const progress = { user: { id: target.id, displayName: target.display_name }, sharing, generatedAt: new Date().toISOString() }
 
   if (sharing.shareCalories || sharing.shareMacros || sharing.shareCharts) {
     // Use the sharer's saved device timezone, never the viewer's or database server's.
@@ -810,16 +843,25 @@ async function progressApi(req, res, pathname, user) {
       } catch { /* Invalid stored zone: retain UTC fallback */ }
     }
     const rows = await sql.unsafe(
-      "SELECT TO_CHAR((consumed_at AT TIME ZONE $2)::date, 'YYYY-MM-DD') AS day, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
+      "SELECT TO_CHAR((consumed_at AT TIME ZONE $2)::date, 'YYYY-MM-DD') AS day, COUNT(*)::int AS entry_count, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
       "FROM log_entries WHERE user_id=$1 AND (consumed_at AT TIME ZONE $2)::date >= (NOW() AT TIME ZONE $2)::date - 13 " +
       "GROUP BY (consumed_at AT TIME ZONE $2)::date ORDER BY day ASC",
       [targetId, timeZone]
     )
+    progress.timeZone = timeZone
+    progress.today = (await sql.unsafe("SELECT TO_CHAR((NOW() AT TIME ZONE $1)::date, 'YYYY-MM-DD') AS day", [timeZone]))[0].day
     progress.dailyNutrition = rows.map(row => ({
+      entryCount: Number(row.entry_count || 0),
       day: row.day,
       ...(sharing.shareCalories ? { calories: Number(row.calories || 0) } : {}),
       ...(sharing.shareMacros ? { protein: Number(row.protein || 0), carbs: Number(row.carbs || 0), fat: Number(row.fat || 0), fiber: Number(row.fiber || 0) } : {})
     }))
+    if (!progress.dailyNutrition.some(row => row.day === progress.today)) {
+      progress.dailyNutrition.push({ day: progress.today, entryCount: 0,
+        ...(sharing.shareCalories ? { calories: 0 } : {}),
+        ...(sharing.shareMacros ? { protein: 0, carbs: 0, fat: 0, fiber: 0 } : {}) })
+    }
+    progress.dailyNutrition.sort((a, b) => a.day.localeCompare(b.day))
   }
 
   if (sharing.shareWeight || sharing.shareWeightHistory) {
@@ -940,11 +982,13 @@ async function protectedApi(req, res, pathname, user) {
     })
     const setClause = config.fields.map((field, i) => field + " = $" + (i + 2)).join(", ")
     const rows = await sql.unsafe("UPDATE " + config.table + " SET " + setClause + " WHERE user_id = $1 AND id = $" + (config.fields.length + 2) + " RETURNING " + config.select, [user.id, ...values, id])
+    if (rows.length) notifyProgressChanged(user.id)
     return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
   }
 
   if (req.method === "DELETE" && id) {
     const rows = await sql.unsafe("DELETE FROM " + config.table + " WHERE user_id = $1 AND id = $2 RETURNING id", [user.id, id])
+    if (rows.length && match[1] === "log-entries") notifyProgressChanged(user.id)
     return rows.length ? send(res, 200, { ok: true }) : send(res, 404, { error: "Not found" })
   }
 
@@ -965,6 +1009,7 @@ async function protectedApi(req, res, pathname, user) {
     const placeholders = config.fields.map((_, i) => "$" + (i + 2)).join(", ")
     const query = "INSERT INTO " + config.table + " (user_id, " + config.fields.join(", ") + ") VALUES ($1, " + placeholders + ") RETURNING " + config.select
     const rows = await sql.unsafe(query, [user.id, ...values])
+    if (match[1] === "log-entries") notifyProgressChanged(user.id)
     return send(res, 201, { item: rows[0] })
   }
 
@@ -1023,6 +1068,7 @@ async function replaceUserData(res, user, body) {
     }
   })
 
+  notifyProgressChanged(user.id)
   return send(res, 200, { ok: true, counts: { foods: foods.length, meals: meals.length, logs: logs.length } })
 }
 
