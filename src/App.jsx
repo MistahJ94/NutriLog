@@ -2177,7 +2177,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} />
+                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" value={food.quantity ?? ""} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
@@ -2300,7 +2300,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} />
+                                                  <input className="quantity-input" type="text" inputMode="decimal" pattern="(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)" value={food.quantity ?? ""} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} title="Enter a positive quantity, such as 0.5" />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
