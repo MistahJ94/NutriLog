@@ -1217,9 +1217,13 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       return
     }
 
+    if (editingLogMeal.foods.some(food => !Number.isFinite(Number(food.quantity)) || Number(food.quantity) <= 0)) {
+      alert("Each food needs a serving quantity greater than zero. Decimals such as 0.5 are supported.")
+      return
+    }
     const foods = editingLogMeal.foods.map(food => ({
       ...food,
-      quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1
+      quantity: Number(food.quantity)
     }))
     const mealQuantity = Number(editingLogMeal.quantity) > 0 ? Number(editingLogMeal.quantity) : 1
     const baseTotals = calculateMealTotals(foods)
@@ -2172,7 +2176,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                  <button type="button" className="btn btn-secondary nutrilog-half-serving" onClick={() => handleLoggedMealFoodQuantityChange(index, "0.5")} aria-label={"Set half serving of " + food.name} title="Half serving">½</button><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
@@ -2295,7 +2299,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                   <span className="meal-food-macros">{Number(food.calories || 0) * (Number(food.quantity) || 1)} kcal</span>
                                                 </div>
                                                 <div className="meal-food-controls">
-                                                  <input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} />
+                                                  <button type="button" className="btn btn-secondary nutrilog-half-serving" onClick={() => handleLoggedMealFoodQuantityChange(index, "0.5")} aria-label={"Set half serving of " + food.name} title="Half serving">½</button><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={food.quantity ?? 1} onChange={e => handleLoggedMealFoodQuantityChange(index, e.target.value)} aria-label={"Servings of " + food.name} />
                                                    <button type="button" className="btn btn-secondary" onClick={() => removeFoodFromLoggedMeal(index)} aria-label={'Remove ' + food.name}><Trash2 size={15} /> Remove</button>
                                                 </div>
                                               </div>
