@@ -811,7 +811,7 @@ async function progressApi(req, res, pathname, user) {
     }
     const rows = await sql.unsafe(
       "SELECT (consumed_at AT TIME ZONE $2)::date AS day, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
-      "FROM log_entries WHERE user_id=$1 AND consumed_at >= NOW() - INTERVAL '15 days' " +
+      "FROM log_entries WHERE user_id=$1 AND (consumed_at AT TIME ZONE $2)::date >= (NOW() AT TIME ZONE $2)::date - 13 " +
       "GROUP BY (consumed_at AT TIME ZONE $2)::date ORDER BY day ASC",
       [targetId, timeZone]
     )
