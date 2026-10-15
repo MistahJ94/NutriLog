@@ -5,6 +5,8 @@ export const getConfiguredServerUrl = () => getServerUrl()
 export const setConfiguredServerUrl = value => localStorage.setItem('nutrilog-server-url', normalizeServerUrl(value))
 export const clearConfiguredServerUrl = () => localStorage.removeItem('nutrilog-server-url')
 export const isNutriLogNative = isNativeApp
+// EventSource uses cookie authentication; native bearer-token clients use polling instead.
+export const sharedProgressEventsUrl = id => getApiBaseUrl() + '/progress/' + encodeURIComponent(id) + '/events'
 
 const getApiBaseUrl = () => {
   const configured = getServerUrl()
