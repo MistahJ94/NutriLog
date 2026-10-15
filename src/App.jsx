@@ -318,7 +318,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     meals: 'Meals',
     goals: 'Goals',
     activity: 'Activity',
-    graphs: 'Graphs',
+    graphs: 'Progress',
     shared: 'Shared Progress',
     settings: 'Settings',
     admin: 'Admin'
@@ -2984,8 +2984,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         {activeTab === 'graphs' && (
           <div className="graphs-page">
             <div className="planner-intro">
-              <h2><BarChart3 size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />Nutrition Graphs</h2>
-              <p>See how your logged calories and macros change over the last 14 days.</p>
+              <h2><BarChart3 size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />Progress & Analytics</h2>
+              <p>Review daily nutrition trends and your progress toward your goals.</p>
             </div>
             <div className="section graph-controls">
               <div className="graph-control-row">
