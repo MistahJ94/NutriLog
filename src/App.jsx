@@ -497,6 +497,15 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   // Recheck the device timezone when returning to the app and periodically while open.
   // This also catches travel and daylight-saving-related timezone configuration changes.
   const [deviceTimeZone, setDeviceTimeZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC')
+  // Manual selection is account-scoped and overrides unreliable Android WebView detection.
+  const timeZoneStorageKey = 'nutrilog-timezone-' + (user?.id || 'default')
+  const [timeZoneOverride, setTimeZoneOverride] = useState(() =>
+    localStorage.getItem('nutrilog-timezone-' + (user?.id || 'default')) || 'auto'
+  )
+  const selectedTimeZone = timeZoneOverride === 'auto' ? deviceTimeZone : timeZoneOverride
+  useEffect(() => {
+    localStorage.setItem(timeZoneStorageKey, timeZoneOverride)
+  }, [timeZoneStorageKey, timeZoneOverride])
   useEffect(() => {
     const checkTimeZone = () => {
       const current = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
@@ -519,12 +528,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       theme,
       mode,
       customAccent,
-      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: deviceTimeZone },
+      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: selectedTimeZone },
       tabOrder
     }
     const timer = setTimeout(() => { api.preferences.save(preferences).catch(() => {}) }, 600)
     return () => clearTimeout(timer)
-  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, deviceTimeZone])
+  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, selectedTimeZone])
 
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
@@ -3152,6 +3161,37 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               refreshToken={connectionsRefreshToken}
               onRefreshComplete={handleConnectionsRefreshComplete}
             />}
+
+            <div className="section">
+              <h3>Time Zone</h3>
+              <p className="settings-description">Choose your local time zone for Shared Progress and daily nutrition totals. Automatic uses this device's detected zone; select one manually if it reports UTC incorrectly.</p>
+              <div className="form-group">
+                <label htmlFor="nutrilog-time-zone">Time zone</label>
+                <select id="nutrilog-time-zone" className="food-select" value={timeZoneOverride}
+                  onChange={event => setTimeZoneOverride(event.target.value)}>
+                  <option value="auto">Automatic (detected: {deviceTimeZone})</option>
+                  {[
+                    ['America/New_York', 'Eastern (New York)'],
+                    ['America/Chicago', 'Central (Chicago / Texas)'],
+                    ['America/Denver', 'Mountain (Denver)'],
+                    ['America/Phoenix', 'Arizona (Phoenix, no DST)'],
+                    ['America/Los_Angeles', 'Pacific (Los Angeles)'],
+                    ['America/Anchorage', 'Alaska (Anchorage)'],
+                    ['Pacific/Honolulu', 'Hawaii (Honolulu)'],
+                    ['America/Puerto_Rico', 'Atlantic (Puerto Rico)'],
+                    ['America/Mexico_City', 'Mexico City'],
+                    ['America/Toronto', 'Toronto'],
+                    ['Europe/London', 'London'],
+                    ['Europe/Paris', 'Paris'],
+                    ['Asia/Kolkata', 'India'],
+                    ['Asia/Tokyo', 'Tokyo'],
+                    ['Australia/Sydney', 'Sydney'],
+                    ['UTC', 'UTC']
+                  ].map(([zone, label]) => <option key={zone} value={zone}>{label}</option>)}
+                </select>
+              </div>
+              <p className="settings-description">Active time zone: <strong>{selectedTimeZone}</strong>. Changes are saved for this account and synchronized to the server.</p>
+            </div>
 
             <div className="section theme-settings">
               <h3>Appearance</h3>
