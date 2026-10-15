@@ -435,18 +435,37 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     localStorage.setItem('nutrilog-tracker-layout', JSON.stringify(trackerLayout))
   }, [trackerLayout])
 
+  // Recheck the device timezone when returning to the app and periodically while open.
+  // This also catches travel and daylight-saving-related timezone configuration changes.
+  const [deviceTimeZone, setDeviceTimeZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC')
+  useEffect(() => {
+    const checkTimeZone = () => {
+      const current = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      setDeviceTimeZone(previous => previous === current ? previous : current)
+    }
+    const onVisible = () => { if (document.visibilityState === 'visible') checkTimeZone() }
+    window.addEventListener('focus', checkTimeZone)
+    document.addEventListener('visibilitychange', onVisible)
+    const interval = setInterval(checkTimeZone, 60000)
+    return () => {
+      window.removeEventListener('focus', checkTimeZone)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(interval)
+    }
+  }, [])
+
   useEffect(() => {
     if (!isInitialLoadComplete) return
     const preferences = {
       theme,
       mode,
       customAccent,
-      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' },
+      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: deviceTimeZone },
       tabOrder
     }
     const timer = setTimeout(() => { api.preferences.save(preferences).catch(() => {}) }, 600)
     return () => clearTimeout(timer)
-  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete])
+  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, deviceTimeZone])
 
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
