@@ -3769,3 +3769,37 @@ body {
   .nutrilog-quick-search { grid-column: 1 / -1; }
   .nutrilog-quick-submit { grid-column: 1 / -1; }
 }
+
+/* Food diary meal-time groups (display-only; existing log data unchanged). */
+.date-entries .entries-table tbody tr.nutrilog-meal-group-row {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+.date-entries .entries-table tbody tr.nutrilog-meal-group-row td {
+  padding: 17px 8px 7px;
+  border: 0;
+  background: transparent;
+}
+.nutrilog-meal-group-row td strong { font-size: 1.02rem; }
+.nutrilog-meal-group-row td span { float: right; font-size: .8rem; color: var(--text-muted, #777); }
+@media (max-width: 700px) {
+  .date-entries .entries-table tbody tr.nutrilog-meal-group-row {
+    display: block;
+    padding: 5px 0 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .date-entries .entries-table tbody tr.nutrilog-meal-group-row td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 8px 2px 3px;
+    text-align: left;
+    gap: 10px;
+  }
+  .date-entries .entries-table tbody tr.nutrilog-meal-group-row td::before { display: none !important; }
+  .nutrilog-meal-group-row td span { float: none; white-space: nowrap; }
+}
