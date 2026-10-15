@@ -810,7 +810,7 @@ async function progressApi(req, res, pathname, user) {
       } catch { /* Invalid stored zone: retain UTC fallback */ }
     }
     const rows = await sql.unsafe(
-      "SELECT (consumed_at AT TIME ZONE $2)::date AS day, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
+      "SELECT TO_CHAR((consumed_at AT TIME ZONE $2)::date, 'YYYY-MM-DD') AS day, SUM(calories) AS calories, SUM(protein) AS protein, SUM(carbs) AS carbs, SUM(fat) AS fat, SUM(fiber) AS fiber " +
       "FROM log_entries WHERE user_id=$1 AND (consumed_at AT TIME ZONE $2)::date >= (NOW() AT TIME ZONE $2)::date - 13 " +
       "GROUP BY (consumed_at AT TIME ZONE $2)::date ORDER BY day ASC",
       [targetId, timeZone]
