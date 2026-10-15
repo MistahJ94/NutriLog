@@ -4021,3 +4021,56 @@ body {
     width: 40px !important;
   }
 }
+
+/* Mockup alignment: meal builder search and selection, light/dark friendly. */
+.nutrilog-meal-builder { min-width: 0; }
+.nutrilog-meal-builder .form-group { min-width: 0; }
+.nutrilog-meal-builder .form-group > input,
+.nutrilog-meal-builder .form-group > label > input { max-width: 100%; box-sizing: border-box; }
+.nutrilog-meal-food-picker {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border, rgba(128,128,128,.25));
+  border-radius: 14px;
+  padding: 6px;
+  background: var(--surface-alt, rgba(128,128,128,.06));
+  color: inherit;
+}
+.nutrilog-meal-food-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: background .15s ease, border-color .15s ease;
+}
+.nutrilog-meal-food-choice:hover { background: rgba(128,128,128,.10); }
+.nutrilog-meal-food-choice.is-selected {
+  background: color-mix(in srgb, var(--accent, #f97316) 11%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #f97316) 40%, transparent);
+}
+.nutrilog-meal-food-choice > span:nth-of-type(1) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.nutrilog-meal-food-calories {
+  flex: 0 0 auto;
+  color: var(--text-muted, #888);
+  font-size: .82rem;
+  white-space: nowrap;
+}
+.nutrilog-meal-food-empty {
+  padding: 16px;
+  color: var(--text-muted, #888);
+  text-align: center;
+}
+@media (max-width: 650px) {
+  .meals-page { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  .meals-page > .section { min-width: 0; }
+  .nutrilog-meal-food-choice { padding: 10px 8px; gap: 8px; }
+}
