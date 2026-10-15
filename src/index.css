@@ -3856,3 +3856,64 @@ body {
 @media (max-width: 600px) {
   .nutrilog-admin-account-list .nutrilog-account-options-toggle { width: 100%; justify-content: center; }
 }
+
+/* Account action panels: each description and its button occupy separate full-width rows.
+   This overrides legacy global food-card/button flex sizing on narrow screens. */
+.nutrilog-admin-account-list .nutrilog-account-actions {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.nutrilog-admin-account-list .nutrilog-account-actions .nutrilog-account-action {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 12px !important;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 16px 0;
+}
+.nutrilog-admin-account-list .nutrilog-account-action > div {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0 !important;
+  flex: none !important;
+  overflow-wrap: anywhere;
+}
+.nutrilog-admin-account-list .nutrilog-account-action strong {
+  display: block;
+  white-space: normal;
+  line-height: 1.4;
+}
+.nutrilog-admin-account-list .nutrilog-account-action p {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+}
+.nutrilog-admin-account-list .nutrilog-account-action > button.btn {
+  display: inline-flex !important;
+  position: static;
+  grid-column: 1;
+  justify-self: start;
+  align-self: start;
+  flex: none !important;
+  width: auto !important;
+  min-width: 130px !important;
+  max-width: 100%;
+  margin: 0 !important;
+  box-sizing: border-box;
+  white-space: normal;
+}
+@media (max-width: 600px) {
+  .nutrilog-admin-account-list .nutrilog-account-action > button.btn {
+    width: 100% !important;
+    justify-self: stretch;
+  }
+}
