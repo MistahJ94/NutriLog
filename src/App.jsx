@@ -1976,6 +1976,36 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               </div>
             </div>
 
+            {!trackerLayout.customize && (
+              <section className="nutrilog-daily-overview" aria-label="Daily nutrition overview">
+                <div className="nutrilog-calorie-ring" style={{ '--daily-progress': `${Math.max(0, Math.min(100, Number(selectedTrackerProgress) || 0))}%` }}>
+                  <div className="nutrilog-calorie-ring-inner">
+                    <Flame size={25} aria-hidden="true" />
+                    <strong>{Math.round(selectedTrackerCalories).toLocaleString()}</strong>
+                    <span>of {Math.round(Number(macroGoals.calories) || 0).toLocaleString()} kcal</span>
+                    <small>{Math.abs(Math.round(selectedTrackerRemaining)).toLocaleString()} {selectedTrackerRemaining < 0 ? 'over' : 'left'}</small>
+                  </div>
+                </div>
+                <div className="nutrilog-macro-overview">
+                  {[
+                    { label: 'Protein', icon: '💪', value: selectedTrackerProtein, goal: macroGoals.protein, color: '#49A5E8' },
+                    { label: 'Carbs', icon: '🌾', value: selectedTrackerCarbs, goal: macroGoals.carbs, color: '#E8B83D' },
+                    { label: 'Fat', icon: '🥑', value: selectedTrackerFat, goal: macroGoals.fat, color: '#7FCD57' },
+                    { label: 'Fiber', icon: '🌿', value: selectedTrackerFiber, goal: macroGoals.fiber, color: '#32B58B' }
+                  ].map(macro => (
+                    <div className="nutrilog-macro-summary" key={macro.label}>
+                      <div className="nutrilog-macro-circle" style={{ '--macro-progress': `${Math.max(0, Math.min(100, macro.goal > 0 ? macro.value / macro.goal * 100 : 0))}%`, '--macro-color': macro.color }}>
+                        <span aria-hidden="true">{macro.icon}</span>
+                      </div>
+                      <strong>{macro.label}</strong>
+                      <span>{Number(macro.value).toFixed(1)}g</span>
+                      <small>of {Number(macro.goal || 0).toFixed(1)}g</small>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {trackerLayout.customize && (
               <div className="tracker-customizer-inline">
                 <span>↔ Drag the grip on a card to move it</span>
