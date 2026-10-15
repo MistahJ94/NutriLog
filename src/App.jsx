@@ -1208,9 +1208,15 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const handleEditLoggedMeal = entry => {
     if (entry.type !== 'meal') return
     setExpandedLogEntryId(entry.id)
+    setEditingLogEntry(null)
     setLoggedMealFoodSearch('')
+    const date = new Date(entry.timestamp)
+    const pad = n => String(n).padStart(2, '0')
+    const localTime = Number.isNaN(date.getTime()) ? '' : [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes())
     setEditingLogMeal({
       ...entry,
+      localTime,
+      quantity: String(entry.quantity ?? 1),
       name: entry.name,
       foods: Array.isArray(entry.foods) ? entry.foods.map(food => ({ ...food, quantity: Number(food.quantity) > 0 ? Number(food.quantity) : 1 })) : []
     })
@@ -1266,11 +1272,17 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       ...food,
       quantity: Number(food.quantity)
     }))
-    const mealQuantity = Number(editingLogMeal.quantity) > 0 ? Number(editingLogMeal.quantity) : 1
+    const mealQuantity = Number(editingLogMeal.quantity)
+    const date = new Date(editingLogMeal.localTime)
+    if (!Number.isFinite(mealQuantity) || mealQuantity <= 0 || Number.isNaN(date.getTime())) {
+      alert('Enter a valid positive meal serving quantity and date/time.')
+      return
+    }
     const baseTotals = calculateMealTotals(foods)
     const updated = {
       ...editingLogMeal,
       name: editingLogMeal.name.trim(),
+      timestamp: date.toISOString(),
       foods,
       calories: Number((baseTotals.calories * mealQuantity).toFixed(2)),
       protein: Number((baseTotals.protein * mealQuantity).toFixed(2)),
@@ -2188,7 +2200,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
                                       >
-                                        {expandedLogEntryId === entry.id ? '−' : '+'}
+                                        {expandedLogEntryId === entry.id ? '⌃' : '⌄'}
                                       </button>
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
@@ -2199,7 +2211,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                   <td className="log-macro-cell" data-macro="carbs"><span className="log-macro-label"><span aria-hidden="true">🌾</span> Carbs</span><strong>{Number(entry.carbs || 0).toFixed(2)}g</strong></td>
                                   <td className="log-macro-cell" data-macro="fat"><span className="log-macro-label"><span aria-hidden="true">🥑</span> Fat</span><strong>{Number(entry.fat || 0).toFixed(2)}g</strong></td>
                                   <td className="log-macro-cell" data-macro="fiber"><span className="log-macro-label"><span aria-hidden="true">🌿</span> Fiber</span><strong>{Number(entry.fiber || 0).toFixed(2)}g</strong></td>
-                                  <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                  <td><button type="button" className="btn btn-secondary" onClick={() => entry.type === 'meal' ? handleEditLoggedMeal(entry) : startEditingLogEntry(entry)} title={entry.type === 'meal' ? "Edit meal ingredients and details" : "Edit entry"}><Edit size={16} /> {entry.type === 'meal' ? 'Edit Meal' : 'Edit'}</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-row' : ''}>
@@ -2211,6 +2223,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                             <div className="form-group" style={{ marginBottom: 10 }}>
                                               <label>Meal Name<input value={editingLogMeal.name} onChange={e => setEditingLogMeal(prev => ({ ...prev, name: e.target.value }))} /></label>
                                             </div>
+<div className="logged-meal-properties">
+                                               <label>Date and time<input type="datetime-local" value={editingLogMeal.localTime} onChange={e => setEditingLogMeal(prev => ({ ...prev, localTime: e.target.value }))} /></label>
+                                               <label>Meal servings<input type="text" inputMode="decimal" value={editingLogMeal.quantity} onChange={e => setEditingLogMeal(prev => ({ ...prev, quantity: e.target.value }))} /></label>
+                                             </div>
                                             {editingLogMeal.foods.map((food, index) => (
                                               <div key={index} className="meal-food-item">
                                                 <div className="meal-food-info">
@@ -2240,9 +2256,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                 </div>
                                               ))}
                                             </div>
-                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10, padding: '5px 9px', fontSize: '0.82rem' }} onClick={() => handleEditLoggedMeal(entry)}>
-                                              <Edit size={16} /> Edit Meal
-                                            </button>
+
                                           </>
                                         )}
                                       </div>
@@ -2313,7 +2327,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
                                       >
-                                        {expandedLogEntryId === entry.id ? '−' : '+'}
+                                        {expandedLogEntryId === entry.id ? '⌃' : '⌄'}
                                       </button>
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
@@ -2323,7 +2337,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                   <td className="log-macro-cell" data-macro="carbs"><span className="log-macro-label"><span aria-hidden="true">🌾</span> Carbs</span><strong>{Number(entry.carbs || 0).toFixed(2)}g</strong></td>
                                   <td className="log-macro-cell" data-macro="fat"><span className="log-macro-label"><span aria-hidden="true">🥑</span> Fat</span><strong>{Number(entry.fat || 0).toFixed(2)}g</strong></td>
                                   <td className="log-macro-cell" data-macro="fiber"><span className="log-macro-label"><span aria-hidden="true">🌿</span> Fiber</span><strong>{Number(entry.fiber || 0).toFixed(2)}g</strong></td>
-                                  <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
+                                  <td><button type="button" className="btn btn-secondary" onClick={() => entry.type === 'meal' ? handleEditLoggedMeal(entry) : startEditingLogEntry(entry)} title={entry.type === 'meal' ? "Edit meal ingredients and details" : "Edit entry"}><Edit size={16} /> {entry.type === 'meal' ? 'Edit Meal' : 'Edit'}</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-row' : ''}>
@@ -2335,6 +2349,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                             <div className="form-group" style={{ marginBottom: 10 }}>
                                               <label>Meal Name<input value={editingLogMeal.name} onChange={e => setEditingLogMeal(prev => ({ ...prev, name: e.target.value }))} /></label>
                                             </div>
+<div className="logged-meal-properties">
+                                               <label>Date and time<input type="datetime-local" value={editingLogMeal.localTime} onChange={e => setEditingLogMeal(prev => ({ ...prev, localTime: e.target.value }))} /></label>
+                                               <label>Meal servings<input type="text" inputMode="decimal" value={editingLogMeal.quantity} onChange={e => setEditingLogMeal(prev => ({ ...prev, quantity: e.target.value }))} /></label>
+                                             </div>
                                             {editingLogMeal.foods.map((food, index) => (
                                               <div key={index} className="meal-food-item">
                                                 <div className="meal-food-info">
@@ -2364,9 +2382,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                                 </div>
                                               ))}
                                             </div>
-                                            <button type="button" className="btn btn-primary" style={{ marginTop: 10, padding: '5px 9px', fontSize: '0.82rem' }} onClick={() => handleEditLoggedMeal(entry)}>
-                                              <Edit size={16} /> Edit Meal
-                                            </button>
+
                                           </>
                                         )}
                                       </div>
