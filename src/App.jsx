@@ -2731,7 +2731,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         {/* MEALS TAB */}
         {activeTab === 'meals' && (
           <div className="content-grid meals-page">
-            <div className="section">
+            <div className="section nutrilog-meal-builder">
               <h2>Create Meal</h2>
               <form onSubmit={handleSaveMeal}>
                 <div className="form-group">
@@ -2755,16 +2755,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     placeholder="Search foods..."
                     style={{ marginBottom: '8px' }}
                   />
-                  <div
-                    style={{
-                      maxHeight: '220px',
-                      overflowY: 'auto',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      padding: '6px',
-                      background: '#fff'
-                    }}
-                  >
+                  <div className="nutrilog-meal-food-picker">
                     {savedFoods
                       .filter(food => food.name.toLowerCase().includes(mealFoodSearch.toLowerCase()))
                       .map(food => {
@@ -2774,14 +2765,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                         return (
                           <label
                             key={food.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              padding: '8px',
-                              cursor: 'pointer',
-                              borderRadius: '6px'
-                            }}
+                             className={`nutrilog-meal-food-choice ${selected ? "is-selected" : ""}`}
                           >
                             <input
                               type="checkbox"
@@ -2809,12 +2793,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                               }}
                             />
                             <span style={{ flex: 1 }}>{food.name}</span>
-                            <span style={{ fontSize: '0.85rem', color: '#888' }}>{food.calories} kcal</span>
+                            <span className="nutrilog-meal-food-calories">{food.calories} kcal</span>
                           </label>
                         )
                       })}
                     {savedFoods.filter(food => food.name.toLowerCase().includes(mealFoodSearch.toLowerCase())).length === 0 && (
-                      <div style={{ padding: '12px', color: '#888', textAlign: 'center' }}>
+                      <div className="nutrilog-meal-food-empty">
                         No matching foods found.
                       </div>
                     )}
