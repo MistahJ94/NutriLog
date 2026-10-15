@@ -192,7 +192,32 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [profileName, setProfileName] = useState(user?.displayName || '')
   const [profileSaving, setProfileSaving] = useState(false)
   // Navigation
-  const [activeTab, setActiveTab] = useState('tracker')
+  const [activeTab, setActiveTabState] = useState('tracker')
+  const activeTabRef = useRef('tracker')
+  const navigationStack = useRef([])
+  const navigatingBack = useRef(false)
+  const setActiveTab = next => {
+    const tab = typeof next === 'function' ? next(activeTabRef.current) : next
+    if (!tab || tab === activeTabRef.current) return
+    if (!navigatingBack.current) {
+      navigationStack.current.push(activeTabRef.current)
+      window.history.pushState({ nutrilogTab: tab }, '')
+    }
+    activeTabRef.current = tab
+    setActiveTabState(tab)
+  }
+  useEffect(() => {
+    const onPopState = () => {
+      const previous = navigationStack.current.pop()
+      if (previous) {
+        navigatingBack.current = true
+        setActiveTab(previous)
+        navigatingBack.current = false
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
   const [connectionsRefreshToken, setConnectionsRefreshToken] = useState(0)
 
   const connectionsRefreshResolve = useRef(null)
@@ -429,6 +454,17 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     if (normalized.join('|') !== tabOrder.join('|')) setTabOrder(normalized)
     localStorage.setItem('nutrilog-tab-order-' + (user?.id || 'default'), JSON.stringify(normalized))
   }, [tabOrder, user?.id, user?.role])
+
+  const moveTab = (tabId, direction) => {
+    setTabOrder(prev => {
+      const index = prev.indexOf(tabId)
+      const target = index + direction
+      if (index < 0 || target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
 
   const beginTabDrag = (event, tabId) => {
     if (!customizeTabs) return
@@ -1719,8 +1755,15 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
         {customizeTabs && (
           <div className="tab-customizer-hint">
-            <span>↔ Drag the tabs into any order</span>
+            <span>Drag tabs or use the controls below to change their order</span>
             <span>Your layout is saved for this account</span>
+            <div className="tab-order-controls">
+              {tabOrder.map((tabId, index) => <div className="tab-order-item" key={tabId}>
+                <span>{tabLabels[tabId]}</span>
+                <button type="button" disabled={index === 0} onClick={() => moveTab(tabId, -1)} aria-label={`Move ${tabLabels[tabId]} earlier`}>↑</button>
+                <button type="button" disabled={index === tabOrder.length - 1} onClick={() => moveTab(tabId, 1)} aria-label={`Move ${tabLabels[tabId]} later`}>↓</button>
+              </div>)}
+            </div>
           </div>
         )}
       </div>
@@ -2384,7 +2427,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       </div>
                     </div>
                     <div className="food-actions">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={foodLogQuantities[food.id] ?? 1} onChange={e => setFoodLogQuantities(prev => ({ ...prev, [food.id]: e.target.value }))} aria-label={"Quantity for " + food.name} /><button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food, foodLogQuantities[food.id] ?? 1)}><Plus size={16} />Log</button></div>
+                      <div className="food-serving-actions"><button type="button" className="btn btn-secondary" onClick={() => setFoodLogQuantities(prev => ({ ...prev, [food.id]: '0.5' }))} aria-label={'Half serving of ' + food.name}>½</button><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={foodLogQuantities[food.id] ?? 1} onChange={e => setFoodLogQuantities(prev => ({ ...prev, [food.id]: e.target.value }))} aria-label={"Quantity for " + food.name} /><button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food, foodLogQuantities[food.id] ?? 1)}><Plus size={16} />Log</button></div>
                       <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
                       <button className="btn btn-danger" onClick={() => handleDeleteFood(food.id)}><Trash2 size={16} /></button>
                     </div>
