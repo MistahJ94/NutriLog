@@ -3917,3 +3917,37 @@ body {
     justify-self: stretch;
   }
 }
+
+/* v1.0.5 final settings polish: responsive fields, legible help text and focus states. */
+.settings-container, .settings-container .section { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.settings-container .settings-description {
+  color: var(--text-muted, #64748b);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.settings-container .settings-form { min-width: 0; max-width: 100%; }
+.settings-container .settings-form .form-group,
+.settings-container .settings-form label { min-width: 0; }
+.settings-container .settings-form input,
+.settings-container .food-select,
+.settings-container input[type="date"] { max-width: 100%; box-sizing: border-box; }
+.settings-container .mode-toggle button:focus-visible,
+.settings-container .theme-option:focus-visible,
+.settings-container .btn:focus-visible,
+.nutrilog-admin-account-list .btn:focus-visible {
+  outline: 2px solid var(--accent, #f97316);
+  outline-offset: 3px;
+}
+.settings-container .theme-option[aria-pressed="true"],
+.settings-container .mode-toggle button[aria-pressed="true"] {
+  font-weight: 700;
+}
+@media (max-width: 650px) {
+  .settings-container .settings-grid,
+  .settings-container .content-grid { grid-template-columns: minmax(0, 1fr); }
+  .settings-container .section { padding: 16px; }
+  .settings-container .settings-form .btn { max-width: 100%; }
+  .settings-container .appearance-controls { min-width: 0; }
+  .settings-container .theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .settings-container .data-stats { min-width: 0; }
+}
