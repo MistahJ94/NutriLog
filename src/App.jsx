@@ -1135,7 +1135,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       <h3>Edit food log entry</h3>
       <div className="form-group"><label>Name<input value={editingLogEntry.name} onChange={e => setEditingLogEntry(prev => ({ ...prev, name: e.target.value }))} /></label></div>
       <div className="form-group"><label>Date and time<input type="datetime-local" value={editingLogEntry.localTime} onChange={e => setEditingLogEntry(prev => ({ ...prev, localTime: e.target.value }))} /></label></div>
-      <div className="form-group"><label>Servings<input type="number" min="0.01" step="0.01" inputMode="decimal" value={editingLogEntry.quantity} onChange={e => {
+      <div className="form-group"><label>Servings<input type="text" inputMode="decimal" value={editingLogEntry.quantity} onChange={e => {
         const value = e.target.value
         setEditingLogEntry(prev => {
           const oldQuantity = Number(prev.quantity) || 1
@@ -2153,7 +2153,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
                                   </td>
-                                  <td><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={entry.quantity ?? 1} onFocus={e => { e.target.dataset.originalQuantity = String(entry.quantity ?? 1) }} onChange={e => setLogEntries(prev => prev.map(item => item.id === entry.id ? { ...item, quantity: e.target.value } : item))} onBlur={e => handleUpdateLogQuantity(entry, e.target.value, e.target.dataset.originalQuantity)} aria-label={"Quantity for " + entry.name} /></td>
+                                  <td><input className="quantity-input" type="text" inputMode="decimal" defaultValue={entry.quantity ?? 1} onFocus={e => { e.target.dataset.originalQuantity = String(entry.quantity ?? 1) }} onBlur={e => { const value = e.target.value.trim(); if (!Number.isFinite(Number(value)) || Number(value) <= 0) { e.target.value = String(entry.quantity ?? 1); return; } if (Number(value) !== Number(e.target.dataset.originalQuantity)) handleUpdateLogQuantity(entry, value, e.target.dataset.originalQuantity); }} aria-label={"Quantity for " + entry.name} /></td>
                                   <td className="log-macro-cell" data-macro="calories"><span className="log-macro-label"><span aria-hidden="true">🔥</span> Calories</span><strong>{Number(entry.calories || 0).toFixed(2)}kcal</strong></td>
                                   <td className="log-macro-cell" data-macro="protein"><span className="log-macro-label"><span aria-hidden="true">💪</span> Protein</span><strong>{Number(entry.protein || 0).toFixed(2)}g</strong></td>
                                   <td className="log-macro-cell" data-macro="carbs"><span className="log-macro-label"><span aria-hidden="true">🌾</span> Carbs</span><strong>{Number(entry.carbs || 0).toFixed(2)}g</strong></td>
