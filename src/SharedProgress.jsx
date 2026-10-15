@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Users, RefreshCw, TrendingUp } from 'lucide-react'
-import { api, isOfflineMode } from './services'
+import { api, isOfflineMode, isNutriLogNative, sharedProgressEventsUrl } from './services'
 import './SharedProgress.css'
 
 const dayLabel = value => {
@@ -35,6 +35,7 @@ export default function SharedProgress() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [liveState, setLiveState] = useState('connecting')
 
   const loadConnections = async () => {
     setBusy(true); setError('')
@@ -51,48 +52,70 @@ export default function SharedProgress() {
   useEffect(() => { if (!isOfflineMode()) loadConnections() }, [])
 
   useEffect(() => {
+    if (!selectedId || isOfflineMode()) { setProgress(null); return }
     let active = true
+    let inFlight = false
+    let eventSource = null
     setProgress(null)
-    if (!selectedId) return () => { active = false }
-    setBusy(true); setError('')
-    api.sharing.progress(selectedId)
-      .then(result => { if (active) { setProgress(result); setLastUpdated(new Date()) } })
-      .catch(err => { if (active) setError(err.message || 'Unable to load shared progress') })
-      .finally(() => { if (active) setBusy(false) })
-    return () => { active = false }
+    setError('')
+    setLiveState('connecting')
+    const sync = async () => {
+      if (!active || inFlight || document.visibilityState === 'hidden') return
+      inFlight = true
+      try {
+        const result = await api.sharing.progress(selectedId)
+        if (active) {
+          setProgress(result)
+          setLastUpdated(new Date())
+          setLiveState('connected')
+          setError('')
+        }
+      } catch (err) {
+        if (active) { setLiveState('stale'); setError(err.message || 'Unable to refresh shared progress') }
+      } finally { inFlight = false }
+    }
+    sync()
+    // Cookie-authenticated web sessions get immediate server notifications.
+    // Native clients use authenticated polling, since EventSource cannot attach bearer tokens.
+    if (!isNutriLogNative() && typeof EventSource !== 'undefined') {
+      eventSource = new EventSource(sharedProgressEventsUrl(selectedId), { withCredentials: true })
+      eventSource.addEventListener('changed', sync)
+      eventSource.onerror = () => { if (active) setLiveState('reconnecting') }
+      eventSource.addEventListener('ready', sync)
+    }
+    const timer = window.setInterval(sync, 10000)
+    const onVisible = () => { if (document.visibilityState === 'visible') sync() }
+    const onOnline = () => sync()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', onOnline)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', onOnline)
+      eventSource?.close()
+    }
   }, [selectedId])
 
   const refresh = async () => {
     if (!selectedId) return loadConnections()
-    setBusy(true); setError('')
-    try { setProgress(await api.sharing.progress(selectedId)); setLastUpdated(new Date()) }
-    catch (err) { setError(err.message || 'Unable to refresh progress') }
+    setBusy(true)
+    try {
+      const result = await api.sharing.progress(selectedId)
+      setProgress(result)
+      setLastUpdated(new Date())
+      setLiveState('connected')
+      setError('')
+    } catch (err) { setLiveState('stale'); setError(err.message || 'Unable to refresh progress') }
     finally { setBusy(false) }
   }
-
-  useEffect(() => {
-    if (!selectedId || isOfflineMode()) return
-    let active = true
-    const sync = async () => {
-      if (!active || document.visibilityState === 'hidden') return
-      try {
-        const result = await api.sharing.progress(selectedId)
-        if (active) { setProgress(result); setLastUpdated(new Date()); setError('') }
-      } catch (err) {
-        if (active) setError(err.message || 'Unable to refresh shared progress')
-      }
-    }
-    const timer = window.setInterval(sync, 60000)
-    document.addEventListener('visibilitychange', sync)
-    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', sync) }
-  }, [selectedId])
 
   if (isOfflineMode()) return <div className="section"><h2>Shared Progress</h2><p>Connect to a NutriLog server to view shared progress.</p></div>
 
   const permissions = progress?.sharing || {}
   const nutrition = Array.isArray(progress?.dailyNutrition) ? progress.dailyNutrition : []
   const sorted = [...nutrition].sort((a, b) => String(a.day || '').localeCompare(String(b.day || '')))
-  const latest = sorted[sorted.length - 1]
+  const latest = sorted.find(day => day.day === progress?.today) || null
   const goals = permissions.shareGoals ? progress?.goals : null
   const visibleNutrition = permissions.shareCalories || permissions.shareMacros
   const history = Array.isArray(progress?.weightHistory) ? progress.weightHistory : []
@@ -111,16 +134,17 @@ export default function SharedProgress() {
         {connections.map(item => <option key={item.id} value={String(item.otherUserId)}>{item.otherName || item.otherEmail}</option>)}
       </select>
       <button className="btn btn-secondary" type="button" onClick={refresh} disabled={busy}><RefreshCw size={17} />{busy ? 'Loading…' : 'Refresh'}</button>
-      {lastUpdated && <small>Updated {lastUpdated.toLocaleTimeString()} · refreshes every minute</small>}
+      <small>Sync: {liveState} · {lastUpdated ? 'checked ' + lastUpdated.toLocaleTimeString() : 'waiting for server'} · auto-checks every 10 seconds</small>
     </div>
     {error && <div className="auth-error" role="alert">{error}</div>}
     {!busy && !connections.length && <div className="section empty-state">No accepted connections yet. Manage invitations in Settings → Connections.</div>}
     {busy && !progress && <div className="section empty-state">Loading shared progress…</div>}
     {progress && <>
+      <p className="settings-description">Server calculation: {progress.generatedAt ? new Date(progress.generatedAt).toLocaleString() : 'unknown'} · {progress.timeZone || 'Timezone not shared'}{liveState !== 'connected' ? ' · Data may be stale' : ''}</p>
       <div className="section">
         <h3>{progress.user?.displayName || selected?.otherName || selected?.otherEmail || 'Connection'} — overview</h3>
         {visibleNutrition && latest ? <>
-          <p className="settings-description">Latest recorded nutrition: {dayLabel(latest.day)}</p>
+          <p className="settings-description">Today: {dayLabel(latest.day)} · {progress.timeZone || 'UTC'} · {latest.entryCount} logged entries</p>
           <div className="shared-metrics">
             {permissions.shareCalories && <Metric label="Calories" value={latest.calories} goal={goals?.calories} unit=" kcal" />}
             {permissions.shareMacros && <>
@@ -130,7 +154,7 @@ export default function SharedProgress() {
               <Metric label="Fiber" value={latest.fiber} goal={goals?.fiber} unit=" g" />
             </>}
           </div>
-        </> : <p className="settings-description">No daily nutrition totals available to you yet.</p>}
+        </> : <p className="settings-description">No nutrition totals available for today.</p>}
       </div>
       {permissions.shareCharts && visibleNutrition && sorted.length > 0 && <div className="section">
         <h3><TrendingUp size={19} style={{ verticalAlign: 'middle', marginRight: 7 }} />Recent nutrition — last 7 records</h3>
