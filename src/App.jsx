@@ -16,6 +16,7 @@ import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition,
 
 function AdminPanel({ user }) {
   const [users, setUsers] = useState([])
+  const [expandedAccountId, setExpandedAccountId] = useState(null)
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' })
@@ -56,6 +57,7 @@ function AdminPanel({ user }) {
   }
 
   const toggleUser = async account => {
+    if (!confirm((account.is_active ? 'Disable' : 'Enable') + ' account ' + account.email + '? ' + (account.is_active ? 'They will no longer be able to sign in. Their nutrition data will be kept.' : 'They will be allowed to sign in again.'))) return
     try { await api.admin.updateUser(account.id, { is_active: !account.is_active }); await loadUsers() }
     catch (err) { alert(err.message) }
   }
@@ -75,6 +77,7 @@ function AdminPanel({ user }) {
   }
 
   const revokeSessions = async account => {
+    if (!confirm('Sign ' + account.email + ' out of all existing sessions? They will need to sign in again.')) return
     try { await api.admin.revokeSessions(account.id); alert('Sessions revoked for ' + account.email) }
     catch (err) { alert(err.message) }
   }
@@ -172,12 +175,38 @@ function AdminPanel({ user }) {
                       <span>{new Date(account.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <div className="food-actions">
-                    <button className="btn btn-secondary" title="Reset password" onClick={() => resetPassword(account)}><KeyRound size={16} /></button>
-                    <button className="btn btn-secondary" title="Revoke sessions" onClick={() => revokeSessions(account)}><RefreshCw size={16} /></button>
-                    <button className="btn btn-secondary" title="Change role" onClick={() => changeRole(account)} disabled={account.id === user.id}><Shield size={16} /></button>
-                    <button className={account.is_active ? 'btn btn-danger' : 'btn btn-primary'} title={account.is_active ? 'Disable account' : 'Enable account'} onClick={() => toggleUser(account)} disabled={account.id === user.id}>{account.is_active ? <UserX size={16} /> : <UserCheck size={16} />}</button>
-                    <button className="btn btn-danger" title="Delete account" onClick={() => deleteUser(account)} disabled={account.id === user.id}><Trash2 size={16} /></button>
+                  <div className="nutrilog-account-options">
+                    <button type="button" className="btn btn-secondary nutrilog-account-options-toggle"
+                      aria-expanded={expandedAccountId === account.id}
+                      aria-controls={'account-actions-' + account.id}
+                      onClick={() => setExpandedAccountId(current => current === account.id ? null : account.id)}>
+                      <Settings size={16} /> {expandedAccountId === account.id ? 'Hide Options' : 'Manage Account'}
+                    </button>
+                    {expandedAccountId === account.id && (
+                      <div className="nutrilog-account-actions" id={'account-actions-' + account.id}>
+                        <div className="nutrilog-account-action">
+                          <div><strong>Reset Password</strong><p>Choose a new password. Existing sessions will be signed out.</p></div>
+                          <button type="button" className="btn btn-secondary" onClick={() => resetPassword(account)}><KeyRound size={16} /> Reset</button>
+                        </div>
+                        <div className="nutrilog-account-action">
+                          <div><strong>Revoke Sessions</strong><p>Sign this account out everywhere. Its data and password stay unchanged.</p></div>
+                          <button type="button" className="btn btn-secondary" onClick={() => revokeSessions(account)}><RefreshCw size={16} /> Sign Out</button>
+                        </div>
+                        <div className="nutrilog-account-action">
+                          <div><strong>Change Role</strong><p>{account.role === 'admin' ? 'Remove administrator privileges and make this a regular user.' : 'Give this user administrator access to account and server settings.'}</p></div>
+                          <button type="button" className="btn btn-secondary" onClick={() => changeRole(account)} disabled={account.id === user.id}><Shield size={16} /> {account.role === 'admin' ? 'Make User' : 'Make Admin'}</button>
+                        </div>
+                        <div className="nutrilog-account-action">
+                          <div><strong>{account.is_active ? 'Disable Account' : 'Enable Account'}</strong><p>{account.is_active ? 'Prevent sign-in without deleting this account or its nutrition data.' : 'Restore sign-in access to this account.'}</p></div>
+                          <button type="button" className={account.is_active ? 'btn btn-danger' : 'btn btn-primary'} onClick={() => toggleUser(account)} disabled={account.id === user.id}>{account.is_active ? <UserX size={16} /> : <UserCheck size={16} />}{account.is_active ? ' Disable' : ' Enable'}</button>
+                        </div>
+                        <div className="nutrilog-account-action nutrilog-account-action-danger">
+                          <div><strong>Delete Account</strong><p>Permanently delete this account and its nutrition data. This cannot be undone.</p></div>
+                          <button type="button" className="btn btn-danger" onClick={() => deleteUser(account)} disabled={account.id === user.id}><Trash2 size={16} /> Delete</button>
+                        </div>
+                        {account.id === user.id && <p className="nutrilog-account-self-note">You cannot change your own role, disable your own account, or delete your own account here.</p>}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
