@@ -3731,3 +3731,41 @@ body {
     color: var(--accent, #f97316);
   }
 }
+
+/* v1.0.5: functional quick-add food search */
+.nutrilog-quick-add { border-radius: 18px; }
+.nutrilog-quick-add-heading h2 { margin: 0 0 5px; }
+.nutrilog-quick-add-heading p { margin: 0 0 16px; color: var(--text-muted, #777); font-size: .9rem; }
+.nutrilog-quick-add-form { display: grid; grid-template-columns: minmax(0, 1fr) 105px 160px auto; gap: 10px; align-items: end; }
+.nutrilog-quick-search { position: relative; min-width: 0; }
+.nutrilog-quick-search label, .nutrilog-quick-field { display: flex; flex-direction: column; gap: 6px; font-size: .82rem; font-weight: 600; }
+.nutrilog-quick-search input, .nutrilog-quick-field input {
+  width: 100%; min-width: 0; min-height: 43px; box-sizing: border-box;
+  border: 1px solid var(--border, #ddd); border-radius: 10px;
+  background: var(--surface-raised, #fff); color: var(--text, #111827);
+  padding: 9px 11px; font: inherit;
+}
+.nutrilog-quick-submit { min-height: 43px; white-space: nowrap; justify-content: center; }
+.nutrilog-quick-results {
+  position: absolute; z-index: 80; left: 0; right: 0; top: calc(100% + 5px);
+  max-height: 290px; overflow-y: auto; border-radius: 12px;
+  border: 1px solid var(--border, #ddd); background: var(--surface-raised, #fff);
+  box-shadow: 0 14px 30px rgba(0,0,0,.18); padding: 5px;
+}
+.nutrilog-quick-result {
+  display: flex; width: 100%; justify-content: space-between; align-items: center;
+  text-align: left; gap: 12px; padding: 10px 12px; cursor: pointer;
+  border: 0; border-radius: 8px; background: transparent; color: var(--text, #111827);
+}
+.nutrilog-quick-result:hover, .nutrilog-quick-result:focus-visible { background: color-mix(in srgb, var(--accent, #f97316) 12%, transparent); }
+.nutrilog-quick-result span:first-child { display: flex; flex-direction: column; min-width: 0; }
+.nutrilog-quick-result strong { overflow-wrap: anywhere; }
+.nutrilog-quick-result small { color: var(--text-muted, #777); }
+.nutrilog-quick-result > span:last-child { white-space: nowrap; font-size: .8rem; }
+.nutrilog-quick-empty { padding: 10px; margin: 0; font-size: .84rem; }
+.nutrilog-quick-selection { margin: 12px 0 0; font-size: .83rem; color: var(--text-muted, #777); }
+@media (max-width: 800px) {
+  .nutrilog-quick-add-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nutrilog-quick-search { grid-column: 1 / -1; }
+  .nutrilog-quick-submit { grid-column: 1 / -1; }
+}
