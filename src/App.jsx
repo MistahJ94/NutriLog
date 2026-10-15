@@ -2202,11 +2202,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                   <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
-                                  <tr>
+                                  <tr className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-row' : ''}>
                                     <td colSpan="9" style={{ padding: 0 }}>
-                                      <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
+                                      <div className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-panel' : ''} style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
                                         {editingLogMeal?.id === entry.id ? (
                                           <>
+                                            <div className="logged-meal-editor-heading"><h3>Edit logged meal</h3><button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)} aria-label="Close meal editor">Close</button></div>
                                             <div className="form-group" style={{ marginBottom: 10 }}>
                                               <label>Meal Name<input value={editingLogMeal.name} onChange={e => setEditingLogMeal(prev => ({ ...prev, name: e.target.value }))} /></label>
                                             </div>
@@ -2325,11 +2326,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                   <td><button type="button" className="btn btn-secondary" onClick={() => startEditingLogEntry(entry)} title="Edit entry"><Edit size={16} /> Edit</button> <button className="btn-icon-delete" onClick={() => handleDeleteLogEntry(entry.id)} title="Delete entry"><Trash2 size={16} /></button></td>
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
-                                  <tr>
+                                  <tr className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-row' : ''}>
                                     <td colSpan="9" style={{ padding: 0 }}>
-                                      <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
+                                      <div className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-panel' : ''} style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
                                         {editingLogMeal?.id === entry.id ? (
                                           <>
+                                            <div className="logged-meal-editor-heading"><h3>Edit logged meal</h3><button type="button" className="btn btn-secondary" onClick={() => setEditingLogMeal(null)} aria-label="Close meal editor">Close</button></div>
                                             <div className="form-group" style={{ marginBottom: 10 }}>
                                               <label>Meal Name<input value={editingLogMeal.name} onChange={e => setEditingLogMeal(prev => ({ ...prev, name: e.target.value }))} /></label>
                                             </div>
