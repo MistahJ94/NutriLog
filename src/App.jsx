@@ -29,7 +29,23 @@ function LoggedMealServingInput({ quantity, foodName, onCommit }) {
     if (parsed !== Number(quantity)) onCommit(normalized)
   }
   return <input className="quantity-input" type="text" inputMode="decimal"
-    value={draft} onChange={event => {
+    value={draft}
+    onBeforeInput={event => {
+      const native = event.nativeEvent
+      if (native.inputType !== 'insertText' || !native.data) return
+      const element = event.currentTarget
+      const start = element.selectionStart ?? draft.length
+      const end = element.selectionEnd ?? start
+      const inserted = native.data.replace(',', '.')
+      const next = draft.slice(0, start) + inserted + draft.slice(end)
+      if (!/^\d*(?:\.\d*)?$/.test(next)) { event.preventDefault(); return }
+      event.preventDefault()
+      setDraft(next)
+      requestAnimationFrame(() => {
+        if (document.activeElement === element) element.setSelectionRange(start + inserted.length, start + inserted.length)
+      })
+    }}
+    onChange={event => {
       const next = event.target.value.replace(',', '.')
       if (/^\d*(?:\.\d*)?$/.test(next)) setDraft(next)
     }}
