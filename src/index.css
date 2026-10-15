@@ -3951,3 +3951,73 @@ body {
   .settings-container .theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settings-container .data-stats { min-width: 0; }
 }
+
+/* Saved food actions: avoid inherited full-width mobile buttons.
+   Keep Delete as a compact square, never a stretched destructive bar. */
+.food-library-section .food-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.food-library-section .food-actions > button.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  min-height: 38px;
+  padding: 8px 11px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.food-library-section .food-actions > button.food-library-delete {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 !important;
+  border-radius: 10px;
+}
+.food-library-section .food-serving-actions {
+  display: inline-flex;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  margin-right: 0;
+}
+.food-library-section .food-serving-actions > button.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 36px;
+  min-height: 38px;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+.food-library-section .food-serving-actions > .quantity-input {
+  flex: 0 0 62px;
+  width: 62px;
+  min-width: 0;
+  max-width: 62px;
+}
+@container (max-width: 440px) {
+  .food-library-section .food-actions > button.btn { flex: 0 0 auto !important; width: auto !important; }
+  .food-library-section .food-serving-actions { width: auto; flex-wrap: nowrap; }
+  .food-library-section .food-serving-actions > button.btn:last-child { flex: 0 0 auto !important; }
+  .food-library-section .food-actions > button.food-library-delete {
+    flex: 0 0 40px !important;
+    width: 40px !important;
+  }
+}
