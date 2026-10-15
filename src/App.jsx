@@ -441,7 +441,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       theme,
       mode,
       customAccent,
-      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order },
+      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' },
       tabOrder
     }
     const timer = setTimeout(() => { api.preferences.save(preferences).catch(() => {}) }, 600)
