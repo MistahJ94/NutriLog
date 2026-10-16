@@ -791,3 +791,63 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+
+
+/* Keep historical and current Food Log summaries visually consistent. */
+.food-log-history-summary {
+  background: linear-gradient(125deg, var(--accent), color-mix(in srgb, var(--accent) 68%, var(--surface-raised, #1f2937)));
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #fff;
+}
+.food-log-history-summary h3,
+.date-group .date-header h3 {
+  font-size: 1.12rem;
+  line-height: 1.35;
+  font-weight: 700;
+  margin: 0 0 9px;
+}
+.food-log-history-summary .date-totals {
+  justify-content: flex-start !important;
+  margin: 0 !important;
+  gap: 7px;
+}
+.food-log-history-summary .date-totals span,
+.date-group .date-header .date-totals span {
+  font-size: .82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 6px 9px;
+  background: color-mix(in srgb, white 17%, transparent);
+  color: #fff;
+}
+.food-log-history-summary .date-totals .total-calories,
+.date-group .date-header .date-totals .total-calories {
+  font-size: 1rem !important;
+  font-weight: 750 !important;
+}
+.food-log-history-navigation .btn {
+  background: linear-gradient(125deg, var(--accent), color-mix(in srgb, var(--accent) 68%, var(--surface-raised, #1f2937))) !important;
+  color: #fff !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent) !important;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.food-log-history-navigation .btn:hover { filter: brightness(1.09); }
+.date-entries .entries-table tbody td.log-macro-cell .log-macro-label {
+  font-size: .72rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.date-entries .entries-table tbody td.log-macro-cell strong {
+  font-size: clamp(.72rem, 2.5vw, .88rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+@media (max-width: 700px) {
+  .food-log-history-summary { padding: 14px 12px; }
+  .food-log-history-navigation { flex-wrap: wrap; }
+  .food-log-history-navigation .btn { min-height: 36px; }
+  .date-entries .entries-table tbody td.log-macro-cell strong { overflow-wrap: anywhere; }
+}
