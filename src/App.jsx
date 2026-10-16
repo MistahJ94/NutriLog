@@ -510,12 +510,20 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [plannedMealId, setPlannedMealId] = useState('')
   const [plannedMealSlot, setPlannedMealSlot] = useState('Breakfast')
   const [plannedMeals, setPlannedMeals] = useState(() => {
+    const serverPlans = initialServerData?.preferences?.trackerLayout?.plannedMeals
+    if (Array.isArray(serverPlans)) return serverPlans
     try {
       const data = JSON.parse(localStorage.getItem('nutrilog-planned-meals-' + (user?.id || 'default')) || '[]')
       return Array.isArray(data) ? data : []
     } catch { return [] }
   })
   useEffect(() => {
+    const serverPlans = initialServerData?.preferences?.trackerLayout?.plannedMeals
+    if (Array.isArray(serverPlans)) {
+      setPlannedMeals(serverPlans)
+      localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(serverPlans))
+      return
+    }
     try {
       const data = JSON.parse(localStorage.getItem('nutrilog-planned-meals-' + (user?.id || 'default')) || '[]')
       setPlannedMeals(Array.isArray(data) ? data : [])
@@ -726,12 +734,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       theme,
       mode,
       customAccent,
-      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: selectedTimeZone },
+      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: selectedTimeZone, plannedMeals },
       tabOrder
     }
     const timer = setTimeout(() => { api.preferences.save(preferences).catch(() => {}) }, 600)
     return () => clearTimeout(timer)
-  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, selectedTimeZone])
+  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, selectedTimeZone, plannedMeals])
 
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
@@ -2616,7 +2624,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
             <section className="section nutrilog-planner-schedule" aria-label="Schedule saved meals">
               <h3>Schedule a saved meal</h3>
-              <p>Planned meals are not counted as consumed until you log them. Plans are saved on this device for this account.</p>
+              <p>Planned meals are not counted as consumed until you log them. Plans sync through your account preferences when connected to the server; offline changes remain on this device until a successful save.</p>
               <form className="nutrilog-planner-schedule-form" onSubmit={scheduleSavedMeal}>
                 <label>Date <input type="date" value={plannerAnchor} onChange={event => setPlannerAnchor(event.target.value)} required /></label>
                 <label>Meal <select value={plannedMealId} onChange={event => setPlannedMealId(event.target.value)} required>
