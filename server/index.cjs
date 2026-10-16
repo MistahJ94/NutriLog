@@ -926,12 +926,22 @@ async function protectedApi(req, res, pathname, user) {
       const existing = Array.isArray(base.plannedMeals) ? base.plannedMeals : []
       const deletedIds = [...new Set([...(Array.isArray(base.plannedMealDeletedIds) ? base.plannedMealDeletedIds : []), ...requestedDeletes])]
       const deleted = new Set(deletedIds)
+      // Existing IDs may carry edits from another device. Apply only newer
+      // versioned records; unversioned legacy copies never overwrite an edit.
       const merged = existing.filter(item => !item || item.id == null || !deleted.has(String(item.id)))
-      const seen = new Set(existing.filter(item => item && typeof item === "object" && item.id != null).map(item => String(item.id)))
+      const indexById = new Map(merged.map((item, index) => [String(item?.id), index]))
+      const revision = item => {
+        const time = Date.parse(item?.updatedAt || "")
+        return Number.isFinite(time) ? time : 0
+      }
       for (const item of incoming) {
-        if (!deleted.has(item.id) && !seen.has(item.id)) {
+        if (deleted.has(item.id)) continue
+        const index = indexById.get(item.id)
+        if (index === undefined) {
+          indexById.set(item.id, merged.length)
           merged.push(item)
-          seen.add(item.id)
+        } else if (revision(item) > revision(merged[index])) {
+          merged[index] = item
         }
       }
       const unchanged = current.length > 0 &&
