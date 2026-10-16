@@ -2755,13 +2755,13 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 </div>
               </div>
               <p className="nutrilog-planner-caption">Consumed food only · {plannerDays[0]?.label || ''}{plannerDays.length > 1 ? ' – ' + plannerDays[plannerDays.length - 1].label : ''}</p>
-              {plannerView === 'month' ? (
+              {plannerView !== 'day' ? (
                 <div className="nutrilog-planner-month">
-                  <div className="nutrilog-planner-month-grid" role="group" aria-label="Monthly meal calendar">
+                  <div className="nutrilog-planner-month-grid" role="group" aria-label={plannerView === 'week' ? 'Weekly meal calendar' : 'Monthly meal calendar'}>
                     {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(name => (
                       <span className="nutrilog-planner-month-weekday" key={name}>{name}</span>
                     ))}
-                    {plannerDays.length > 0 && Array.from({ length: new Date(plannerDays[0].key + 'T12:00:00Z').getUTCDay() }, (_, index) => (
+                    {plannerView === 'month' && plannerDays.length > 0 && Array.from({ length: new Date(plannerDays[0].key + 'T12:00:00Z').getUTCDay() }, (_, index) => (
                       <span key={'blank-' + index} aria-hidden="true" />
                     ))}
                     {plannerDays.map(day => (
