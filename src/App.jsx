@@ -507,6 +507,36 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [mealSort, setMealSort] = useState('az')
   const [plannerView, setPlannerView] = useState('week')
   const [plannerAnchor, setPlannerAnchor] = useState(() => getLocalDateString())
+  const [plannedMealId, setPlannedMealId] = useState('')
+  const [plannedMealSlot, setPlannedMealSlot] = useState('Breakfast')
+  const [plannedMeals, setPlannedMeals] = useState(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem('nutrilog-planned-meals-' + (user?.id || 'default')) || '[]')
+      return Array.isArray(data) ? data : []
+    } catch { return [] }
+  })
+  useEffect(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem('nutrilog-planned-meals-' + (user?.id || 'default')) || '[]')
+      setPlannedMeals(Array.isArray(data) ? data : [])
+    } catch { setPlannedMeals([]) }
+  }, [user?.id])
+  const savePlannedMeals = next => {
+    setPlannedMeals(next)
+    localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(next))
+  }
+  const scheduleSavedMeal = event => {
+    event.preventDefault()
+    const meal = savedMeals.find(item => String(item.id) === String(plannedMealId))
+    if (!meal) return
+    const scheduled = {
+      id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8),
+      date: plannerAnchor, slot: plannedMealSlot,
+      mealId: String(meal.id), name: meal.name,
+      calories: Number(meal.calories) || 0
+    }
+    savePlannedMeals([...plannedMeals, scheduled])
+  }
   const [foodSort, setFoodSort] = useState('newest')
   const [quickFoodFilter, setQuickFoodFilter] = useState('all')
   const [favoriteFoodIds, setFavoriteFoodIds] = useState(() => {
@@ -2582,8 +2612,34 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           <div className="planner-container">
             <div className="planner-intro">
               <h2>Planner</h2>
-              <p>Review your logged nutrition by day, week, or month. Planned meals will be shown separately when scheduling is available.</p>
+              <p>Schedule saved meals and review logged nutrition by day, week, or month. Planned meals stay separate from consumed food.</p>
             </div>
+            <section className="section nutrilog-planner-schedule" aria-label="Schedule saved meals">
+              <h3>Schedule a saved meal</h3>
+              <p>Planned meals are not counted as consumed until you log them. Plans are saved on this device for this account.</p>
+              <form className="nutrilog-planner-schedule-form" onSubmit={scheduleSavedMeal}>
+                <label>Date <input type="date" value={plannerAnchor} onChange={event => setPlannerAnchor(event.target.value)} required /></label>
+                <label>Meal <select value={plannedMealId} onChange={event => setPlannedMealId(event.target.value)} required>
+                  <option value="">Choose a saved meal</option>
+                  {savedMeals.map(meal => <option key={meal.id} value={String(meal.id)}>{meal.name}</option>)}
+                </select></label>
+                <label>Category <select value={plannedMealSlot} onChange={event => setPlannedMealSlot(event.target.value)}>
+                  {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(slot => <option key={slot} value={slot}>{slot}</option>)}
+                </select></label>
+                <button type="submit" className="btn btn-primary" disabled={!plannedMealId}>Plan meal</button>
+              </form>
+              <div className="nutrilog-planner-scheduled-list">
+                <h3>Scheduled meals in view</h3>
+                {plannedMeals.filter(item => plannerDays.some(day => day.key === item.date)).length === 0
+                  ? <p>No meals scheduled for this period.</p>
+                  : plannedMeals.filter(item => plannerDays.some(day => day.key === item.date))
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map(item => <div className="nutrilog-planner-scheduled-item" key={item.id}>
+                      <span><strong>{item.date}</strong> · {item.slot} · {item.name} ({Math.round(item.calories)} kcal planned)</span>
+                      <button type="button" className="btn btn-secondary" onClick={() => savePlannedMeals(plannedMeals.filter(row => row.id !== item.id))} aria-label={'Remove planned ' + item.name}>Remove</button>
+                    </div>)}
+              </div>
+            </section>
             <section className="section nutrilog-planner-overview" aria-label="Consumed nutrition calendar">
               <div className="nutrilog-planner-toolbar">
                 <div className="nutrilog-planner-view-switch" role="group" aria-label="Calendar view">
