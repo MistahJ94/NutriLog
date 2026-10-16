@@ -1150,23 +1150,48 @@ async function protectedApi(req, res, pathname, user) {
     if (operationId !== undefined && (typeof operationId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId))) {
       return send(res, 400, { error: "Invalid operation ID" })
     }
-    let stableId = null
+    // For opt-in offline creates, commit the record and its replay receipt
+    // in the SAME transaction. Receipts survive subsequent record deletion.
     if (operationId && (match[1] === "foods" || match[1] === "meals")) {
-      const digest = crypto.createHash("sha256").update(user.id + ":" + match[1] + ":" + operationId).digest("hex")
-      stableId = digest.slice(0, 8) + "-" + digest.slice(8, 12) + "-4" + digest.slice(13, 16) + "-a" + digest.slice(17, 20) + "-" + digest.slice(20, 32)
-      const existing = await sql.unsafe("SELECT " + config.select + " FROM " + config.table + " WHERE user_id=$1 AND id=$2", [user.id, stableId])
-      if (existing.length) return send(res, 200, { item: existing[0], replayed: true })
+      const resource = match[1]
+      const digest = crypto.createHash("sha256").update(user.id + ":" + resource + ":" + operationId).digest("hex")
+      const stableId = digest.slice(0, 8) + "-" + digest.slice(8, 12) + "-4" + digest.slice(13, 16) + "-a" + digest.slice(17, 20) + "-" + digest.slice(20, 32)
+      const requestHash = crypto.createHash("sha256").update(JSON.stringify({ resource, method: "POST", body: values })).digest("hex")
+      const result = await sql.begin(async tx => {
+        // Unique key serializes concurrent requests for the same operation.
+        const reserved = await tx.unsafe(
+          "INSERT INTO sync_operation_receipts (user_id, operation_id, resource, method, request_hash, result_id) VALUES ($1,$2,$3,'POST',$4,$5) ON CONFLICT (user_id, operation_id) DO NOTHING RETURNING operation_id",
+          [user.id, operationId, resource, requestHash, stableId]
+        )
+        if (!reserved.length) {
+          const receipts = await tx.unsafe(
+            "SELECT resource, method, request_hash, response_body FROM sync_operation_receipts WHERE user_id=$1 AND operation_id=$2",
+            [user.id, operationId]
+          )
+          const receipt = receipts[0]
+          if (!receipt || receipt.resource !== resource || receipt.method !== "POST" || receipt.request_hash !== requestHash) {
+            return { status: 409, body: { error: "Operation ID reused with different data", code: "SYNC_CONFLICT" } }
+          }
+          if (!receipt.response_body) throw new Error("Incomplete sync receipt")
+          return { status: 200, body: { ...receipt.response_body, replayed: true } }
+        }
+        const placeholders = config.fields.map((_, i) => "$" + (i + 3)).join(", ")
+        const insertQuery = "INSERT INTO " + config.table + " (user_id, id, " + config.fields.join(", ") +
+          ") VALUES ($1,$2," + placeholders + ") RETURNING " + config.select
+        const inserted = await tx.unsafe(insertQuery, [user.id, stableId, ...values])
+        const response = { item: inserted[0] }
+        await tx.unsafe(
+          "UPDATE sync_operation_receipts SET response_body=$3::jsonb, completed_at=NOW() WHERE user_id=$1 AND operation_id=$2",
+          [user.id, operationId, JSON.stringify(response)]
+        )
+        return { status: 201, body: response }
+      })
+      return send(res, result.status, result.body)
     }
-    const offset = stableId ? 3 : 2
-    const placeholders = config.fields.map((_, i) => "$" + (i + offset)).join(", ")
-    const columns = "user_id, " + (stableId ? "id, " : "") + config.fields.join(", ")
-    const query = "INSERT INTO " + config.table + " (" + columns + ") VALUES ($1, " + (stableId ? "$2, " : "") + placeholders + ")" + (stableId ? " ON CONFLICT (id) DO NOTHING" : "") + " RETURNING " + config.select
-    const rows = await sql.unsafe(query, [user.id, ...(stableId ? [stableId] : []), ...values])
-    if (!rows.length && stableId) {
-      const existing = await sql.unsafe("SELECT " + config.select + " FROM " + config.table + " WHERE user_id=$1 AND id=$2", [user.id, stableId])
-      if (existing.length) return send(res, 200, { item: existing[0], replayed: true })
-      return send(res, 409, { error: "Operation ID collision", code: "SYNC_CONFLICT" })
-    }
+    const placeholders = config.fields.map((_, i) => "$" + (i + 2)).join(", ")
+    const query = "INSERT INTO " + config.table + " (user_id, " + config.fields.join(", ") +
+      ") VALUES ($1," + placeholders + ") RETURNING " + config.select
+    const rows = await sql.unsafe(query, [user.id, ...values])
     if (match[1] === "log-entries") notifyProgressChanged(user.id)
     return send(res, 201, { item: rows[0] })
   }
