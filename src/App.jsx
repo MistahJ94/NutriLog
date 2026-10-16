@@ -2189,10 +2189,22 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     </div>
                   )}
                 </div>
-                <label className="nutrilog-quick-field">Servings
-                  <input type="number" min="0.01" step="0.01" inputMode="decimal" value={quickLogForm.quantity}
-                    onChange={e => setQuickLogForm(prev => ({ ...prev, quantity: e.target.value }))} />
-                </label>
+                <div className="nutrilog-quick-serving-control">
+                  <label className="nutrilog-quick-field" htmlFor="quick-log-servings">Servings</label>
+                  <div className="nutrilog-quick-serving-presets" aria-label="Quick serving sizes">
+                    {['0.5', '1', '2'].map(amount => (
+                      <button type="button" key={amount}
+                        className={'btn ' + (Number(quickLogForm.quantity) === Number(amount) ? 'btn-primary' : 'btn-secondary')}
+                        aria-pressed={Number(quickLogForm.quantity) === Number(amount)}
+                        onClick={() => setQuickLogForm(prev => ({ ...prev, quantity: amount }))}>
+                        {amount === '0.5' ? '½' : amount}
+                      </button>
+                    ))}
+                    <input id="quick-log-servings" type="number" min="0.01" step="0.01" inputMode="decimal"
+                      aria-label="Custom number of servings" value={quickLogForm.quantity}
+                      onChange={e => setQuickLogForm(prev => ({ ...prev, quantity: e.target.value }))} />
+                  </div>
+                </div>
                 <label className="nutrilog-quick-field">Date
                   <input type="date" value={quickLogForm.date} onChange={handleQuickLogDateChange} />
                 </label>
@@ -2202,7 +2214,21 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               </form>
               {quickLogForm.selectedItem && (
                 <p className="nutrilog-quick-selection">
-                  Selected: <strong>{quickLogForm.selectedItem.name}</strong> · {Number(scaleNutrition(quickLogForm.selectedItem, Number(quickLogForm.quantity) || 0).calories || 0).toFixed(0)} kcal
+                  Selected: <strong>{quickLogForm.selectedItem.name}</strong>
+                  <span className="nutrilog-quick-nutrition-preview">
+                    {(() => {
+                      const totals = scaleNutrition(quickLogForm.selectedItem, Math.max(0, Number(quickLogForm.quantity) || 0))
+                      return (
+                        <>
+                          <span>{Math.round(Number(totals.calories) || 0)} kcal</span>
+                          <span>P: {Number(totals.protein || 0).toFixed(1)}g</span>
+                          <span>C: {Number(totals.carbs || 0).toFixed(1)}g</span>
+                          <span>F: {Number(totals.fat || 0).toFixed(1)}g</span>
+                          <span>Fiber: {Number(totals.fiber || 0).toFixed(1)}g</span>
+                        </>
+                      )
+                    })()}
+                  </span>
                 </p>
               )}
             </section>
