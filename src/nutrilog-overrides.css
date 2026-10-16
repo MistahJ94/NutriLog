@@ -1555,3 +1555,35 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     max-width: 76px;
   }
 }
+
+
+/* Phase 3B: compact text-first Quick Add filters. */
+.app .nutrilog-quick-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 4px 0 12px;
+}
+.app .nutrilog-quick-filter {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #475569);
+  background: transparent;
+  color: var(--text, #e2e8f0);
+  font-size: .82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.app .nutrilog-quick-filter.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.app .nutrilog-quick-filter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
