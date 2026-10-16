@@ -1082,6 +1082,25 @@ async function protectedApi(req, res, pathname, user) {
     return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
   }
 
+  if (req.method === "PUT" && id && match[1] === "meals") {
+    const body = await readBody(req)
+    if (!body.name || !Array.isArray(body.foods)) return send(res, 400, { error: "Valid meal name and foods are required" })
+    const values = config.fields.map(field =>
+      field === "foods" ? JSON.stringify(body.foods) :
+      ["calories", "protein", "carbs", "fat", "fiber"].includes(field) ? numberValue(body[field]) : body[field] ?? null
+    )
+    const setClause = config.fields.map((field, i) => field + " = $" + (i + 2)).join(", ")
+    const rows = await sql.unsafe(
+      "UPDATE meals SET " + setClause + ", updated_at=NOW() WHERE user_id=$1 AND id=$" + (config.fields.length + 2) + (baseVersion ? " AND updated_at=$" + (config.fields.length + 3) + "::timestamptz" : "") + " RETURNING " + config.select,
+      [user.id, ...values, id, ...(baseVersion ? [baseVersion] : [])]
+    )
+    if (!rows.length && baseVersion) {
+      const exists = await sql.unsafe("SELECT 1 FROM meals WHERE user_id=$1 AND id=$2", [user.id, id])
+      if (exists.length) return send(res, 409, { error: "Meal changed on another device. Review before retrying.", code: "SYNC_CONFLICT" })
+    }
+    return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
+  }
+
   if (req.method === "PUT" && id && match[1] === "log-entries") {
     const body = await readBody(req)
     if (!body.name || !["food", "meal"].includes(body.entry_type)) return send(res, 400, { error: "Valid log entry data is required" })
@@ -1098,7 +1117,15 @@ async function protectedApi(req, res, pathname, user) {
   }
 
   if (req.method === "DELETE" && id) {
-    const rows = await sql.unsafe("DELETE FROM " + config.table + " WHERE user_id = $1 AND id = $2 RETURNING id", [user.id, id])
+    const guarded = baseVersion && (match[1] === "foods" || match[1] === "meals")
+    const rows = await sql.unsafe(
+      "DELETE FROM " + config.table + " WHERE user_id=$1 AND id=$2" + (guarded ? " AND updated_at=$3::timestamptz" : "") + " RETURNING id",
+      [user.id, id, ...(guarded ? [baseVersion] : [])]
+    )
+    if (!rows.length && guarded) {
+      const exists = await sql.unsafe("SELECT 1 FROM " + config.table + " WHERE user_id=$1 AND id=$2", [user.id, id])
+      if (exists.length) return send(res, 409, { error: "Record changed on another device. Review before deleting.", code: "SYNC_CONFLICT" })
+    }
     if (rows.length && match[1] === "log-entries") notifyProgressChanged(user.id)
     return rows.length ? send(res, 200, { ok: true }) : send(res, 404, { error: "Not found" })
   }
