@@ -851,3 +851,48 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   .food-log-history-navigation .btn { min-height: 36px; }
   .date-entries .entries-table tbody td.log-macro-cell strong { overflow-wrap: anywhere; }
 }
+
+
+/* Unified Food Log date controls and unambiguous day labels. */
+.food-log-timezone-note {
+  color: var(--nl-log-text);
+  opacity: .75;
+  font-size: .8rem;
+  margin: 5px 0 10px;
+}
+.food-log-day-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.food-log-day-navigation input[type="date"] {
+  min-width: 145px;
+  flex: 1 1 145px;
+  max-width: 240px;
+}
+.food-log-day-navigation .btn {
+  min-height: 38px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: .84rem;
+  font-weight: 650;
+}
+.food-log-day-navigation .btn-secondary {
+  background: color-mix(in srgb, var(--accent) 18%, var(--nl-log-bg)) !important;
+  color: var(--nl-log-text) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent) !important;
+}
+.food-log-date-detail {
+  display: inline;
+  font-size: .82rem;
+  font-weight: 550;
+  opacity: .92;
+}
+@media (max-width: 700px) {
+  .food-log-day-navigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .food-log-day-navigation input[type="date"] { width: 100%; max-width: none; box-sizing: border-box; grid-column: 1 / -1; grid-row: 1; }
+  .food-log-day-navigation .btn { width: 100%; }
+  .food-log-date-detail { display: block; margin-top: 2px; }
+}
