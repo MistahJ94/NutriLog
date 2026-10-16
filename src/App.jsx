@@ -730,23 +730,46 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }
   }, [])
 
+  // Serialize preference writes so an older response cannot overwrite a newer plan.
+  const preferenceSaveQueue = useRef(Promise.resolve())
+  const preferenceSaveRevision = useRef(0)
+  const latestPreferences = useRef(null)
+  const [syncRetry, setSyncRetry] = useState(0)
   useEffect(() => {
     if (!isInitialLoadComplete) return
     const preferences = {
-      theme,
-      mode,
-      customAccent,
-      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: selectedTimeZone, plannedMeals },
+      theme, mode, customAccent,
+      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards,
+        order: trackerLayout.order, timeZone: selectedTimeZone, plannedMeals },
       tabOrder
     }
+    latestPreferences.current = preferences
+    const revision = ++preferenceSaveRevision.current
+    setPlannerSyncStatus('pending')
     const timer = setTimeout(() => {
-      setPlannerSyncStatus('saving')
-      api.preferences.save(preferences)
-        .then(() => setPlannerSyncStatus('saved'))
-        .catch(() => setPlannerSyncStatus('error'))
+      preferenceSaveQueue.current = preferenceSaveQueue.current.catch(() => {}).then(async () => {
+        // Ignore stale queued writes; only send the latest state.
+        if (revision !== preferenceSaveRevision.current) return
+        setPlannerSyncStatus('saving')
+        try {
+          await api.preferences.save(latestPreferences.current)
+          if (revision === preferenceSaveRevision.current) setPlannerSyncStatus('saved')
+        } catch {
+          if (revision === preferenceSaveRevision.current) setPlannerSyncStatus('error')
+        }
+      })
     }, 600)
     return () => clearTimeout(timer)
-  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, selectedTimeZone, plannedMeals])
+  }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards,
+    trackerLayout.order, tabOrder, isInitialLoadComplete, selectedTimeZone, plannedMeals, syncRetry])
+
+  useEffect(() => {
+    const retryOnReconnect = () => {
+      if (plannerSyncStatus === 'error') setSyncRetry(value => value + 1)
+    }
+    window.addEventListener('online', retryOnReconnect)
+    return () => window.removeEventListener('online', retryOnReconnect)
+  }, [plannerSyncStatus])
 
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
@@ -2692,15 +2715,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   plannerSyncStatus === 'error' ? 'Save failed — plans remain on this device. Retry below.' :
                   'Waiting to save'}
                 {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary"
-                  onClick={() => {
-                    setPlannerSyncStatus('saving')
-                    api.preferences.save({
-                      theme, mode, customAccent,
-                      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns,
-                        cards: trackerLayout.cards, order: trackerLayout.order, timeZone: selectedTimeZone, plannedMeals },
-                      tabOrder
-                    }).then(() => setPlannerSyncStatus('saved')).catch(() => setPlannerSyncStatus('error'))
-                  }}>Retry sync</button>}
+                  onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
               </p>
               <p>Planned meals are not counted as consumed until you log them. Plans sync through your account preferences when connected to the server; offline changes remain on this device until a successful save.</p>
               <form className="nutrilog-planner-schedule-form" onSubmit={scheduleSavedMeal}>
