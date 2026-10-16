@@ -634,6 +634,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [mealFoodSort, setMealFoodSort] = useState('name')
   const [trackerHistoryDate, setTrackerHistoryDate] = useState(() => getLocalDateString())
   const [showTrackerHistory, setShowTrackerHistory] = useState(false)
+  const [historyCalendarVisible, setHistoryCalendarVisible] = useState(false)
   const [mealHistoryDate, setMealHistoryDate] = useState(() => getLocalDateString())
   const [showMealHistory, setShowMealHistory] = useState(false)
   const [expandedLogEntryId, setExpandedLogEntryId] = useState(null)
@@ -1979,6 +1980,20 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     fiber: totals.fiber + (entry.fiber || 0)
   }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
 
+  const historyCalendarDays = (() => {
+    const selected = new Date(trackerHistoryDate + 'T12:00:00Z')
+    if (Number.isNaN(selected.getTime())) return []
+    const year = selected.getUTCFullYear()
+    const month = selected.getUTCMonth()
+    const count = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+    const loggedDates = new Set(logEntries.filter(entry => entry.timestamp).map(entry => zonedDateKey(entry.timestamp)))
+    return Array.from({ length: count }, (_, index) => {
+      const date = new Date(Date.UTC(year, month, index + 1, 12))
+      const key = date.toISOString().slice(0, 10)
+      return { key, day: index + 1, weekday: date.getUTCDay(), logged: loggedDates.has(key) }
+    })
+  })()
+
   const trackerHistoryEntries = logEntries.filter(entry => {
     if (!entry.timestamp) return false
     const date = new Date(entry.timestamp)
@@ -2220,10 +2235,49 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               <div>
                 <h2>{showTrackerHistory && trackerHistoryDate !== zonedToday() ? 'Food Log History' : 'Today'}</h2>
                 <p className="nutrilog-tracker-date">{formatHistoryDate(showTrackerHistory ? trackerHistoryDate : zonedToday())}</p>
+                <button type="button" className="btn btn-secondary nutrilog-history-calendar-toggle"
+                  aria-expanded={historyCalendarVisible} onClick={() => {
+                    if (!historyCalendarVisible && !showTrackerHistory) setTrackerHistoryDate(zonedToday())
+                    setHistoryCalendarVisible(!historyCalendarVisible)
+                  }}>
+                  <CalendarDays size={16} /> {historyCalendarVisible ? 'Hide calendar' : 'History calendar'}
+                </button>
               </div>
   
             </div>
 
+            {historyCalendarVisible && (
+              <section className="section nutrilog-history-calendar" aria-label="Food log history calendar">
+                <div className="nutrilog-history-calendar-nav">
+                  <button type="button" className="btn btn-secondary" aria-label="Previous month" onClick={() => {
+                    const date = new Date(trackerHistoryDate + 'T12:00:00Z')
+                    date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() - 1)
+                    setTrackerHistoryDate(date.toISOString().slice(0, 10)); setShowTrackerHistory(true)
+                  }}>←</button>
+                  <strong>{new Date(trackerHistoryDate + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</strong>
+                  <button type="button" className="btn btn-secondary" aria-label="Next month" onClick={() => {
+                    const date = new Date(trackerHistoryDate + 'T12:00:00Z')
+                    date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() + 1)
+                    setTrackerHistoryDate(date.toISOString().slice(0, 10)); setShowTrackerHistory(true)
+                  }}>→</button>
+                </div>
+                <div className="nutrilog-history-calendar-grid">
+                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => <span className="nutrilog-history-weekday" key={day}>{day}</span>)}
+                  {historyCalendarDays.map((day, index) => (
+                    <Fragment key={day.key}>
+                      {index === 0 && Array.from({ length: day.weekday }, (_, blank) => <span key={'blank-' + blank} />)}
+                      <button type="button" className={'nutrilog-history-day' + (day.key === trackerHistoryDate ? ' selected' : '')}
+                        aria-pressed={day.key === trackerHistoryDate}
+                        aria-label={day.key + (day.logged ? ', food logged' : ', no food logged')}
+                        onClick={() => { setTrackerHistoryDate(day.key); setShowTrackerHistory(day.key !== zonedToday()) }}>
+                        {day.day}{day.logged && <span className="nutrilog-history-dot" aria-hidden="true" />}
+                      </button>
+                    </Fragment>
+                  ))}
+                </div>
+                <p className="nutrilog-history-calendar-legend">Dots indicate dates with logged food, not completed days.</p>
+              </section>
+            )}
             <section className="nutrilog-daily-overview" aria-label="Daily nutrition overview">
                 <div className="nutrilog-calorie-ring" role="img" aria-label={`Calories: ${Math.round(nutritionProgress(selectedTrackerCalories, macroGoals.calories).percent)}% of daily goal`} style={{ '--daily-progress': `${Math.min(100, nutritionProgress(selectedTrackerCalories, macroGoals.calories).percent)}%`, '--ring-color': nutritionProgress(selectedTrackerCalories, macroGoals.calories).color, '--overflow-progress': `${Math.min(100, Math.max(0, nutritionProgress(selectedTrackerCalories, macroGoals.calories).percent - 100))}%` }}>
                   <div className="nutrilog-calorie-ring-inner">
