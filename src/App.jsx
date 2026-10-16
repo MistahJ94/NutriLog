@@ -1325,8 +1325,20 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       servingAmount: Number(editingFoodForm.servingAmount) || 1,
       servingUnit: editingFoodForm.servingUnit || 'serving'
     }
+    let pendingWrite = null
     try {
-      const result = user ? (await api.foods.update(editingFoodId, draft)).item : { ...draft, id: editingFoodId }
+      if (user?.id && !isOfflineMode()) {
+        const original = savedFoods.find(food => String(food.id) === String(editingFoodId))
+        pendingWrite = pendingOperations.enqueue(user.id, {
+          resource: 'foods', method: 'PUT', recordId: editingFoodId,
+          baseVersion: original?.updatedAt || original?.updated_at || null,
+          payload: draft
+        })
+      }
+      const result = user
+        ? (await api.foods.update(editingFoodId, draft, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})).item
+        : { ...draft, id: editingFoodId }
+      if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
       const updatedFood = {
         ...draft, ...result, id: editingFoodId,
         updatedAt: result?.updated_at || result?.updatedAt,
@@ -1341,7 +1353,18 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       }
       setSavedFoods(prev => prev.map(food => food.id === editingFoodId ? updatedFood : food))
       setEditingFoodId(null)
-    } catch (error) { alert(error.message) }
+    } catch (error) {
+      if (pendingWrite && (error.isNetworkError || error.status >= 500)) {
+        setSavedFoods(prev => prev.map(food => String(food.id) === String(editingFoodId)
+          ? { ...food, ...draft, pendingSync: true } : food))
+        setEditingFoodId(null)
+        alert('Food changes saved on this device and pending synchronization.')
+      } else {
+        if (pendingWrite && error.status >= 400 && error.status < 500 && error.status !== 409) pendingOperations.acknowledge(user.id, pendingWrite.id)
+        if (pendingWrite && error.status === 409) pendingOperations.markConflict(user.id, pendingWrite.id, error.message)
+        alert(error.message)
+      }
+    }
   }
 
   // Meal Builder Handlers
