@@ -1509,7 +1509,9 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             : (await api.meals.create(draft, pendingWrite ? { operationId: pendingWrite.id } : {})).item)
         : { ...draft, id: editingMealId || Date.now() }
       if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
-      const versionedMeal = { ...newMeal, updatedAt: newMeal.updated_at || newMeal.updatedAt }
+      const versionedMeal = user && !isOfflineMode()
+        ? normalizeServerData({ meals: [newMeal] }).savedMeals[0]
+        : { ...newMeal, updatedAt: newMeal.updated_at || newMeal.updatedAt }
       setSavedMeals(prev => editingMealId
         ? prev.map(meal => meal.id === editingMealId ? versionedMeal : meal)
         : [versionedMeal, ...prev]
