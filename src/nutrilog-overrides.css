@@ -1722,3 +1722,16 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .app .nutrilog-planner-day-detail h3 { margin:0 0 8px; }
 .app .nutrilog-planner-day-detail p { margin:0 0 12px; font-size:.86rem; }
 .app .nutrilog-planner-day-detail .btn { width:auto; }
+
+
+/* Phase 5: calendar-first food history, dots represent recorded entries only. */
+.app .nutrilog-history-calendar-toggle { margin-top:10px; width:auto; display:inline-flex; align-items:center; gap:7px; }
+.app .nutrilog-history-calendar-nav { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+.app .nutrilog-history-calendar-nav .btn { width:auto; min-width:38px; }
+.app .nutrilog-history-calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
+.app .nutrilog-history-weekday { text-align:center; font-size:.73rem; opacity:.75; padding:6px 0; }
+.app .nutrilog-history-day { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; min-height:42px; border:1px solid transparent; border-radius:9px; background:transparent; color:inherit; cursor:pointer; font:inherit; }
+.app .nutrilog-history-day.selected { border-color:var(--accent,#f97316); }
+.app .nutrilog-history-day:focus-visible { outline:2px solid var(--accent,#f97316); }
+.app .nutrilog-history-dot { width:5px; height:5px; border-radius:50%; background:var(--accent,#f97316); }
+.app .nutrilog-history-calendar-legend { font-size:.77rem; opacity:.75; margin:12px 0 0; }
