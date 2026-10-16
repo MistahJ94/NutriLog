@@ -1885,8 +1885,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       date.setUTCDate(base.getUTCDate() + index)
       const key = date.toISOString().slice(0, 10)
       const consumed = logEntries.filter(entry => zonedDateKey(entry.timestamp) === key)
+      const scheduled = plannedMeals.filter(item => item.date === key)
       return { key, label: date.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }),
-        count: consumed.length, calories: consumed.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0) }
+        count: consumed.length, calories: consumed.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0),
+        plannedCount: scheduled.length, plannedCalories: scheduled.reduce((sum, item) => sum + (Number(item.calories) || 0), 0) }
     })
   })()
 
@@ -2679,14 +2681,24 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               <p className="nutrilog-planner-caption">Consumed food only · {plannerDays[0]?.label || ''}{plannerDays.length > 1 ? ' – ' + plannerDays[plannerDays.length - 1].label : ''}</p>
               <div className="nutrilog-planner-day-grid">
                 {plannerDays.map(day => (
-                  <button type="button" key={day.key} className="nutrilog-planner-day"
-                    onClick={() => { setQuickLogForm(prev => ({ ...prev, date: day.key })); setActiveTab('tracker') }}
-                    aria-label={day.label + ', ' + day.count + ' logged entries, ' + Math.round(day.calories) + ' calories'}>
+                  <button type="button" key={day.key}
+                    className={'nutrilog-planner-day' + (day.key === plannerAnchor ? ' nutrilog-planner-day-selected' : '')}
+                    aria-pressed={day.key === plannerAnchor}
+                    onClick={() => setPlannerAnchor(day.key)}
+                    aria-label={day.label + ', ' + day.plannedCount + ' planned meals, ' + day.count + ' consumed entries'}>
                     <strong>{day.label}</strong>
-                    <span>{day.count ? Math.round(day.calories) + ' kcal' : 'No entries'}</span>
-                    <small>{day.count} logged</small>
+                    <span>{day.plannedCount ? day.plannedCount + ' planned · ' + Math.round(day.plannedCalories) + ' kcal' : 'No plans'}</span>
+                    <small>{day.count ? day.count + ' consumed · ' + Math.round(day.calories) + ' kcal' : 'No food logged'}</small>
                   </button>
                 ))}
+              </div>
+              <div className="nutrilog-planner-day-detail">
+                <h3>Selected date: {plannerAnchor}</h3>
+                <p>{plannedMeals.filter(item => item.date === plannerAnchor).length} planned meal(s) · {logEntries.filter(entry => zonedDateKey(entry.timestamp) === plannerAnchor).length} consumed entry/entries</p>
+                <button type="button" className="btn btn-secondary"
+                  onClick={() => { setQuickLogForm(prev => ({ ...prev, date: plannerAnchor })); setActiveTab('tracker') }}>
+                  Log food for this date
+                </button>
               </div>
             </section>
             <div className="planner-intro">
