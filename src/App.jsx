@@ -2823,10 +2823,35 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               <div className="nutrilog-planner-day-detail">
                 <h3>{formatHistoryDate(plannerAnchor)}</h3>
                 <p>{plannedMeals.filter(item => item.date === plannerAnchor).length} planned meal(s) · {logEntries.filter(entry => zonedDateKey(entry.timestamp) === plannerAnchor).length} consumed entry/entries</p>
-                <button type="button" className="btn btn-secondary"
-                  onClick={() => { setQuickLogForm(prev => ({ ...prev, date: plannerAnchor })); setActiveTab('tracker') }}>
-                  Log food for this date
-                </button>
+                <div className="nutrilog-planner-selected-meals">
+                  <h4>Planned meals</h4>
+                  {plannedMeals.filter(item => item.date === plannerAnchor).length === 0
+                    ? <p>No meals planned for this date. Use Schedule a saved meal above to add one.</p>
+                    : ['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(slot => {
+                      const items = plannedMeals.filter(item => item.date === plannerAnchor && item.slot === slot)
+                      return items.length > 0 && <div className="nutrilog-planner-selected-slot" key={slot}>
+                        <h5>{slot}</h5>
+                        {items.map(item => <div className="nutrilog-planner-selected-item" key={item.id}>
+                          <span><strong>{item.name}</strong> · {Math.round(Number(item.calories) || 0)} kcal planned</span>
+                          <label>Move to
+                            <select aria-label={'Change meal category for ' + item.name} value={item.slot}
+                              onChange={event => savePlannedMeals(plannedMeals.map(row => row.id === item.id ? { ...row, slot: event.target.value } : row))}>
+                              {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(category => <option key={category} value={category}>{category}</option>)}
+                            </select>
+                          </label>
+                          <button type="button" className="btn btn-secondary"
+                            onClick={() => savePlannedMeals(plannedMeals.filter(row => row.id !== item.id))}
+                            aria-label={'Remove planned ' + item.name}>Remove</button>
+                        </div>)}
+                      </div>
+                    })}
+                </div>
+                <div className="nutrilog-planner-selected-actions">
+                  <button type="button" className="btn btn-secondary"
+                    onClick={() => { setQuickLogForm(prev => ({ ...prev, date: plannerAnchor })); setActiveTab('tracker') }}>
+                    Log food for this date
+                  </button>
+                </div>
               </div>
             </section>
             <div className="planner-intro">
