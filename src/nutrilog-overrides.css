@@ -1411,3 +1411,65 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   .app .food-log-nutrition-amount { font-size: .59rem; }
   .app .food-log-nutrition-item small { font-size: .55rem; }
 }
+
+
+/* Phase 3: text-first saved foods, compact serving controls, and clear actions. */
+.app .food-library-section .food-library-help {
+  color: var(--text-muted, #94a3b8);
+  font-size: .85rem;
+  margin: 0 0 14px;
+}
+.app .food-library-section .food-list { display: grid; gap: 12px; }
+.app .food-library-section .food-item {
+  border: 1px solid var(--border, #334155);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--surface-alt, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.app .food-library-section .food-info { min-width: 0; flex: 1 1 auto; }
+.app .food-library-section .food-info h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.app .food-library-section .food-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: .82rem;
+}
+.app .food-library-section .food-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.app .food-library-section .food-serving-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.app .food-library-section .food-serving-actions > button {
+  min-width: 34px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.app .food-library-section .food-serving-actions .quantity-input {
+  width: 64px;
+  min-width: 56px;
+  min-height: 38px;
+  text-align: center;
+}
+@media (max-width: 720px) {
+  .app .food-library-section .food-item { flex-direction: column; align-items: stretch; }
+  .app .food-library-section .food-actions { justify-content: flex-start; }
+}
