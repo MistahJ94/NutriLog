@@ -2917,7 +2917,6 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
             <section className="section nutrilog-planner-schedule" aria-label="Schedule saved meals">
               <h3>Schedule a saved meal</h3>
-              <p>Planned meals are not counted as consumed until you log them. Plans sync through your account preferences when connected to the server; offline changes remain on this device until a successful save.</p>
               <form className="nutrilog-planner-schedule-form" onSubmit={scheduleSavedMeal}>
                 <label>Date <input type="date" value={plannerAnchor} onChange={event => setPlannerAnchor(event.target.value)} required /></label>
                 <label>Meal <select value={plannedMealId} onChange={event => setPlannedMealId(event.target.value)} required>
