@@ -1100,7 +1100,15 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             const id = result.method === 'POST' ? 'pending:' + result.operationId : result.recordId
             if (result.method === 'DELETE' || result.deleted) next = next.filter(entry => String(entry.id) !== String(id))
             else if (result.item) {
-              const resolved = { ...result.item, updatedAt: result.item.updated_at || result.item.updatedAt, pendingSync: false }
+              // API receipts use database snake_case fields. Normalize before
+              // inserting them into the same UI state as server snapshots.
+              const normalized = normalizeServerData(resource === 'foods'
+                ? { foods: [result.item] }
+                : { meals: [result.item] })
+              const resolved = {
+                ...(resource === 'foods' ? normalized.savedFoods[0] : normalized.savedMeals[0]),
+                pendingSync: false
+              }
               next = next.some(entry => String(entry.id) === String(id))
                 ? next.map(entry => String(entry.id) === String(id) ? resolved : entry)
                 : [...next, resolved]
