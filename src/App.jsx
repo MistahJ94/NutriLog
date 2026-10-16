@@ -3000,7 +3000,6 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               )}
               <div className="nutrilog-planner-day-detail">
                 <h3>{formatHistoryDate(plannerAnchor)}</h3>
-                <p>{plannedMeals.filter(item => item.date === plannerAnchor).length} planned meal(s) · {logEntries.filter(entry => zonedDateKey(entry.timestamp) === plannerAnchor).length} consumed entry/entries</p>
                 {(() => {
                   const selectedPlans = plannedMeals.filter(item => item.date === plannerAnchor)
                   const selectedLogs = logEntries.filter(entry => zonedDateKey(entry.timestamp) === plannerAnchor)
