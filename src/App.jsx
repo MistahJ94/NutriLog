@@ -2974,7 +2974,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                           {day.count > 0 && <i className="is-consumed" />}
                           {day.plannedCount > 0 && <i className="is-planned" />}
                         </span>
-                        {(day.plannedCount > 0 || day.count > 0) && <small className="nutrilog-planner-month-count">{day.plannedCount} planned · {day.count} logged</small>}
+
                       </button>
                     ))}
                   </div>
