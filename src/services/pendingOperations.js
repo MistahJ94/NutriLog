@@ -38,6 +38,15 @@ export const pendingOperations = {
     if (operation.method !== 'DELETE' && (!operation.payload || typeof operation.payload !== 'object' || Array.isArray(operation.payload))) {
       throw new Error('Pending write payload must be an object')
     }
+    // Until dependency-aware coalescing is implemented, a second mutation
+    // against the same server record could replay against a stale version.
+    // Reject it rather than risking a partial or out-of-order update.
+    if (operation.recordId && items.some(item =>
+      item.resource === operation.resource &&
+      String(item.recordId) === String(operation.recordId)
+    )) {
+      throw new Error('This record already has an unsynchronized change; sync or resolve it first')
+    }
     const id = crypto.randomUUID()
     const entry = {
       id, resource: operation.resource, method: operation.method,
