@@ -3037,16 +3037,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       </div>
                     })}
                 </div>
-                <div className="nutrilog-planner-selected-actions">
-                  <button type="button" className="btn btn-secondary"
-                    onClick={() => { setQuickLogForm(prev => ({ ...prev, date: plannerAnchor })); setActiveTab('tracker') }}>
-                    Log food for this date
-                  </button>
-                  <button type="button" className="btn btn-secondary"
-                    onClick={() => { const el = document.querySelector('.nutrilog-planner-schedule-form select'); if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }}>
-                    Schedule a meal
-                  </button>
-                </div>
+
               </div>
             </section>
             <div className="planner-intro">
