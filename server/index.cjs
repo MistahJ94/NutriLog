@@ -920,7 +920,7 @@ async function protectedApi(req, res, pathname, user) {
       if (expectedVersion !== undefined) {
         // Optimistic concurrency: a stale device must not overwrite a newer account save.
         const rows = await sql.unsafe(
-          "INSERT INTO user_preferences (user_id, theme, mode, accent_color, tracker_layout, tab_order) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET theme=EXCLUDED.theme, mode=EXCLUDED.mode, accent_color=EXCLUDED.accent_color, tracker_layout=EXCLUDED.tracker_layout, tab_order=EXCLUDED.tab_order, updated_at=NOW() WHERE user_preferences.updated_at = $7::timestamptz RETURNING updated_at",
+          "INSERT INTO user_preferences (user_id, theme, mode, accent_color, tracker_layout, tab_order) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET theme=EXCLUDED.theme, mode=EXCLUDED.mode, accent_color=EXCLUDED.accent_color, tracker_layout=EXCLUDED.tracker_layout, tab_order=EXCLUDED.tab_order, updated_at=NOW() WHERE $7::timestamptz IS NOT NULL AND date_trunc('milliseconds', user_preferences.updated_at) = $7::timestamptz RETURNING updated_at",
           [user.id, theme, mode, accent, JSON.stringify(layout), JSON.stringify(order), expectedVersion]
         )
         if (!rows.length) return send(res, 409, { error: "Account preferences changed on another device. Refresh to review the latest changes.", code: "SYNC_CONFLICT" })
