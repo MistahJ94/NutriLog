@@ -505,6 +505,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [foodSearch, setFoodSearch] = useState('')
   const [mealSearch, setMealSearch] = useState('')
   const [mealSort, setMealSort] = useState('az')
+  const [plannerSyncStatus, setPlannerSyncStatus] = useState('pending')
   const [plannerView, setPlannerView] = useState('week')
   const [plannerAnchor, setPlannerAnchor] = useState(() => getLocalDateString())
   const [plannedMealId, setPlannedMealId] = useState('')
@@ -738,7 +739,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards, order: trackerLayout.order, timeZone: selectedTimeZone, plannedMeals },
       tabOrder
     }
-    const timer = setTimeout(() => { api.preferences.save(preferences).catch(() => {}) }, 600)
+    const timer = setTimeout(() => {
+      setPlannerSyncStatus('saving')
+      api.preferences.save(preferences)
+        .then(() => setPlannerSyncStatus('saved'))
+        .catch(() => setPlannerSyncStatus('error'))
+    }, 600)
     return () => clearTimeout(timer)
   }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards, trackerLayout.order, tabOrder, isInitialLoadComplete, selectedTimeZone, plannedMeals])
 
@@ -2680,6 +2686,22 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
             <section className="section nutrilog-planner-schedule" aria-label="Schedule saved meals">
               <h3>Schedule a saved meal</h3>
+              <p className="nutrilog-planner-sync-status" role="status">
+                Account sync: {plannerSyncStatus === 'saved' ? 'Saved to server' :
+                  plannerSyncStatus === 'saving' ? 'Saving…' :
+                  plannerSyncStatus === 'error' ? 'Save failed — plans remain on this device. Retry below.' :
+                  'Waiting to save'}
+                {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary"
+                  onClick={() => {
+                    setPlannerSyncStatus('saving')
+                    api.preferences.save({
+                      theme, mode, customAccent,
+                      trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns,
+                        cards: trackerLayout.cards, order: trackerLayout.order, timeZone: selectedTimeZone, plannedMeals },
+                      tabOrder
+                    }).then(() => setPlannerSyncStatus('saved')).catch(() => setPlannerSyncStatus('error'))
+                  }}>Retry sync</button>}
+              </p>
               <p>Planned meals are not counted as consumed until you log them. Plans sync through your account preferences when connected to the server; offline changes remain on this device until a successful save.</p>
               <form className="nutrilog-planner-schedule-form" onSubmit={scheduleSavedMeal}>
                 <label>Date <input type="date" value={plannerAnchor} onChange={event => setPlannerAnchor(event.target.value)} required /></label>
