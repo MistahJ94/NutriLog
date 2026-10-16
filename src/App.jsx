@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, Save, BarChart3 } from 'lucide-react'
+import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, Save, BarChart3, ChevronDown } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
 import ConnectionsPanel from './ConnectionsPanel'
@@ -2195,12 +2195,14 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     {entry.type === 'meal' && (
                                       <button
                                         type="button"
-                                        className="btn btn-secondary food-log-meal-toggle"
+                                        className={'btn btn-secondary food-log-meal-toggle' + (expandedLogEntryId === entry.id ? ' is-expanded' : '')}
                                         style={{ padding: '2px 6px', minWidth: 28, fontSize: '0.8rem', lineHeight: 1, marginRight: 6 }}
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
+                                        aria-expanded={expandedLogEntryId === entry.id}
+                                        aria-label={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
                                       >
-                                        {expandedLogEntryId === entry.id ? '⌃' : '⌄'}
+                                        <ChevronDown size={17} strokeWidth={2.5} />
                                       </button>
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
@@ -2322,12 +2324,14 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                     {entry.type === 'meal' && (
                                       <button
                                         type="button"
-                                        className="btn btn-secondary food-log-meal-toggle"
+                                        className={'btn btn-secondary food-log-meal-toggle' + (expandedLogEntryId === entry.id ? ' is-expanded' : '')}
                                         style={{ padding: '2px 6px', minWidth: 28, fontSize: '0.8rem', lineHeight: 1, marginRight: 6 }}
                                         onClick={() => handleToggleLogMeal(entry)}
                                         title={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
+                                        aria-expanded={expandedLogEntryId === entry.id}
+                                        aria-label={expandedLogEntryId === entry.id ? 'Collapse meal' : 'Expand meal'}
                                       >
-                                        {expandedLogEntryId === entry.id ? '⌃' : '⌄'}
+                                        <ChevronDown size={17} strokeWidth={2.5} />
                                       </button>
                                     )}
                                     {entry.name}{entry.type === 'meal' && <span className="badge-meal-small">Meal</span>}
@@ -2341,7 +2345,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                                 </tr>
                                 {expandedLogEntryId === entry.id && entry.type === 'meal' && (
                                   <tr className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-row' : ''}>
-                                    <td colSpan="9" style={{ padding: 0 }}>
+                                    <td colSpan="8" style={{ padding: 0 }}>
                                       <div className={editingLogMeal?.id === entry.id ? 'logged-meal-editor-panel' : ''} style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.025)' }}>
                                         {editingLogMeal?.id === entry.id ? (
                                           <>
