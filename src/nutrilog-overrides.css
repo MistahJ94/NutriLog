@@ -1970,6 +1970,4 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   font-size: 0.8rem;
   line-height: 1.4;
 }
-.app .meals-page .nutrilog-meal-food-choice > span:first-of-type {
-  font-weight: 500;
-}
+/* Keep the original theme-defined text weight and colors. */
