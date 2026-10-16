@@ -934,6 +934,12 @@ async function protectedApi(req, res, pathname, user) {
           seen.add(item.id)
         }
       }
+      const unchanged = current.length > 0 &&
+        JSON.stringify(merged) === JSON.stringify(existing) &&
+        JSON.stringify(deletedIds) === JSON.stringify(Array.isArray(base.plannedMealDeletedIds) ? base.plannedMealDeletedIds : [])
+      if (unchanged) {
+        return { plannedMeals: merged, deletedIds, syncVersion: (await tx.unsafe("SELECT updated_at FROM user_preferences WHERE user_id=$1", [user.id]))[0].updated_at.toISOString() }
+      }
       const updated = await tx.unsafe(
         "INSERT INTO user_preferences (user_id, tracker_layout) VALUES ($1,$2::jsonb) ON CONFLICT (user_id) DO UPDATE SET tracker_layout=EXCLUDED.tracker_layout, updated_at=NOW() RETURNING tracker_layout, updated_at",
         [user.id, JSON.stringify({ ...base, plannedMeals: merged, plannedMealDeletedIds: deletedIds })]
