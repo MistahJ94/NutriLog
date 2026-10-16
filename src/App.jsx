@@ -1399,13 +1399,24 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }))
     const totals = calculateMealTotals(normalizedFoods)
     const draft = { name: mealFormData.name, foods: normalizedFoods, ...totals }
+    let pendingWrite = null
     try {
+      if (user?.id && !isOfflineMode()) {
+        const original = editingMealId ? savedMeals.find(meal => String(meal.id) === String(editingMealId)) : null
+        pendingWrite = pendingOperations.enqueue(user.id, {
+          resource: 'meals',
+          method: editingMealId ? 'PUT' : 'POST',
+          recordId: editingMealId || null,
+          baseVersion: original?.updatedAt || original?.updated_at || null,
+          payload: draft
+        })
+      }
       const newMeal = user
         ? (editingMealId
-            ? (await api.meals.update(editingMealId, draft)).item
-            : (await api.meals.create(draft)).item)
+            ? (await api.meals.update(editingMealId, draft, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})).item
+            : (await api.meals.create(draft, pendingWrite ? { operationId: pendingWrite.id } : {})).item)
         : { ...draft, id: editingMealId || Date.now() }
-
+      if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
       const versionedMeal = { ...newMeal, updatedAt: newMeal.updated_at || newMeal.updatedAt }
       setSavedMeals(prev => editingMealId
         ? prev.map(meal => meal.id === editingMealId ? versionedMeal : meal)
@@ -1414,7 +1425,20 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       setMealFormData({ name: '', selectedFoods: [] })
       setEditingMealId(null)
     } catch (error) {
-      alert(error.message)
+      if (pendingWrite && error.isNetworkError) {
+        const pendingMeal = { ...draft, id: editingMealId || 'pending:' + pendingWrite.id, pendingSync: true }
+        setSavedMeals(prev => editingMealId
+          ? prev.map(meal => String(meal.id) === String(editingMealId) ? { ...meal, ...pendingMeal } : meal)
+          : [pendingMeal, ...prev]
+        )
+        setMealFormData({ name: '', selectedFoods: [] })
+        setEditingMealId(null)
+        alert('Meal saved on this device and pending synchronization.')
+      } else {
+        if (pendingWrite && error.status && error.status !== 409) pendingOperations.acknowledge(user.id, pendingWrite.id)
+        if (pendingWrite && error.status === 409) pendingOperations.markConflict(user.id, pendingWrite.id, error.message)
+        alert(error.message)
+      }
     }
   }
 
