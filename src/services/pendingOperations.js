@@ -98,7 +98,7 @@ export const pendingOperations = {
           response = await service.remove(item.recordId, { baseVersion: item.baseVersion })
         }
         this.acknowledge(accountId, item.id)
-        summary.results.push({ operationId: item.id, resource: item.resource, method: item.method, recordId: item.recordId, item: response?.item || null })
+        summary.results.push({ operationId: item.id, resource: item.resource, method: item.method, recordId: item.recordId, deleted: response?.deleted === true, item: response?.item || null })
         summary.acknowledged += 1
       } catch (error) {
         if (error.status === 409 || error.status === 404 || error.status === 400) {
