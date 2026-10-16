@@ -2286,21 +2286,23 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                         style={{ minWidth: 150 }}
                       />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                    <div className="food-log-history-navigation" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
                       <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(-1)} aria-label="Previous day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>‹ Previous</button>
                       <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(1)} aria-label="Next day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Next ›</button>
                       <button type="button" className="btn btn-secondary" onClick={() => setTrackerHistoryDate(getLocalDateString())} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Today</button>
                     </div>
                   </div>
 
-                  <div className="section" style={{ margin: 0, padding: 16 }}>
-                    <h3 style={{ marginTop: 0, textAlign: 'center' }}>{formatHistoryDate(trackerHistoryDate)}</h3>
-                    <div className="date-totals" style={{ justifyContent: 'center', marginBottom: 16 }}>
+                  <div className="section food-log-history-section" style={{ margin: 0, padding: 16 }}>
+                    <div className="food-log-history-summary">
+                    <h3>{formatHistoryDate(trackerHistoryDate)}</h3>
+                    <div className="date-totals">
                       <span className="total-calories">{trackerHistoryTotals.calories.toFixed(2)} kcal</span>
                       <span>P: {trackerHistoryTotals.protein.toFixed(2)}g</span>
                       <span>C: {trackerHistoryTotals.carbs.toFixed(2)}g</span>
                       <span>F: {trackerHistoryTotals.fat.toFixed(2)}g</span>
                       <span>Fiber: {trackerHistoryTotals.fiber.toFixed(2)}g</span>
+                    </div>
                     </div>
 
                     {trackerHistoryEntries.length === 0 ? (
