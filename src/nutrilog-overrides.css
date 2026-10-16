@@ -1752,3 +1752,15 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .nutrilog-planner-month-legend { display:flex; justify-content:center; gap:20px; margin:12px 0; font-size:.8rem; opacity:.85; }
 .nutrilog-planner-month-legend span { display:inline-flex; align-items:center; gap:6px; }
 @media(max-width:480px) { .nutrilog-planner-month-grid { gap:2px; } .nutrilog-planner-month-day { min-height:43px; gap:3px; } .nutrilog-planner-month-weekday { font-size:.7rem; } }
+
+
+/* Planner account synchronization: accessible text + color status. */
+.nutrilog-planner-sync-status { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; padding:10px 13px; margin:10px 0; border:1px solid currentColor; border-radius:11px; font-size:.9rem; }
+.nutrilog-planner-sync-status.is-saved { color:#16a34a; background:rgba(34,197,94,.09); }
+.nutrilog-planner-sync-status.is-error { color:#dc2626; background:rgba(239,68,68,.09); }
+.nutrilog-planner-sync-status.is-saving { color:#d97706; background:rgba(245,158,11,.09); }
+.nutrilog-planner-sync-status.is-pending { color:#64748b; background:rgba(100,116,139,.09); }
+.nutrilog-planner-sync-indicator { width:9px; height:9px; flex:none; border-radius:50%; background:currentColor; }
+.nutrilog-planner-sync-label { font-weight:750; }
+.nutrilog-planner-sync-description { font-size:.82rem; opacity:.9; }
+.nutrilog-planner-sync-status .btn { margin-left:auto; }
