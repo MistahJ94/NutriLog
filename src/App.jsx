@@ -751,14 +751,19 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       // Preserve the original draft before normalizing legacy IDs.
       const backupKey = 'nutrilog-planned-meals-recovery-backup-' + (user?.id || 'default')
       if (!localStorage.getItem(backupKey)) localStorage.setItem(backupKey, JSON.stringify(plannedMeals))
-      const normalized = plannedMeals.map((item, index) => {
-        if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Planned meal #' + (index + 1) + ' is not a meal object')
+      const malformed = plannedMeals.map((item, index) => (!item || typeof item !== 'object' || Array.isArray(item)) ? index + 1 : null).filter(Boolean)
+      const normalized = plannedMeals.flatMap((item, index) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return []
         const existingId = item.id == null ? '' : String(item.id).trim()
         // Deterministic across retries and browser restarts for the same entry.
         const fallbackId = 'recovered-' + (user?.id || 'account') + '-' + index + '-' +
           Array.from(JSON.stringify(item)).reduce((hash, char) => Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0, 2166136261).toString(36)
-        return { ...item, id: existingId && existingId.length <= 100 ? existingId : fallbackId }
+        return [{ ...item, id: existingId && existingId.length <= 100 ? existingId : fallbackId }]
       })
+      if (malformed.length) {
+        setPlannerSyncError('Invalid entries at positions ' + malformed.join(', ') + ' were preserved in the local recovery backup and not uploaded.')
+      }
+      if (!normalized.length) throw new Error('No valid planned meal objects to recover. Local backup is preserved.')
       const result = await api.preferences.mergePlannedMeals(normalized)
       const remotePlans = result.plannedMeals || []
       const ids = new Set(remotePlans.map(item => String(item.id)))
@@ -768,7 +773,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       remotePlansHydrating.current = true
       setPlannedMeals(remotePlans)
       localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(remotePlans))
-      setPlannerSyncStatus('saved')
+      setPlannerSyncStatus(malformed.length ? 'error' : 'saved')
     } catch (error) {
       setPlannerSyncError(String(error?.message || 'Unknown server error'))
       preferenceConflict.current = true
