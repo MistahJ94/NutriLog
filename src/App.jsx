@@ -2163,25 +2163,27 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     date.setUTCDate(date.getUTCDate() - 1)
                     setTrackerHistoryDate(date.toISOString().slice(0, 10))
                     setShowTrackerHistory(true)
-                  }} aria-label="Previous day">‹ Previous</button>
-                  <input type="date" value={showTrackerHistory ? trackerHistoryDate : zonedToday()} onChange={e => {
-                    if (!e.target.value) return
-                    setTrackerHistoryDate(e.target.value)
-                    setShowTrackerHistory(e.target.value !== zonedToday())
-                  }} aria-label="Food Log date" />
-                  <button type="button" className="btn btn-secondary" onClick={() => {
-                    const key = showTrackerHistory ? trackerHistoryDate : zonedToday()
-                    const date = new Date(key + 'T12:00:00Z')
+                  }} aria-label="Previous day">‹ Back</button>
+                  <button type="button" className={'btn ' + (!showTrackerHistory ? 'food-log-accent-action' : 'btn-secondary')} onClick={() => {
+                    setTrackerHistoryDate(zonedToday())
+                    setShowTrackerHistory(false)
+                  }}>Today</button>
+                  <button type="button" className="btn btn-secondary" disabled={!showTrackerHistory || trackerHistoryDate >= zonedToday()} onClick={() => {
+                    const date = new Date(trackerHistoryDate + 'T12:00:00Z')
                     date.setUTCDate(date.getUTCDate() + 1)
                     const next = date.toISOString().slice(0, 10)
                     setTrackerHistoryDate(next)
                     setShowTrackerHistory(next !== zonedToday())
-                  }} aria-label="Next day">Next ›</button>
-                  <button type="button" className="btn food-log-accent-action" onClick={() => {
-                    setTrackerHistoryDate(zonedToday())
-                    setShowTrackerHistory(false)
-                  }}>Today</button>
+                  }} aria-label="Next day">Forward ›</button>
                 </div>
+                <button type="button" className="btn food-log-history-open" onClick={() => {
+                  if (!showTrackerHistory) {
+                    const date = new Date(zonedToday() + 'T12:00:00Z')
+                    date.setUTCDate(date.getUTCDate() - 1)
+                    setTrackerHistoryDate(date.toISOString().slice(0, 10))
+                  }
+                  setShowTrackerHistory(true)
+                }}>View History</button>
               </div>
 
               {!showTrackerHistory ? (
@@ -2301,7 +2303,13 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 )
               ) : (
                 <div style={{ marginTop: 18 }}>
-
+                  <div className="food-log-history-date-picker">
+                    <label htmlFor="food-log-history-date">Browse history by date</label>
+                    <input id="food-log-history-date" type="date" max={zonedToday()} value={trackerHistoryDate} onChange={e => {
+                      if (!e.target.value || e.target.value > zonedToday()) return
+                      setTrackerHistoryDate(e.target.value)
+                    }} />
+                  </div>
                   <div className="section food-log-history-section" style={{ margin: 0, padding: 16 }}>
                     <div className="food-log-history-summary">
                     <h3>{formatDate(trackerHistoryDate)} <span className="food-log-date-detail">· {formatHistoryDate(trackerHistoryDate)}</span></h3>
