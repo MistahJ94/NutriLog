@@ -100,3 +100,21 @@ CREATE TABLE IF NOT EXISTS progress_sharing (
   share_charts BOOLEAN NOT NULL DEFAULT FALSE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Durable account-scoped receipt history for future offline mutation replay.
+-- Retained independently of Foods/Meals so a deleted item cannot be recreated
+-- by retrying its original create operation.
+-- Application writes must atomically commit the receipt and mutation.
+CREATE TABLE IF NOT EXISTS sync_operation_receipts (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  operation_id UUID NOT NULL,
+  resource TEXT NOT NULL CHECK (resource IN ('foods', 'meals')),
+  method TEXT NOT NULL CHECK (method IN ('POST', 'PUT', 'DELETE')),
+  request_hash TEXT NOT NULL,
+  result_id UUID,
+  response_body JSONB,
+  completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, operation_id)
+);
+CREATE INDEX IF NOT EXISTS sync_operation_receipts_completed_idx
+  ON sync_operation_receipts(completed_at);
