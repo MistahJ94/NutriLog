@@ -2155,17 +2155,33 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             <div className="section" style={{ margin: '0 auto' }}>
               <div>
                 <h2 style={{ marginBottom: 4 }}>Food Log</h2>
-                <p style={{ margin: 0, color: '#777' }}>
-                  {showTrackerHistory ? 'View your nutrition log for any date.' : 'Today’s entries.'}
-                </p>
-                <button
-                  type="button"
-                  className={'btn food-log-accent-action ' + (showTrackerHistory ? 'btn-primary' : 'btn-secondary')}
-                  style={{ padding: '5px 10px', fontSize: '0.82rem', marginTop: 8 }}
-                  onClick={() => setShowTrackerHistory(prev => !prev)}
-                >
-                  {showTrackerHistory ? 'Show Today' : 'View History'}
-                </button>
+                <p className="food-log-timezone-note">Meal times shown in {selectedTimeZone.replaceAll('_', ' ')}.</p>
+                <div className="food-log-day-navigation">
+                  <button type="button" className="btn btn-secondary" onClick={() => {
+                    const key = showTrackerHistory ? trackerHistoryDate : zonedToday()
+                    const date = new Date(key + 'T12:00:00Z')
+                    date.setUTCDate(date.getUTCDate() - 1)
+                    setTrackerHistoryDate(date.toISOString().slice(0, 10))
+                    setShowTrackerHistory(true)
+                  }} aria-label="Previous day">‹ Previous</button>
+                  <input type="date" value={showTrackerHistory ? trackerHistoryDate : zonedToday()} onChange={e => {
+                    if (!e.target.value) return
+                    setTrackerHistoryDate(e.target.value)
+                    setShowTrackerHistory(e.target.value !== zonedToday())
+                  }} aria-label="Food Log date" />
+                  <button type="button" className="btn btn-secondary" onClick={() => {
+                    const key = showTrackerHistory ? trackerHistoryDate : zonedToday()
+                    const date = new Date(key + 'T12:00:00Z')
+                    date.setUTCDate(date.getUTCDate() + 1)
+                    const next = date.toISOString().slice(0, 10)
+                    setTrackerHistoryDate(next)
+                    setShowTrackerHistory(next !== zonedToday())
+                  }} aria-label="Next day">Next ›</button>
+                  <button type="button" className="btn food-log-accent-action" onClick={() => {
+                    setTrackerHistoryDate(zonedToday())
+                    setShowTrackerHistory(false)
+                  }}>Today</button>
+                </div>
               </div>
 
               {!showTrackerHistory ? (
@@ -2180,7 +2196,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     {[[todayDateString, { entries: todayLogEntries, totals: todayLogTotals }]].map(([dateKey, dateData]) => (
                       <div key={dateKey} className="date-group">
                         <div className="date-header">
-                          <h3>{formatDate(dateKey)}</h3>
+                          <h3>{formatDate(dateKey)} <span className="food-log-date-detail">· {formatHistoryDate(dateKey)}</span></h3>
                           <div className="date-totals">
                             <span className="total-calories">{dateData.totals.calories.toFixed(2)} kcal</span>
                             <span>P: {dateData.totals.protein.toFixed(2)}g</span>
@@ -2285,26 +2301,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 )
               ) : (
                 <div style={{ marginTop: 18 }}>
-                  <div style={{ marginBottom: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                      <input
-                        type="date"
-                        value={trackerHistoryDate}
-                        onChange={e => setTrackerHistoryDate(e.target.value)}
-                        aria-label="Select history date"
-                        style={{ minWidth: 150 }}
-                      />
-                    </div>
-                    <div className="food-log-history-navigation" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(-1)} aria-label="Previous day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>‹ Previous</button>
-                      <button type="button" className="btn btn-secondary" onClick={() => shiftTrackerHistoryDate(1)} aria-label="Next day" style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Next ›</button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setTrackerHistoryDate(getLocalDateString())} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>Today</button>
-                    </div>
-                  </div>
 
                   <div className="section food-log-history-section" style={{ margin: 0, padding: 16 }}>
                     <div className="food-log-history-summary">
-                    <h3>{formatHistoryDate(trackerHistoryDate)}</h3>
+                    <h3>{formatDate(trackerHistoryDate)} <span className="food-log-date-detail">· {formatHistoryDate(trackerHistoryDate)}</span></h3>
                     <div className="date-totals">
                       <span className="total-calories">{trackerHistoryTotals.calories.toFixed(2)} kcal</span>
                       <span>P: {trackerHistoryTotals.protein.toFixed(2)}g</span>
