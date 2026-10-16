@@ -1164,3 +1164,72 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   background: linear-gradient(125deg, var(--accent), color-mix(in srgb, var(--accent) 68%, var(--surface-raised, #273244))) !important;
   color: #fff !important;
 }
+
+
+/* Your Foods: desktop list should fill the available panel instead of stopping at 400px. */
+@media (min-width: 769px) {
+  .food-library-section .food-list {
+    max-height: none !important;
+    height: clamp(480px, 65vh, 1000px);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+}
+@media (max-width: 768px) {
+  .food-library-section .food-list {
+    max-height: min(62vh, 620px);
+    overflow-y: auto;
+  }
+}
+/* Search icon and input occupy one correctly sized control at every viewport. */
+.food-library-section .food-library-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  align-items: end;
+  gap: 12px;
+  width: 100%;
+}
+.food-library-section .food-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  flex: none;
+}
+.food-library-section .food-search-wrap svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  z-index: 1;
+  pointer-events: none;
+}
+.food-library-section .food-search-wrap input[type="search"] {
+  display: block;
+  width: 100% !important;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  padding: 10px 14px 10px 44px !important;
+  font-size: .95rem;
+  line-height: 1.3;
+  box-sizing: border-box;
+  border-radius: 10px;
+}
+.food-library-section .food-sort-control {
+  min-width: 0;
+  width: 100%;
+}
+.food-library-section .food-sort-control select {
+  width: 100%;
+  min-height: 44px;
+}
+@media (max-width: 640px) {
+  .food-library-section .food-library-controls {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+}
