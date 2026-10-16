@@ -1293,7 +1293,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           baseVersion: original?.updatedAt || original?.updated_at || null
         })
       }
-      if (user) await api.foods.remove(id, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})
+      if (user) await api.foods.remove(id, pendingWrite ? { baseVersion: pendingWrite.baseVersion, operationId: pendingWrite.id } : {})
       if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
       setSavedFoods(prev => prev.filter(item => String(item.id) !== String(id)))
     } catch (error) {
@@ -1545,7 +1545,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           baseVersion: original?.updatedAt || original?.updated_at || null
         })
       }
-      if (user) await api.meals.remove(id, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})
+      if (user) await api.meals.remove(id, pendingWrite ? { baseVersion: pendingWrite.baseVersion, operationId: pendingWrite.id } : {})
       if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
       setSavedMeals(prev => prev.filter(item => String(item.id) !== String(id)))
     } catch (error) {
