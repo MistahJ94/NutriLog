@@ -505,6 +505,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [foodSearch, setFoodSearch] = useState('')
   const [mealSearch, setMealSearch] = useState('')
   const [mealSort, setMealSort] = useState('az')
+  const [plannerView, setPlannerView] = useState('week')
+  const [plannerAnchor, setPlannerAnchor] = useState(() => getLocalDateString())
   const [foodSort, setFoodSort] = useState('newest')
   const [quickFoodFilter, setQuickFoodFilter] = useState('all')
   const [favoriteFoodIds, setFavoriteFoodIds] = useState(() => {
@@ -1832,6 +1834,24 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     .map(id => trackerCards.find(card => card.id === id))
     .filter(Boolean)
 
+  // Consumed history is displayed separately from future planned meals.
+  const plannerDays = (() => {
+    const base = new Date(plannerAnchor + 'T12:00:00Z')
+    if (Number.isNaN(base.getTime())) return []
+    if (plannerView === 'week') base.setUTCDate(base.getUTCDate() - base.getUTCDay())
+    if (plannerView === 'month') base.setUTCDate(1)
+    const count = plannerView === 'day' ? 1 : plannerView === 'week' ? 7
+      : new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate()
+    return Array.from({ length: count }, (_, index) => {
+      const date = new Date(base)
+      date.setUTCDate(base.getUTCDate() + index)
+      const key = date.toISOString().slice(0, 10)
+      const consumed = logEntries.filter(entry => zonedDateKey(entry.timestamp) === key)
+      return { key, label: date.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }),
+        count: consumed.length, calories: consumed.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0) }
+    })
+  })()
+
   const visibleMeals = savedMeals
     .filter(meal => String(meal.name || '').toLowerCase().includes(mealSearch.trim().toLowerCase()))
     .sort((a, b) => mealSort === 'za'
@@ -2561,8 +2581,53 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         {activeTab === 'planner' && (
           <div className="planner-container">
             <div className="planner-intro">
-              <h2>Set Your Daily Goals</h2>
-              <p>Customize your daily calorie and macro targets to match your nutrition goals.</p>
+              <h2>Planner</h2>
+              <p>Review your logged nutrition by day, week, or month. Planned meals will be shown separately when scheduling is available.</p>
+            </div>
+            <section className="section nutrilog-planner-overview" aria-label="Consumed nutrition calendar">
+              <div className="nutrilog-planner-toolbar">
+                <div className="nutrilog-planner-view-switch" role="group" aria-label="Calendar view">
+                  {['day', 'week', 'month'].map(view => (
+                    <button key={view} type="button" className={'btn ' + (plannerView === view ? 'btn-primary' : 'btn-secondary')}
+                      aria-pressed={plannerView === view} onClick={() => setPlannerView(view)}>
+                      {view[0].toUpperCase() + view.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                <div className="nutrilog-planner-date-nav">
+                  <button type="button" className="btn btn-secondary" aria-label="Previous period"
+                    onClick={() => setPlannerAnchor(prev => {
+                      const date = new Date(prev + 'T12:00:00Z')
+                      if (plannerView === 'month') date.setUTCMonth(date.getUTCMonth() - 1)
+                      else date.setUTCDate(date.getUTCDate() - (plannerView === 'week' ? 7 : 1))
+                      return date.toISOString().slice(0, 10)
+                    })}>←</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setPlannerAnchor(zonedToday())}>Today</button>
+                  <button type="button" className="btn btn-secondary" aria-label="Next period"
+                    onClick={() => setPlannerAnchor(prev => {
+                      const date = new Date(prev + 'T12:00:00Z')
+                      if (plannerView === 'month') date.setUTCMonth(date.getUTCMonth() + 1)
+                      else date.setUTCDate(date.getUTCDate() + (plannerView === 'week' ? 7 : 1))
+                      return date.toISOString().slice(0, 10)
+                    })}>→</button>
+                </div>
+              </div>
+              <p className="nutrilog-planner-caption">Consumed food only · {plannerDays[0]?.label || ''}{plannerDays.length > 1 ? ' – ' + plannerDays[plannerDays.length - 1].label : ''}</p>
+              <div className="nutrilog-planner-day-grid">
+                {plannerDays.map(day => (
+                  <button type="button" key={day.key} className="nutrilog-planner-day"
+                    onClick={() => { setQuickLogForm(prev => ({ ...prev, date: day.key })); setActiveTab('tracker') }}
+                    aria-label={day.label + ', ' + day.count + ' logged entries, ' + Math.round(day.calories) + ' calories'}>
+                    <strong>{day.label}</strong>
+                    <span>{day.count ? Math.round(day.calories) + ' kcal' : 'No entries'}</span>
+                    <small>{day.count} logged</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <div className="planner-intro">
+              <h2>Daily Goals</h2>
+              <p>Customize your calorie and macro targets below.</p>
             </div>
 
             <div className="planner-grid">
