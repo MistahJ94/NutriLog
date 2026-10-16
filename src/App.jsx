@@ -315,8 +315,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [profileName, setProfileName] = useState(user?.displayName || '')
   const [profileSaving, setProfileSaving] = useState(false)
   // Navigation
-  const [activeTab, setActiveTabState] = useState('tracker')
-  const activeTabRef = useRef('tracker')
+  const [activeTab, setActiveTabState] = useState(() => {
+    const stored = sessionStorage.getItem('nutrilog-active-tab')
+    return ['tracker', 'planner', 'foods', 'meals', 'settings', 'admin'].includes(stored) ? stored : 'tracker'
+  })
+  const activeTabRef = useRef(activeTab)
   const navigationStack = useRef([])
   const navigatingBack = useRef(false)
   const backActionRef = useRef(() => false)
@@ -328,6 +331,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       window.history.pushState({ nutrilogTab: tab }, '')
     }
     activeTabRef.current = tab
+    sessionStorage.setItem('nutrilog-active-tab', tab)
     setActiveTabState(tab)
   }
   useEffect(() => {
@@ -2820,6 +2824,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                           {day.count > 0 && <i className="is-consumed" />}
                           {day.plannedCount > 0 && <i className="is-planned" />}
                         </span>
+                        {(day.plannedCount > 0 || day.count > 0) && <small className="nutrilog-planner-month-count">{day.plannedCount} planned · {day.count} logged</small>}
                       </button>
                     ))}
                   </div>
