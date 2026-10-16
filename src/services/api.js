@@ -27,11 +27,22 @@ const request = async (path, options = {}) => {
     console.info('[NutriLog API] Request:', options.method || 'GET', url)
   }
 
-  const response = await fetch(url, {
-    credentials: 'include',
-    ...options,
-    headers,
-  })
+  let response
+  try {
+    response = await fetch(url, {
+      credentials: 'include',
+      ...options,
+      headers,
+    })
+  } catch (cause) {
+    // Only transport failures are eligible for offline queuing.
+    // HTTP errors (including 401/409/500) must not be treated as offline.
+    const error = new Error('Cannot reach the NutriLog server. Your connection may be offline.')
+    error.code = 'NETWORK_UNREACHABLE'
+    error.isNetworkError = true
+    error.cause = cause
+    throw error
+  }
   const data = await response.json().catch(() => ({}))
 
   if (isNativeApp()) {
