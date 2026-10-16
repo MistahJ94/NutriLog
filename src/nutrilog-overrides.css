@@ -1786,3 +1786,5 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .nutrilog-planner-day-summary strong { font-size:1.2rem; overflow-wrap:anywhere; }
 .nutrilog-planner-day-summary span { font-size:.77rem; opacity:.8; }
 @media(max-width:600px) { .nutrilog-planner-day-summary { grid-template-columns:1fr; gap:7px; } .nutrilog-planner-day-summary > div { padding:10px 12px; } }
+
+.nutrilog-planner-sync-status.is-conflict { color:#dc2626; background:rgba(239,68,68,.09); }
