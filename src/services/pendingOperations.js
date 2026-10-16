@@ -87,13 +87,20 @@ export const pendingOperations = {
           // The server records the operation ID and response atomically with
           // creation, and retains the receipt after the item is deleted.
           response = await service.create(item.payload, { operationId: item.id })
-        } else if (item.method === 'PUT' || item.method === 'DELETE') {
-          // Version guards alone cannot distinguish a lost success response
-          // from a concurrent remote edit or deletion. Do not retry these
-          // ambiguous writes until the server has durable PUT/DELETE receipts.
-          this.markConflict(accountId, item.id, 'Update/delete retry needs server operation receipts; original change preserved for review')
-          summary.blocked = true
-          break
+        } else if (item.method === 'PUT') {
+          if (!item.baseVersion) {
+            this.markConflict(accountId, item.id, 'Missing original server version; review before retrying')
+            summary.blocked = true
+            break
+          }
+          response = await service.update(item.recordId, item.payload, { baseVersion: item.baseVersion, operationId: item.id })
+        } else if (item.method === 'DELETE') {
+          if (!item.baseVersion) {
+            this.markConflict(accountId, item.id, 'Missing original server version; review before retrying')
+            summary.blocked = true
+            break
+          }
+          response = await service.remove(item.recordId, { baseVersion: item.baseVersion, operationId: item.id })
         }
         this.acknowledge(accountId, item.id)
         summary.results.push({ operationId: item.id, resource: item.resource, method: item.method, recordId: item.recordId, deleted: response?.deleted === true, item: response?.item || null })
