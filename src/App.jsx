@@ -742,6 +742,54 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const preferenceSaveRevision = useRef(0)
   const latestPreferences = useRef(null)
   const [syncRetry, setSyncRetry] = useState(0)
+
+  const recoverPlannedMeals = async () => {
+    setPlannerSyncStatus('saving')
+    try {
+      // Merge only planned meals. Preserve all other account preferences from
+      // the latest server snapshot, so a stale device cannot overwrite them.
+      const local = plannedMeals
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const remote = (await api.preferences.get()).preferences
+        const serverPlans = Array.isArray(remote?.trackerLayout?.plannedMeals) ? remote.trackerLayout.plannedMeals : []
+        const merged = [...serverPlans]
+        const ids = new Set(serverPlans.map(item => String(item.id)))
+        for (const item of local) {
+          if (!ids.has(String(item.id))) {
+            merged.push(item)
+            ids.add(String(item.id))
+          }
+        }
+        const payload = {
+          theme: remote?.theme ?? theme,
+          mode: remote?.mode ?? mode,
+          customAccent: remote?.customAccent ?? customAccent,
+          tabOrder: remote?.tabOrder ?? tabOrder,
+          trackerLayout: { ...(remote?.trackerLayout || {}), plannedMeals: merged },
+          syncVersion: remote?.syncVersion ?? null
+        }
+        try {
+          const saved = await api.preferences.save(payload)
+          const verified = (await api.preferences.get()).preferences
+          const verifiedIds = new Set((verified?.trackerLayout?.plannedMeals || []).map(item => String(item.id)))
+          if (!merged.every(item => verifiedIds.has(String(item.id)))) throw new Error('Planned meals were not confirmed on the server')
+          preferenceSyncVersion.current = verified.syncVersion ?? saved.syncVersion
+          preferenceConflict.current = false
+          remotePlansHydrating.current = true
+          setPlannedMeals(merged)
+          localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(merged))
+          setPlannerSyncStatus('saved')
+          return
+        } catch (error) {
+          if (!String(error?.message || '').includes('changed on another device') || attempt === 2) throw error
+        }
+      }
+    } catch {
+      preferenceConflict.current = true
+      setPlannerSyncStatus('conflict')
+    }
+  }
+
   useEffect(() => {
     if (!isInitialLoadComplete || preferenceConflict.current) return
     if (remotePlansHydrating.current) { remotePlansHydrating.current = false; return }
@@ -2242,7 +2290,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
                 plannerSyncStatus === 'error' ? 'Changes are saved on this device only.' :
                 plannerSyncStatus === 'saving' ? 'Saving account changes…' : 'Waiting to save changes.'}</p>
-              {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary" onClick={() => window.location.reload()}>Reload latest account data</button>}
+              {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary" onClick={recoverPlannedMeals}>Merge planned meals</button>}
               {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary" onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
             </div>
           </details>
