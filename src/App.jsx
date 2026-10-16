@@ -2087,8 +2087,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           <>
             <div className="tracker-dashboard-header">
               <div>
-                <h2>Daily Dashboard</h2>
-                <p>{showTrackerHistory ? 'Showing nutrition progress for the selected date.' : 'Your daily calorie and macro progress at a glance.'}</p>
+                <h2>{showTrackerHistory && trackerHistoryDate !== zonedToday() ? 'Food Log History' : 'Today'}</h2>
+                <p className="nutrilog-tracker-date">{formatHistoryDate(showTrackerHistory ? trackerHistoryDate : zonedToday())}</p>
               </div>
   
             </div>
@@ -2099,7 +2099,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     <Flame size={25} aria-hidden="true" />
                     <strong>{Math.round(selectedTrackerCalories).toLocaleString()}</strong>
                     <span>of {Math.round(Number(macroGoals.calories) || 0).toLocaleString()} kcal</span>
-                    <small>{Math.abs(Math.round(selectedTrackerRemaining)).toLocaleString()} {selectedTrackerRemaining < 0 ? 'over' : 'left'}</small>
+                    <small className="nutrilog-calorie-percent">{Math.round(nutritionProgress(selectedTrackerCalories, macroGoals.calories).percent)}%</small>
+                    <span className="nutrilog-calorie-remaining">{Math.abs(Math.round(selectedTrackerRemaining)).toLocaleString()} kcal {selectedTrackerRemaining < 0 ? 'over' : 'left'}</span>
                   </div>
                 </div>
                 <div className="nutrilog-macro-overview">
