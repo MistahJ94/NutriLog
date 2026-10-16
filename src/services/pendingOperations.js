@@ -28,6 +28,17 @@ export const pendingOperations = {
       throw new Error('Existing record ID required')
     }
     const items = this.list(accountId)
+    // Avoid enqueuing writes against temporary local-only IDs. Such writes
+    // require dependency resolution after the parent create is acknowledged.
+    if (operation.recordId && String(operation.recordId).startsWith('pending:')) {
+      throw new Error('Cannot queue changes to an unsynchronized record')
+    }
+    if (operation.method !== 'POST' && !operation.baseVersion) {
+      throw new Error('A server record version is required for safe offline edits')
+    }
+    if (operation.method !== 'DELETE' && (!operation.payload || typeof operation.payload !== 'object' || Array.isArray(operation.payload))) {
+      throw new Error('Pending write payload must be an object')
+    }
     const id = crypto.randomUUID()
     const entry = {
       id, resource: operation.resource, method: operation.method,
