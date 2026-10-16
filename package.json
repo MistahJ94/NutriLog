@@ -10,6 +10,7 @@
     "start": "node server/index.cjs",
     "start:api": "node server/index.cjs",
     "check": "node --check server/index.cjs",
+    "test:sync": "node --test tests/pendingOperations.test.mjs",
     "check:build": "npm run check && npm run build"
   },
   "dependencies": {
