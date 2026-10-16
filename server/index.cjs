@@ -958,8 +958,22 @@ async function protectedApi(req, res, pathname, user) {
         theme: rows[0].theme,
         mode: rows[0].mode,
         customAccent: rows[0].accent_color,
-        trackerLayout: rows[0].tracker_layout || {},
-        tabOrder: Array.isArray(rows[0].tab_order) ? rows[0].tab_order : [],
+        trackerLayout: (() => {
+          const value = rows[0].tracker_layout
+          if (typeof value === "string") {
+            try { const parsed = JSON.parse(value); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {} }
+            catch { return {} }
+          }
+          return value && typeof value === "object" && !Array.isArray(value) ? value : {}
+        })(),
+        tabOrder: (() => {
+          const value = rows[0].tab_order
+          if (Array.isArray(value)) return value
+          if (typeof value === "string") {
+            try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : [] } catch { return [] }
+          }
+          return []
+        })(),
         syncVersion: rows[0].updated_at ? rows[0].updated_at.toISOString() : null
       } : null })
     }
