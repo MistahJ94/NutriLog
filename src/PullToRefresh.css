@@ -2,3 +2,42 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+
+.nutrilog-pull-indicator {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  min-width: 165px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  padding: 11px 16px 13px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--accent, #e78b38) 16%, #17201e);
+  border: 1px solid color-mix(in srgb, var(--accent, #e78b38) 48%, transparent);
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  font-size: .83rem;
+  font-weight: 650;
+  box-shadow: 0 6px 22px #0004;
+  overflow: hidden;
+  pointer-events: none;
+}
+.nutrilog-pull-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent, #e78b38);
+  transition: width .08s linear;
+}
+.nutrilog-pull-spinning { animation: nutrilog-refresh-spin .8s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .nutrilog-pull-spinning { animation: none; }
+  .nutrilog-pull-progress { transition: none; }
+}
