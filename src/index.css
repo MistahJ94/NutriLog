@@ -149,7 +149,7 @@ body {
 
 .stat-card.warning {
   background: #FFF8F0;
-  color: #8B6F47;
+  color: var(--accent-dark);
   border-color: #f5e6d3;
 }
 
@@ -1134,7 +1134,7 @@ body {
 }
 
 .breakdown-fill.fat {
-  background: linear-gradient(90deg, #8B6F47 0%, #a68a64 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, var(--surface-raised, #f8fafc)) 0%, color-mix(in srgb, var(--accent) 48%, var(--surface-raised, #f8fafc)) 100%);
 }
 
 /* Form Enhancements */
@@ -1346,7 +1346,7 @@ body {
 }
 
 .action-icon.import {
-  background: linear-gradient(135deg, #8B6F47 0%, #a68a64 100%);
+  background: color-mix(in srgb, var(--accent) 25%, var(--surface-raised, #f8fafc));
 }
 
 .action-card h4 {
@@ -1363,8 +1363,9 @@ body {
 }
 
 .btn-secondary {
-  background: #8B6F47;
-  color: white;
+  background: color-mix(in srgb, var(--accent) 19%, var(--surface-raised, #f8fafc));
+  color: var(--text, #263238);
+  border: 1px solid color-mix(in srgb, var(--accent) 58%, transparent);
   width: 100%;
   justify-content: center;
   padding: 12px 30px;
@@ -1379,9 +1380,9 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #7a6040;
+  background: color-mix(in srgb, var(--accent) 29%, var(--surface-raised, #f8fafc));
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139, 111, 71, 0.25);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 /* Info Box */
