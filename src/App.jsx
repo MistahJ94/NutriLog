@@ -1269,7 +1269,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       setSavedFoods(prev => [newFood, ...prev])
       setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingAmount: '1', servingUnit: 'serving' })
     } catch (error) {
-      if (pendingCreate && error.isNetworkError) {
+      if (pendingCreate && (error.isNetworkError || error.status >= 500)) {
         // Do not discard an ambiguous request. The server may have committed it.
         setSavedFoods(prev => [{ ...draft, id: 'pending:' + pendingCreate.id, pendingSync: true }, ...prev])
         setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingAmount: '1', servingUnit: 'serving' })
@@ -1470,7 +1470,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       setMealFormData({ name: '', selectedFoods: [] })
       setEditingMealId(null)
     } catch (error) {
-      if (pendingWrite && error.isNetworkError) {
+      if (pendingWrite && (error.isNetworkError || error.status >= 500)) {
         const pendingMeal = { ...draft, id: editingMealId || 'pending:' + pendingWrite.id, pendingSync: true }
         setSavedMeals(prev => editingMealId
           ? prev.map(meal => String(meal.id) === String(editingMealId) ? { ...meal, ...pendingMeal } : meal)
