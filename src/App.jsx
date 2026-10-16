@@ -1210,13 +1210,31 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       servingAmount: Number(foodFormData.servingAmount) || 1,
       servingUnit: foodFormData.servingUnit || 'serving'
     }
+    let pendingCreate = null
     try {
-      const serverFood = user ? (await api.foods.create(draft)).item : null
+      // Journal first: if the request reaches the server but its response is
+      // lost, replay uses the same operation ID and cannot create a duplicate.
+      if (user?.id && !isOfflineMode()) {
+        pendingCreate = pendingOperations.enqueue(user.id, { resource: 'foods', method: 'POST', payload: draft })
+      }
+      const serverFood = user
+        ? (await api.foods.create(draft, pendingCreate ? { operationId: pendingCreate.id } : {})).item
+        : null
       const newFood = serverFood ? { ...draft, ...serverFood, id: serverFood.id, updatedAt: serverFood.updated_at, servingSize: serverFood.serving_size || draft.servingSize, calories: Number(serverFood.calories), protein: Number(serverFood.protein), carbs: Number(serverFood.carbs), fat: Number(serverFood.fat), fiber: Number(serverFood.fiber) } : { ...draft, id: Date.now() }
+      if (pendingCreate) pendingOperations.acknowledge(user.id, pendingCreate.id)
       setSavedFoods(prev => [newFood, ...prev])
       setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingAmount: '1', servingUnit: 'serving' })
     } catch (error) {
-      alert(error.message)
+      if (pendingCreate && error.isNetworkError) {
+        // Do not discard an ambiguous request. The server may have committed it.
+        setSavedFoods(prev => [{ ...draft, id: 'pending:' + pendingCreate.id, pendingSync: true }, ...prev])
+        setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingAmount: '1', servingUnit: 'serving' })
+        alert('Food saved on this device. It is pending synchronization; do not delete or edit it until synced.')
+      } else {
+        // A definitive HTTP rejection is not an offline edit.
+        if (pendingCreate) pendingOperations.acknowledge(user.id, pendingCreate.id)
+        alert(error.message)
+      }
     }
   }
 
