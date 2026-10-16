@@ -2239,10 +2239,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
           </details>
         </div>
-        <div className="account-bar">
-          <span>Signed in as <strong>{user?.email}</strong></span>
-          <button className="account-logout" onClick={onLogout}>Sign out</button>
-        </div>
+
         
         {/* Tab Navigation */}
         <div className={`tab-navigation ${customizeTabs ? 'tab-navigation-customizing' : ''}`}>
@@ -3792,6 +3789,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             <div className="planner-intro">
               <h2>Settings</h2>
               <p>Personalize NutriLog, manage account security, and review your data and connections.</p>
+            </div>
+
+            <div className="section nutrilog-account-settings">
+              <h3>Account</h3>
+              <p className="settings-description">Signed in as <strong>{user?.email || 'Offline user'}</strong></p>
+              <button type="button" className="btn btn-secondary" onClick={onLogout}>Sign out</button>
             </div>
 
             {!isOfflineMode() && <div className="section">
