@@ -909,13 +909,18 @@ async function protectedApi(req, res, pathname, user) {
     if (incoming.some(item => !item)) return send(res, 400, { error: "A planned meal has a missing or invalid ID; nothing was merged" })
     // Serialize merges for this account. Do the union in JavaScript so the
     // database cannot silently discard a submitted meal.
+    const parsePlannerLayout = value => {
+      if (typeof value === "string") {
+        try { value = JSON.parse(value) } catch { return {} }
+      }
+      return value && typeof value === "object" && !Array.isArray(value) ? value : {}
+    }
     const mergedResult = await sql.begin(async tx => {
       await tx.unsafe("SELECT pg_advisory_xact_lock(hashtext($1))", ["nutrilog-plans:" + user.id])
       const current = await tx.unsafe(
         "SELECT tracker_layout FROM user_preferences WHERE user_id=$1 FOR UPDATE", [user.id]
       )
-      const layout = current[0]?.tracker_layout
-      const base = layout && typeof layout === "object" && !Array.isArray(layout) ? layout : {}
+      const base = parsePlannerLayout(current[0]?.tracker_layout)
       const existing = Array.isArray(base.plannedMeals) ? base.plannedMeals : []
       const merged = [...existing]
       const seen = new Set(existing.filter(item => item && typeof item === "object" && item.id != null).map(item => String(item.id)))
@@ -929,10 +934,10 @@ async function protectedApi(req, res, pathname, user) {
         "INSERT INTO user_preferences (user_id, tracker_layout) VALUES ($1,$2::jsonb) ON CONFLICT (user_id) DO UPDATE SET tracker_layout=EXCLUDED.tracker_layout, updated_at=NOW() RETURNING tracker_layout, updated_at",
         [user.id, JSON.stringify({ ...base, plannedMeals: merged })]
       )
-      const persisted = updated[0]?.tracker_layout?.plannedMeals
+      const returnedLayout = parsePlannerLayout(updated[0]?.tracker_layout)
+      const persisted = returnedLayout.plannedMeals
       if (!Array.isArray(persisted) || !incoming.every(item => persisted.some(saved => saved && String(saved.id) === item.id))) {
-        const returnedLayout = updated[0]?.tracker_layout
-        const returnedType = Array.isArray(returnedLayout) ? "array" : typeof returnedLayout
+        const returnedType = typeof updated[0]?.tracker_layout
         const returnedIds = Array.isArray(persisted) ? persisted.map(item => item && item.id).slice(0, 10) : []
         const incomingIds = incoming.map(item => item.id).slice(0, 10)
         console.error("Planner merge verification", JSON.stringify({
