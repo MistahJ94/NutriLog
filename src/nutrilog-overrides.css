@@ -1650,3 +1650,32 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   font-size: .82rem;
   color: var(--text-muted, #94a3b8);
 }
+
+
+/* Phase 4: readable text-only saved meal ingredient rows. */
+.app .meals-page .nutrilog-meal-ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.app .meals-page .nutrilog-meal-ingredient {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid var(--border, #475569);
+  border-radius: 9px;
+  font-size: .8rem;
+  overflow-wrap: anywhere;
+}
+.app .meals-page .nutrilog-meal-ingredient strong {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.app .meals-page .nutrilog-meal-no-ingredients {
+  font-size: .82rem;
+  color: var(--text-muted, #94a3b8);
+}
