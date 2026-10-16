@@ -1039,3 +1039,42 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   outline: 2px solid var(--accent, #e78b38);
   outline-offset: -2px;
 }
+
+
+/* Planner: keep every goal tile and breakdown readable in dark mode.
+   Match the surrounding Planner panel, while preserving the chosen accent. */
+:root[data-theme="dark"] .planner-container .goals-overview .goal-display-item:not(.primary),
+.app.theme-dark .planner-container .goals-overview .goal-display-item:not(.primary) {
+  background: #263347 !important;
+  border: 1px solid #40516a !important;
+  color: #f1f5f9 !important;
+}
+:root[data-theme="dark"] .planner-container .goals-overview .goal-display-item:not(.primary) .goal-icon,
+.app.theme-dark .planner-container .goals-overview .goal-display-item:not(.primary) .goal-icon {
+  background: color-mix(in srgb, var(--accent) 20%, #263347) !important;
+  color: #f8fafc !important;
+}
+:root[data-theme="dark"] .planner-container .goals-overview .macro-breakdown,
+.app.theme-dark .planner-container .goals-overview .macro-breakdown {
+  background: #263347 !important;
+  border: 1px solid #40516a !important;
+  color: #f1f5f9 !important;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .planner-container .goals-overview .macro-breakdown h4,
+:root[data-theme="dark"] .planner-container .goals-overview .breakdown-label,
+.app.theme-dark .planner-container .goals-overview .macro-breakdown h4,
+.app.theme-dark .planner-container .goals-overview .breakdown-label {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+}
+:root[data-theme="dark"] .planner-container .goals-overview .breakdown-bar,
+.app.theme-dark .planner-container .goals-overview .breakdown-bar {
+  background: #121b2a !important;
+}
+:root[data-theme="dark"] .planner-container .goals-overview .goal-label,
+:root[data-theme="dark"] .planner-container .goals-overview .goal-value,
+.app.theme-dark .planner-container .goals-overview .goal-label,
+.app.theme-dark .planner-container .goals-overview .goal-value {
+  color: inherit !important;
+}
