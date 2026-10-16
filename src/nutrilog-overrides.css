@@ -1327,3 +1327,87 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   .app .nutrilog-daily-overview .nutrilog-macro-summary > strong { font-size: .75rem; }
   .app .nutrilog-daily-overview .nutrilog-macro-summary > small { font-size: .65rem; }
 }
+
+
+/* Phase 2B: Food Log uses five compact progress circles ONLY in its top row. */
+.app .food-log-nutrition-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(4px, 1.5vw, 16px);
+  padding: 18px clamp(8px, 2vw, 20px);
+  margin: 16px 0 20px;
+  background: var(--surface-alt, #fff);
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 18px;
+}
+.app .food-log-nutrition-item {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+  min-width: 0;
+  gap: 3px;
+}
+.app .food-log-nutrition-ring {
+  --food-log-ring-color: #64748b;
+  width: clamp(52px, 10vw, 88px);
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border-radius: 50%;
+  padding: 7px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: conic-gradient(var(--food-log-ring-color) var(--food-log-ring-progress), color-mix(in srgb, var(--text, #111827) 13%, transparent) 0);
+  margin-bottom: 4px;
+}
+.app .food-log-nutrition-ring::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(var(--food-log-ring-color) var(--food-log-ring-overflow), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  pointer-events: none;
+}
+.app .food-log-nutrition-ring-center {
+  background: var(--surface-alt, #fff);
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+.app .food-log-nutrition-ring-center svg { color: var(--food-log-ring-color); }
+.app .food-log-nutrition-ring-center strong {
+  font-size: clamp(.65rem, 1.5vw, .95rem);
+  line-height: 1.1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.app .food-log-nutrition-label { font-size: clamp(.69rem, 1.4vw, .88rem); }
+.app .food-log-nutrition-amount { font-size: clamp(.63rem, 1.2vw, .8rem); font-weight: 600; white-space: nowrap; }
+.app .food-log-nutrition-item small { font-size: clamp(.57rem, 1vw, .72rem); color: var(--text-muted, #94a3b8); white-space: nowrap; }
+.app .food-log-day-navigation button:first-child,
+.app .food-log-day-navigation button:last-child {
+  border-color: color-mix(in srgb, var(--accent) 48%, transparent) !important;
+}
+.app .food-log-day-navigation button:first-child:not(:disabled),
+.app .food-log-day-navigation button:last-child:not(:disabled) {
+  color: var(--accent) !important;
+}
+@media (max-width: 440px) {
+  .app .food-log-nutrition-summary { gap: 2px; padding: 14px 4px; }
+  .app .food-log-nutrition-ring { width: clamp(48px, 13vw, 60px); padding: 5px; }
+  .app .food-log-nutrition-ring-center svg { width: 13px; height: 13px; }
+  .app .food-log-nutrition-ring-center strong { font-size: .63rem; }
+  .app .food-log-nutrition-label { font-size: .67rem; }
+  .app .food-log-nutrition-amount { font-size: .59rem; }
+  .app .food-log-nutrition-item small { font-size: .55rem; }
+}
