@@ -2196,7 +2196,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   <label htmlFor="quick-add-search">Food or meal</label>
                   <input id="quick-add-search" type="search" value={quickLogForm.searchQuery}
                     onChange={handleQuickLogSearchChange}
-                    onFocus={() => setQuickLogForm(prev => ({ ...prev, showSuggestions: Boolean(prev.searchQuery) }))}
+                    onFocus={() => setQuickLogForm(prev => ({ ...prev, showSuggestions: true }))}
                     placeholder="Search saved foods and meals…" autoComplete="off" />
                   {quickLogForm.showSuggestions && (
                     <div className="nutrilog-quick-results" role="listbox" aria-label="Matching foods and meals">
@@ -2212,7 +2212,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                           <span><strong>{item.name}</strong><small>{type === 'meal' ? 'Saved meal' : 'Saved food'}</small></span>
                           <span>{Math.round(Number(item.calories || 0))} kcal</span>
                         </button>
-                      )) : <p className="nutrilog-quick-empty">No matches. Create a food in the Foods tab first.</p>}
+                      )) : <p className="nutrilog-quick-empty">No matching saved foods or meals in this category.</p>}
                     </div>
                   )}
                 </div>
