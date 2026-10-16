@@ -1173,6 +1173,16 @@ async function protectedApi(req, res, pathname, user) {
             return { status: 409, body: { error: "Operation ID reused with different data", code: "SYNC_CONFLICT" } }
           }
           if (!receipt.response_body) throw new Error("Incomplete sync receipt")
+          // The original creation may have been deleted since it completed.
+          // A replay must neither recreate it nor tell the client to display
+          // a stale receipt as a currently existing record.
+          const existing = await tx.unsafe(
+            "SELECT 1 FROM " + config.table + " WHERE user_id=$1 AND id=$2",
+            [user.id, stableId]
+          )
+          if (!existing.length) {
+            return { status: 200, body: { replayed: true, deleted: true, item: null } }
+          }
           return { status: 200, body: { ...receipt.response_body, replayed: true } }
         }
         const placeholders = config.fields.map((_, i) => "$" + (i + 3)).join(", ")
