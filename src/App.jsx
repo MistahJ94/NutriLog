@@ -14,6 +14,24 @@ const getLocalDateString = (date = new Date()) => {
 }
 import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition, getConfiguredServerUrl, isNutriLogNative, isOfflineMode } from './services'
 
+// Goal-relative color scale shared by the nutrition progress rings.
+// A zero or missing goal has no meaningful completion percentage.
+const nutritionProgress = (value, goal) => {
+  const target = Number(goal)
+  const amount = Number(value)
+  if (!(target > 0) || !Number.isFinite(amount)) return { percent: 0, color: '#64748b', valid: false }
+  const percent = Math.max(0, amount / target * 100)
+  const color = percent === 0 ? '#64748b'
+    : percent <= 20 ? '#ef233c'
+    : percent <= 40 ? '#f97316'
+    : percent <= 60 ? '#fb923c'
+    : percent <= 80 ? '#facc15'
+    : percent < 100 ? '#84cc16'
+    : percent === 100 ? '#22c55e'
+    : percent <= 150 ? '#06b6d4' : '#2563eb'
+  return { percent, color, valid: true }
+}
+
 function LoggedMealServingInput({ quantity, foodName, onCommit }) {
   const [draft, setDraft] = useState(String(quantity ?? 1))
   useEffect(() => { setDraft(String(quantity ?? 1)) }, [quantity])
@@ -2076,7 +2094,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
 
             <section className="nutrilog-daily-overview" aria-label="Daily nutrition overview">
-                <div className="nutrilog-calorie-ring" style={{ '--daily-progress': `${Math.max(0, Math.min(100, Number(selectedTrackerProgress) || 0))}%` }}>
+                <div className="nutrilog-calorie-ring" role="img" aria-label={`Calories: ${Math.round(nutritionProgress(selectedTrackerCalories, macroGoals.calories).percent)}% of daily goal`} style={{ '--daily-progress': `${Math.min(100, nutritionProgress(selectedTrackerCalories, macroGoals.calories).percent)}%`, '--ring-color': nutritionProgress(selectedTrackerCalories, macroGoals.calories).color, '--overflow-progress': `${Math.min(100, Math.max(0, nutritionProgress(selectedTrackerCalories, macroGoals.calories).percent - 100))}%` }}>
                   <div className="nutrilog-calorie-ring-inner">
                     <Flame size={25} aria-hidden="true" />
                     <strong>{Math.round(selectedTrackerCalories).toLocaleString()}</strong>
@@ -2092,9 +2110,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     { label: 'Fiber', icon: '🌿', value: selectedTrackerFiber, goal: macroGoals.fiber, color: '#32B58B' }
                   ].map(macro => (
                     <div className="nutrilog-macro-summary" key={macro.label}>
-                      <div className="nutrilog-macro-circle" style={{ '--macro-progress': `${Math.max(0, Math.min(100, macro.goal > 0 ? macro.value / macro.goal * 100 : 0))}%`, '--macro-color': macro.color }}>
+                      <div className="nutrilog-macro-circle" style={{ '--macro-progress': `${Math.min(100, nutritionProgress(macro.value, macro.goal).percent)}%`, '--macro-color': nutritionProgress(macro.value, macro.goal).color, '--overflow-progress': `${Math.min(100, Math.max(0, nutritionProgress(macro.value, macro.goal).percent - 100))}%` }}>
                         <span aria-hidden="true">{macro.icon}</span>
                       </div>
+                      <span className="nutrilog-macro-percent">{Math.round(nutritionProgress(macro.value, macro.goal).percent)}%</span>
                       <strong>{macro.label}</strong>
                       <span>{Number(macro.value).toFixed(1)}g</span>
                       <small>of {Number(macro.goal || 0).toFixed(1)}g</small>
