@@ -1109,9 +1109,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 ...(resource === 'foods' ? normalized.savedFoods[0] : normalized.savedMeals[0]),
                 pendingSync: false
               }
-              next = next.some(entry => String(entry.id) === String(id))
-                ? next.map(entry => String(entry.id) === String(id) ? resolved : entry)
-                : [...next, resolved]
+              // A background refresh may already have inserted the permanent
+              // server record while the create receipt was being replayed.
+              // Replace both the temporary ID and any existing server copy.
+              next = [
+                ...next.filter(entry =>
+                  String(entry.id) !== String(id) &&
+                  String(entry.id) !== String(resolved.id)
+                ),
+                resolved
+              ]
             }
           }
           return next
