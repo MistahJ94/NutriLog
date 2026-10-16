@@ -3240,6 +3240,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     <p>No meals saved yet.</p>
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Create meals from your foods!</p>
                   </div>
+                ) : visibleMeals.length === 0 ? (
+                  <div className="empty-state">
+                    <Search size={32} aria-hidden="true" />
+                    <p>No saved meals match your search.</p>
+                    <button type="button" className="btn btn-secondary" onClick={() => setMealSearch('')}>Clear search</button>
+                  </div>
                 ) : (
                   visibleMeals.map(meal => (
                     <div key={meal.id} className="food-item">
