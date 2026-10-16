@@ -1116,6 +1116,54 @@ async function protectedApi(req, res, pathname, user) {
     return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
   }
 
+  if (req.method === "DELETE" && id && baseVersion && (match[1] === "foods" || match[1] === "meals") && req.headers["x-nutrilog-operation-id"]) {
+    const operationId = req.headers["x-nutrilog-operation-id"]
+    if (typeof operationId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)) {
+      return send(res, 400, { error: "Invalid operation ID" })
+    }
+    const resource = match[1]
+    const requestHash = crypto.createHash("sha256").update(JSON.stringify({ resource, method: "DELETE", id, baseVersion })).digest("hex")
+    const result = await sql.begin(async tx => {
+      const reserved = await tx.unsafe(
+        "INSERT INTO sync_operation_receipts (user_id, operation_id, resource, method, request_hash, result_id) VALUES ($1,$2,$3,'DELETE',$4,$5) ON CONFLICT (user_id, operation_id) DO NOTHING RETURNING operation_id",
+        [user.id, operationId, resource, requestHash, id]
+      )
+      if (!reserved.length) {
+        const receipts = await tx.unsafe(
+          "SELECT resource, method, request_hash, response_body FROM sync_operation_receipts WHERE user_id=$1 AND operation_id=$2",
+          [user.id, operationId]
+        )
+        const receipt = receipts[0]
+        if (!receipt || receipt.resource !== resource || receipt.method !== "DELETE" || receipt.request_hash !== requestHash) {
+          return { status: 409, body: { error: "Operation ID reused with different data", code: "SYNC_CONFLICT" } }
+        }
+        if (!receipt.response_body) throw new Error("Incomplete sync receipt")
+        return { status: 200, body: { ...receipt.response_body, replayed: true } }
+      }
+      const deleted = await tx.unsafe(
+        "DELETE FROM " + config.table + " WHERE user_id=$1 AND id=$2 AND updated_at=$3::timestamptz RETURNING id",
+        [user.id, id, baseVersion]
+      )
+      if (!deleted.length) {
+        const exists = await tx.unsafe("SELECT 1 FROM " + config.table + " WHERE user_id=$1 AND id=$2", [user.id, id])
+        // Roll back the uncompleted receipt on conflict or missing record.
+        throw Object.assign(new Error(exists.length ? "Record changed on another device. Review before deleting." : "Not found"), {
+          syncStatus: exists.length ? 409 : 404
+        })
+      }
+      const response = { ok: true }
+      await tx.unsafe(
+        "UPDATE sync_operation_receipts SET response_body=$3::jsonb, completed_at=NOW() WHERE user_id=$1 AND operation_id=$2",
+        [user.id, operationId, JSON.stringify(response)]
+      )
+      return { status: 200, body: response }
+    }).catch(error => {
+      if (error.syncStatus) return { status: error.syncStatus, body: { error: error.message, code: error.syncStatus === 409 ? "SYNC_CONFLICT" : "NOT_FOUND" } }
+      throw error
+    })
+    return send(res, result.status, result.body)
+  }
+
   if (req.method === "DELETE" && id) {
     const guarded = baseVersion && (match[1] === "foods" || match[1] === "meals")
     const rows = await sql.unsafe(
