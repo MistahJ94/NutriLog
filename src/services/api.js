@@ -38,11 +38,29 @@ const request = async (path, options = {}) => {
     console.info('[NutriLog API] Response:', response.status, url, data)
   }
 
-  if (!response.ok) throw new Error(data.error || 'API request failed')
+  if (!response.ok) {
+    const error = new Error(data.error || 'API request failed')
+    error.status = response.status
+    error.code = data.code || null
+    throw error
+  }
   return data
 }
 
 const json = (method, path, body) => request(path, { method, body: JSON.stringify(body) })
+// Optional replay metadata; existing online calls remain unchanged.
+const syncJson = (method, path, body, options = {}) => request(path, {
+  method,
+  body: JSON.stringify(body),
+  headers: {
+    ...(options.operationId ? { 'X-NutriLog-Operation-Id': options.operationId } : {}),
+    ...(options.baseVersion ? { 'X-NutriLog-Base-Version': options.baseVersion } : {}),
+  },
+})
+const syncDelete = (path, options = {}) => request(path, {
+  method: 'DELETE',
+  headers: options.baseVersion ? { 'X-NutriLog-Base-Version': options.baseVersion } : {},
+})
 
 const offlineEnabled = () => localStorage.getItem('nutrilog-offline-mode') === 'true'
 export const isOfflineMode = offlineEnabled
@@ -244,15 +262,15 @@ export const api = {
   },
   foods: {
     list: () => offlineEnabled() ? offlineApi.foods.list() : request('/foods'),
-    create: food => offlineEnabled() ? offlineApi.foods.create(food) : json('POST', '/foods', { name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, serving_size: food.servingSize, serving_amount: food.servingAmount, serving_unit: food.servingUnit, source: food.source || 'custom' }),
-    update: (id, food) => offlineEnabled() ? offlineApi.foods.update(id, food) : json('PUT', '/foods/' + id, { name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, serving_size: food.servingSize, serving_amount: food.servingAmount, serving_unit: food.servingUnit, source: food.source || 'custom' }),
-    remove: id => offlineEnabled() ? offlineApi.foods.remove(id) : request('/foods/' + id, { method: 'DELETE' }),
+    create: (food, options) => offlineEnabled() ? offlineApi.foods.create(food) : syncJson('POST', '/foods', { name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, serving_size: food.servingSize, serving_amount: food.servingAmount, serving_unit: food.servingUnit, source: food.source || 'custom' }, options),
+    update: (id, food, options) => offlineEnabled() ? offlineApi.foods.update(id, food) : syncJson('PUT', '/foods/' + id, { name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, serving_size: food.servingSize, serving_amount: food.servingAmount, serving_unit: food.servingUnit, source: food.source || 'custom' }),
+    remove: (id, options) => offlineEnabled() ? offlineApi.foods.remove(id) : syncDelete('/foods/' + id, options),
   },
   meals: {
     list: () => offlineEnabled() ? offlineApi.meals.list() : request('/meals'),
-    create: meal => offlineEnabled() ? offlineApi.meals.create(meal) : json('POST', '/meals', meal),
-    update: (id, meal) => offlineEnabled() ? offlineApi.meals.update(id, meal) : json('PUT', '/meals/' + id, meal),
-    remove: id => offlineEnabled() ? offlineApi.meals.remove(id) : request('/meals/' + id, { method: 'DELETE' }),
+    create: (meal, options) => offlineEnabled() ? offlineApi.meals.create(meal) : syncJson('POST', '/meals', meal, options),
+    update: (id, meal, options) => offlineEnabled() ? offlineApi.meals.update(id, meal) : syncJson('PUT', '/meals/' + id, meal, options),
+    remove: (id, options) => offlineEnabled() ? offlineApi.meals.remove(id) : syncDelete('/meals/' + id, options),
   },
   sync: {
     replace: data => offlineEnabled() ? offlineApi.sync.replace(data) : json('PUT', '/sync', data),
