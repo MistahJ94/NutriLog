@@ -124,7 +124,16 @@ export const pendingOperations = {
     const items = new Map((serverItems || []).map(item => [String(item.id), item]))
     for (const op of this.list(accountId)) {
       if (op.resource !== resource) continue
-      if (op.method === 'DELETE') items.delete(String(op.recordId))
+      if (op.method === 'DELETE') {
+        // A rejected deletion is not a successful local delete. Keep the
+        // server record visible and flagged so it can be reviewed.
+        if (op.status === 'conflict') {
+          const existing = items.get(String(op.recordId))
+          if (existing) items.set(String(op.recordId), { ...existing, pendingSync: true, syncConflict: true })
+        } else {
+          items.delete(String(op.recordId))
+        }
+      }
       else if (op.method === 'PUT') {
         const existing = items.get(String(op.recordId))
         items.set(String(op.recordId), { ...(existing || {}), ...op.payload, id: op.recordId, pendingSync: true, syncConflict: op.status === 'conflict' || !existing })
