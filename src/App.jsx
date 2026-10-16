@@ -754,6 +754,20 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         if (revision !== preferenceSaveRevision.current) return
         setPlannerSyncStatus('saving')
         try {
+          if (preferenceSyncVersion.current === null) {
+            const current = (await api.preferences.get()).preferences
+            if (current?.syncVersion) {
+              const serverPlans = current.trackerLayout?.plannedMeals || []
+              const localPlans = latestPreferences.current.trackerLayout.plannedMeals || []
+              if (JSON.stringify(serverPlans) !== JSON.stringify(localPlans)) {
+                preferenceConflict.current = true
+                setPlannerSyncStatus('conflict')
+                return
+              }
+              preferenceSyncVersion.current = current.syncVersion
+            }
+          }
+          if (revision !== preferenceSaveRevision.current) return
           const result = await api.preferences.save({ ...latestPreferences.current, syncVersion: preferenceSyncVersion.current })
           preferenceSyncVersion.current = result.syncVersion ?? preferenceSyncVersion.current
           if (revision === preferenceSaveRevision.current) setPlannerSyncStatus('saved')
