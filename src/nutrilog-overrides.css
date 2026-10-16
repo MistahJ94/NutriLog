@@ -1817,3 +1817,46 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .header .nutrilog-sync-compact-details { background:#17202e; color:#f8fafc; border:1px solid #475569; box-shadow:0 10px 28px rgba(0,0,0,.35); }
 .header .nutrilog-sync-compact-details p { color:#f8fafc; }
 .header .nutrilog-sync-compact-details .btn { color:#f8fafc; border-color:#64748b; background:#334155; }
+
+
+/* Meals: prevent wide content from pushing the desktop grid or its action buttons. */
+.app .meals-page {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  min-width: 0;
+  max-width: 100%;
+}
+.app .meals-page > .section,
+.app .meals-page .food-item,
+.app .meals-page .food-info,
+.app .meals-page .meal-food-item,
+.app .meals-page .meal-food-info {
+  min-width: 0;
+  max-width: 100%;
+}
+.app .meals-page .food-info,
+.app .meals-page .meal-food-info {
+  overflow-wrap: anywhere;
+}
+.app .meals-page .food-actions {
+  max-width: 100%;
+  margin-left: 0;
+  justify-content: flex-end;
+}
+.app .meals-page .food-actions .btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+@media (max-width: 768px) {
+  .app .meals-page .food-actions {
+    justify-content: flex-start;
+  }
+  .app .meals-page .food-actions .btn,
+  .app .meals-page .meal-builder-actions .btn,
+  .app .meals-page .meal-history-header > button {
+    width: auto;
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 6px 9px !important;
+    font-size: .8rem !important;
+  }
+}
