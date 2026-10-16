@@ -738,11 +738,13 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const preferenceSaveQueue = useRef(Promise.resolve())
   const preferenceSyncVersion = useRef(initialServerData?.preferences?.syncVersion ?? null)
   const preferenceConflict = useRef(false)
+  const remotePlansHydrating = useRef(false)
   const preferenceSaveRevision = useRef(0)
   const latestPreferences = useRef(null)
   const [syncRetry, setSyncRetry] = useState(0)
   useEffect(() => {
     if (!isInitialLoadComplete || preferenceConflict.current) return
+    if (remotePlansHydrating.current) { remotePlansHydrating.current = false; return }
     const preferences = {
       theme, mode, customAccent,
       trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards,
@@ -786,6 +788,34 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     return () => clearTimeout(timer)
   }, [theme, mode, customAccent, trackerLayout.template, trackerLayout.columns, trackerLayout.cards,
     trackerLayout.order, tabOrder, isInitialLoadComplete, selectedTimeZone, plannedMeals, syncRetry])
+
+  // Read the account's latest plans when this device becomes active, without
+  // overwriting local edits that have not yet been confirmed by the server.
+  const refreshAccountPlans = async () => {
+    if (isOfflineMode() || plannerSyncStatus !== 'saved') return
+    try {
+      const response = await api.preferences.get()
+      const remote = response?.preferences
+      if (!remote?.syncVersion || remote.syncVersion === preferenceSyncVersion.current) return
+      preferenceSyncVersion.current = remote.syncVersion
+      if (Array.isArray(remote.trackerLayout?.plannedMeals) && JSON.stringify(remote.trackerLayout.plannedMeals) !== JSON.stringify(plannedMeals)) {
+        remotePlansHydrating.current = true
+        setPlannedMeals(remote.trackerLayout.plannedMeals)
+        localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(remote.trackerLayout.plannedMeals))
+      }
+    } catch {
+      // Keep the last confirmed local copy if the network is unavailable.
+    }
+  }
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState === 'visible') refreshAccountPlans() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [plannerSyncStatus, user?.id, plannedMeals])
 
   useEffect(() => {
     const retryOnReconnect = () => {
@@ -2190,6 +2220,24 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           ))
         }
       />
+      <div className={'nutrilog-planner-sync-status is-' + plannerSyncStatus} role="status" aria-live="polite">
+                <span className="nutrilog-planner-sync-indicator" aria-hidden="true" />
+                <span className="nutrilog-planner-sync-label">
+                  {plannerSyncStatus === 'saved' ? 'Synced' :
+                    plannerSyncStatus === 'error' || plannerSyncStatus === 'conflict' ? 'Not synced' :
+                    plannerSyncStatus === 'saving' ? 'Syncing…' : 'Pending sync'}
+                </span>
+                <span className="nutrilog-planner-sync-description">
+                  {plannerSyncStatus === 'saved' ? 'Saved to your account' :
+                    plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
+                    plannerSyncStatus === 'error' ? 'Changes are saved on this device only' :
+                    plannerSyncStatus === 'saving' ? 'Saving changes to your account' : 'Waiting to save changes'}
+                </span>
+                {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary"
+                  onClick={() => window.location.reload()}>Reload latest account data</button>}
+                {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary"
+                  onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
+      </div>
       <div className="header">
         <h1>🥗 NutriLog</h1>
         <p>Track your nutrition, macros, and daily goals</p>
@@ -2733,24 +2781,6 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
             <section className="section nutrilog-planner-schedule" aria-label="Schedule saved meals">
               <h3>Schedule a saved meal</h3>
-              <div className={'nutrilog-planner-sync-status is-' + plannerSyncStatus} role="status" aria-live="polite">
-                <span className="nutrilog-planner-sync-indicator" aria-hidden="true" />
-                <span className="nutrilog-planner-sync-label">
-                  {plannerSyncStatus === 'saved' ? 'Synced' :
-                    plannerSyncStatus === 'error' || plannerSyncStatus === 'conflict' ? 'Not synced' :
-                    plannerSyncStatus === 'saving' ? 'Syncing…' : 'Pending sync'}
-                </span>
-                <span className="nutrilog-planner-sync-description">
-                  {plannerSyncStatus === 'saved' ? 'Saved to your account' :
-                    plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
-                    plannerSyncStatus === 'error' ? 'Changes are saved on this device only' :
-                    plannerSyncStatus === 'saving' ? 'Saving changes to your account' : 'Waiting to save changes'}
-                </span>
-                {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary"
-                  onClick={() => window.location.reload()}>Reload latest account data</button>}
-                {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary"
-                  onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
-              </div>
               <p>Planned meals are not counted as consumed until you log them. Plans sync through your account preferences when connected to the server; offline changes remain on this device until a successful save.</p>
               <form className="nutrilog-planner-schedule-form" onSubmit={scheduleSavedMeal}>
                 <label>Date <input type="date" value={plannerAnchor} onChange={event => setPlannerAnchor(event.target.value)} required /></label>
