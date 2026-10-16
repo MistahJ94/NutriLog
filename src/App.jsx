@@ -514,29 +514,40 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [plannerAnchor, setPlannerAnchor] = useState(() => getLocalDateString())
   const [plannedMealId, setPlannedMealId] = useState('')
   const [plannedMealSlot, setPlannedMealSlot] = useState('Breakfast')
-  const [plannedMeals, setPlannedMeals] = useState(() => {
-    const serverPlans = initialServerData?.preferences?.trackerLayout?.plannedMeals
-    if (Array.isArray(serverPlans)) return serverPlans
+  const plannedMealsStorageKey = 'nutrilog-planned-meals-' + (user?.id || 'default')
+  const readLocalPlannedMeals = () => {
     try {
-      const data = JSON.parse(localStorage.getItem('nutrilog-planned-meals-' + (user?.id || 'default')) || '[]')
-      return Array.isArray(data) ? data : []
+      const value = JSON.parse(localStorage.getItem(plannedMealsStorageKey) || '[]')
+      return Array.isArray(value) ? value : []
     } catch { return [] }
+  }
+  const combinePlannedMeals = (local, server) => {
+    // Never discard a local draft merely because the server snapshot is stale.
+    const result = [...local]
+    const ids = new Set(local.filter(item => item && typeof item === 'object' && item.id != null).map(item => String(item.id)))
+    for (const item of server) {
+      if (item && typeof item === 'object' && item.id != null && ids.has(String(item.id))) continue
+      result.push(item)
+      if (item && typeof item === 'object' && item.id != null) ids.add(String(item.id))
+    }
+    return result
+  }
+  const [plannedMeals, setPlannedMeals] = useState(() => {
+    const local = readLocalPlannedMeals()
+    const server = initialServerData?.preferences?.trackerLayout?.plannedMeals
+    return combinePlannedMeals(local, Array.isArray(server) ? server : [])
   })
   useEffect(() => {
-    const serverPlans = initialServerData?.preferences?.trackerLayout?.plannedMeals
-    if (Array.isArray(serverPlans)) {
-      setPlannedMeals(serverPlans)
-      localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(serverPlans))
-      return
-    }
-    try {
-      const data = JSON.parse(localStorage.getItem('nutrilog-planned-meals-' + (user?.id || 'default')) || '[]')
-      setPlannedMeals(Array.isArray(data) ? data : [])
-    } catch { setPlannedMeals([]) }
+    const local = readLocalPlannedMeals()
+    const server = initialServerData?.preferences?.trackerLayout?.plannedMeals
+    const combined = combinePlannedMeals(local, Array.isArray(server) ? server : [])
+    setPlannedMeals(combined)
+    localStorage.setItem(plannedMealsStorageKey, JSON.stringify(combined))
   }, [user?.id])
   const savePlannedMeals = next => {
+    // Persist before updating React so a reload cannot race the local write.
+    localStorage.setItem(plannedMealsStorageKey, JSON.stringify(next))
     setPlannedMeals(next)
-    localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(next))
   }
   const scheduleSavedMeal = event => {
     event.preventDefault()
