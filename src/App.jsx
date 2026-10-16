@@ -2928,17 +2928,6 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 </select></label>
                 <button type="submit" className="btn btn-primary" disabled={!plannedMealId}>Plan meal</button>
               </form>
-              <div className="nutrilog-planner-scheduled-list">
-                <h3>Scheduled meals in view</h3>
-                {plannedMeals.filter(item => plannerDays.some(day => day.key === item.date)).length === 0
-                  ? <p>No meals scheduled for this period.</p>
-                  : plannedMeals.filter(item => plannerDays.some(day => day.key === item.date))
-                    .sort((a, b) => a.date.localeCompare(b.date))
-                    .map(item => <div className="nutrilog-planner-scheduled-item" key={item.id}>
-                      <span><strong>{item.date}</strong> · {item.slot} · {item.name} ({Math.round(item.calories)} kcal planned)</span>
-                      <button type="button" className="btn btn-secondary" onClick={() => savePlannedMeals(plannedMeals.filter(row => row.id !== item.id))} aria-label={'Remove planned ' + item.name}>Remove</button>
-                    </div>)}
-              </div>
             </section>
             <section className="section nutrilog-planner-overview" aria-label="Consumed nutrition calendar">
               <div className="nutrilog-planner-toolbar">
