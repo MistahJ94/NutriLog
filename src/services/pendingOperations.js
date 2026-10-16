@@ -64,7 +64,11 @@ export const pendingOperations = {
       if (!service) throw new Error('Unknown pending resource')
       try {
         if (item.method === 'POST') {
-          await service.create(item.payload, { operationId: item.id })
+          // Stable IDs cannot prevent resurrection after a successful create
+          // was subsequently deleted. Require a durable server replay ledger.
+          this.markConflict(accountId, item.id, 'Create requires server replay history before safe retry')
+          summary.blocked = true
+          break
         } else if (item.method === 'PUT') {
           if (!item.baseVersion) {
             this.markConflict(accountId, item.id, 'Missing original server version; review before retrying')
