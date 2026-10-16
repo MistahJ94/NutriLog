@@ -2823,6 +2823,18 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               <div className="nutrilog-planner-day-detail">
                 <h3>{formatHistoryDate(plannerAnchor)}</h3>
                 <p>{plannedMeals.filter(item => item.date === plannerAnchor).length} planned meal(s) · {logEntries.filter(entry => zonedDateKey(entry.timestamp) === plannerAnchor).length} consumed entry/entries</p>
+                {(() => {
+                  const selectedPlans = plannedMeals.filter(item => item.date === plannerAnchor)
+                  const selectedLogs = logEntries.filter(entry => zonedDateKey(entry.timestamp) === plannerAnchor)
+                  const plannedCalories = selectedPlans.reduce((sum, item) => sum + (Number(item.calories) || 0), 0)
+                  const consumedCalories = selectedLogs.reduce((sum, item) => sum + (Number(item.calories) || 0), 0)
+                  const goalCalories = Number(macroGoals.calories) || 0
+                  return <div className="nutrilog-planner-day-summary" aria-label="Selected day nutrition summary">
+                    <div><small>Planned calories</small><strong>{Math.round(plannedCalories)} kcal</strong><span>{selectedPlans.length} planned meal(s)</span></div>
+                    <div><small>Consumed calories</small><strong>{Math.round(consumedCalories)} kcal</strong><span>{selectedLogs.length} logged entry/entries</span></div>
+                    <div><small>Daily calorie goal</small><strong>{goalCalories > 0 ? Math.round(goalCalories) + ' kcal' : 'Not set'}</strong><span>{goalCalories > 0 ? Math.round(consumedCalories / goalCalories * 100) + '% consumed' : 'Set a goal to track progress'}</span></div>
+                  </div>
+                })()}
                 <div className="nutrilog-planner-selected-meals">
                   <h4>Planned meals</h4>
                   {plannedMeals.filter(item => item.date === plannerAnchor).length === 0
@@ -2850,6 +2862,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   <button type="button" className="btn btn-secondary"
                     onClick={() => { setQuickLogForm(prev => ({ ...prev, date: plannerAnchor })); setActiveTab('tracker') }}>
                     Log food for this date
+                  </button>
+                  <button type="button" className="btn btn-secondary"
+                    onClick={() => { const el = document.querySelector('.nutrilog-planner-schedule-form select'); if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }}>
+                    Schedule a meal
                   </button>
                 </div>
               </div>
