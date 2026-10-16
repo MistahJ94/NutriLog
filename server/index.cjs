@@ -896,6 +896,18 @@ async function protectedApi(req, res, pathname, user) {
   if (progressHandled !== false) return
   const healthHandled = await healthApi(req, res, pathname, user)
   if (healthHandled !== false) return
+  if (pathname === "/api/planned-meals/merge") {
+    if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" })
+    const body = await readBody(req)
+    if (!Array.isArray(body.plannedMeals) || body.plannedMeals.length > 2000) return send(res, 400, { error: "Invalid planned meals" })
+    const incoming = body.plannedMeals.filter(item => item && typeof item === "object" && typeof item.id === "string" && item.id.length <= 100)
+    const rows = await sql.unsafe(
+      "INSERT INTO user_preferences (user_id, tracker_layout) VALUES ($1, jsonb_build_object('plannedMeals', $2::jsonb)) ON CONFLICT (user_id) DO UPDATE SET tracker_layout = jsonb_set(COALESCE(user_preferences.tracker_layout, '{}'::jsonb), '{plannedMeals}', (SELECT COALESCE(jsonb_agg(value), '[]'::jsonb) FROM (SELECT DISTINCT ON (value->>'id') value FROM jsonb_array_elements(COALESCE(user_preferences.tracker_layout->'plannedMeals', '[]'::jsonb) || $2::jsonb) AS value ORDER BY value->>'id') AS unique_meals), true), updated_at = NOW() RETURNING tracker_layout, updated_at",
+      [user.id, JSON.stringify(incoming)]
+    )
+    return send(res, 200, { plannedMeals: rows[0].tracker_layout.plannedMeals || [], syncVersion: rows[0].updated_at.toISOString() })
+  }
+
   if (pathname === "/api/preferences") {
     if (req.method === "GET") {
       const rows = await sql.unsafe("SELECT theme, mode, accent_color, tracker_layout, tab_order, updated_at FROM user_preferences WHERE user_id=$1", [user.id])
