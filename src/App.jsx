@@ -780,7 +780,14 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         return [{ ...item, id: existingId && existingId.length <= 100 ? existingId : fallbackId }]
       })
       if (malformed.length) {
-        setPlannerSyncError('Invalid entries at positions ' + malformed.join(', ') + ' were preserved in the local recovery backup and not uploaded.')
+        const describe = index => {
+          const value = decoded[index - 1]
+          if (value === null) return 'null'
+          if (Array.isArray(value)) return 'array (' + value.length + ' elements)'
+          if (typeof value === 'string') return 'string (' + value.length + ' characters)'
+          return typeof value
+        }
+        setPlannerSyncError('Invalid entries: ' + malformed.map(index => '#' + index + ' = ' + describe(index)).join(', ') + '. Original local data and recovery backup are preserved; valid meals may have uploaded, but full sync is not confirmed.')
       }
       if (!normalized.length) throw new Error('No valid planned meal objects to recover. Local backup is preserved.')
       const result = await api.preferences.mergePlannedMeals(normalized)
