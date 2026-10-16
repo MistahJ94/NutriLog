@@ -907,11 +907,35 @@ async function protectedApi(req, res, pathname, user) {
       return id.length > 0 && id.length <= 100 ? { ...item, id } : null
     })
     if (incoming.some(item => !item)) return send(res, 400, { error: "A planned meal has a missing or invalid ID; nothing was merged" })
-    const rows = await sql.unsafe(
-      "INSERT INTO user_preferences (user_id, tracker_layout) VALUES ($1, jsonb_build_object('plannedMeals', $2::jsonb)) ON CONFLICT (user_id) DO UPDATE SET tracker_layout = jsonb_set(CASE WHEN jsonb_typeof(user_preferences.tracker_layout) = 'object' THEN user_preferences.tracker_layout ELSE '{}'::jsonb END, '{plannedMeals}', (SELECT COALESCE(jsonb_agg(value), '[]'::jsonb) FROM (SELECT DISTINCT ON (value->>'id') value FROM jsonb_array_elements(COALESCE(user_preferences.tracker_layout->'plannedMeals', '[]'::jsonb) || $2::jsonb) AS value ORDER BY value->>'id') AS unique_meals), true), updated_at = NOW() RETURNING tracker_layout, updated_at",
-      [user.id, JSON.stringify(incoming)]
-    )
-    return send(res, 200, { plannedMeals: rows[0].tracker_layout.plannedMeals || [], syncVersion: rows[0].updated_at.toISOString() })
+    // Serialize merges for this account. Do the union in JavaScript so the
+    // database cannot silently discard a submitted meal.
+    const mergedResult = await sql.begin(async tx => {
+      await tx.unsafe("SELECT pg_advisory_xact_lock(hashtext($1))", ["nutrilog-plans:" + user.id])
+      const current = await tx.unsafe(
+        "SELECT tracker_layout FROM user_preferences WHERE user_id=$1 FOR UPDATE", [user.id]
+      )
+      const layout = current[0]?.tracker_layout
+      const base = layout && typeof layout === "object" && !Array.isArray(layout) ? layout : {}
+      const existing = Array.isArray(base.plannedMeals) ? base.plannedMeals : []
+      const merged = [...existing]
+      const seen = new Set(existing.filter(item => item && typeof item === "object" && item.id != null).map(item => String(item.id)))
+      for (const item of incoming) {
+        if (!seen.has(item.id)) {
+          merged.push(item)
+          seen.add(item.id)
+        }
+      }
+      const updated = await tx.unsafe(
+        "INSERT INTO user_preferences (user_id, tracker_layout) VALUES ($1,$2::jsonb) ON CONFLICT (user_id) DO UPDATE SET tracker_layout=EXCLUDED.tracker_layout, updated_at=NOW() RETURNING tracker_layout, updated_at",
+        [user.id, JSON.stringify({ ...base, plannedMeals: merged })]
+      )
+      const persisted = updated[0]?.tracker_layout?.plannedMeals
+      if (!Array.isArray(persisted) || !incoming.every(item => persisted.some(saved => saved && String(saved.id) === item.id))) {
+        throw new Error("Planned meal merge did not persist all incoming IDs")
+      }
+      return { plannedMeals: persisted, syncVersion: updated[0].updated_at.toISOString() }
+    })
+    return send(res, 200, mergedResult)
   }
 
   if (pathname === "/api/preferences") {
