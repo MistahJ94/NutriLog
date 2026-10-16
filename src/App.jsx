@@ -748,44 +748,17 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     setPlannerSyncError('')
     setPlannerSyncStatus('saving')
     try {
-      // Merge only planned meals. Preserve all other account preferences from
-      // the latest server snapshot, so a stale device cannot overwrite them.
-      const local = plannedMeals
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const remote = (await api.preferences.get()).preferences
-        const serverPlans = Array.isArray(remote?.trackerLayout?.plannedMeals) ? remote.trackerLayout.plannedMeals : []
-        const merged = [...serverPlans]
-        const ids = new Set(serverPlans.map(item => String(item.id)))
-        for (const item of local) {
-          if (!ids.has(String(item.id))) {
-            merged.push(item)
-            ids.add(String(item.id))
-          }
-        }
-        const payload = {
-          theme: remote?.theme ?? theme,
-          mode: remote?.mode ?? mode,
-          customAccent: remote?.customAccent ?? customAccent,
-          tabOrder: remote?.tabOrder ?? tabOrder,
-          trackerLayout: { ...(remote?.trackerLayout || {}), plannedMeals: merged },
-          syncVersion: remote?.syncVersion ?? null
-        }
-        try {
-          const saved = await api.preferences.save(payload)
-          const verified = (await api.preferences.get()).preferences
-          const verifiedIds = new Set((verified?.trackerLayout?.plannedMeals || []).map(item => String(item.id)))
-          if (!merged.every(item => verifiedIds.has(String(item.id)))) throw new Error('Planned meals were not confirmed on the server')
-          preferenceSyncVersion.current = verified.syncVersion ?? saved.syncVersion
-          preferenceConflict.current = false
-          remotePlansHydrating.current = true
-          setPlannedMeals(merged)
-          localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(merged))
-          setPlannerSyncStatus('saved')
-          return
-        } catch (error) {
-          if (!String(error?.message || '').includes('changed on another device') || attempt === 2) throw error
-        }
-      }
+      // The server merges IDs atomically, without overwriting other preferences.
+      const result = await api.preferences.mergePlannedMeals(plannedMeals)
+      const remotePlans = result.plannedMeals || []
+      const ids = new Set(remotePlans.map(item => String(item.id)))
+      if (!plannedMeals.every(item => ids.has(String(item.id)))) throw new Error('Server response did not contain all local planned meals')
+      preferenceSyncVersion.current = result.syncVersion
+      preferenceConflict.current = false
+      remotePlansHydrating.current = true
+      setPlannedMeals(remotePlans)
+      localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(remotePlans))
+      setPlannerSyncStatus('saved')
     } catch (error) {
       setPlannerSyncError(String(error?.message || 'Unknown server error'))
       preferenceConflict.current = true
