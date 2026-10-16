@@ -1352,7 +1352,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         })
       }
       const result = user
-        ? (await api.foods.update(editingFoodId, draft, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})).item
+        ? (await api.foods.update(editingFoodId, draft, pendingWrite ? { baseVersion: pendingWrite.baseVersion, operationId: pendingWrite.id } : {})).item
         : { ...draft, id: editingFoodId }
       if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
       const updatedFood = {
@@ -1497,7 +1497,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       }
       const newMeal = user
         ? (editingMealId
-            ? (await api.meals.update(editingMealId, draft, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})).item
+            ? (await api.meals.update(editingMealId, draft, pendingWrite ? { baseVersion: pendingWrite.baseVersion, operationId: pendingWrite.id } : {})).item
             : (await api.meals.create(draft, pendingWrite ? { operationId: pendingWrite.id } : {})).item)
         : { ...draft, id: editingMealId || Date.now() }
       if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
