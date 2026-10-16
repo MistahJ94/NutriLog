@@ -776,7 +776,15 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           if (revision !== preferenceSaveRevision.current) return
           const result = await api.preferences.save({ ...latestPreferences.current, syncVersion: preferenceSyncVersion.current })
           preferenceSyncVersion.current = result.syncVersion ?? preferenceSyncVersion.current
-          if (revision === preferenceSaveRevision.current) setPlannerSyncStatus('saved')
+          // A successful HTTP response alone does not prove that plans were persisted.
+          const confirmed = (await api.preferences.get()).preferences
+          const expectedPlans = latestPreferences.current.trackerLayout.plannedMeals || []
+          const actualPlans = confirmed?.trackerLayout?.plannedMeals
+          const expectedById = new Map(expectedPlans.map(item => [String(item.id), item]))
+          const actualById = new Map((Array.isArray(actualPlans) ? actualPlans : []).map(item => [String(item.id), item]))
+          const matches = Array.isArray(actualPlans) && expectedById.size === actualById.size &&
+            [...expectedById].every(([id, item]) => JSON.stringify(item) === JSON.stringify(actualById.get(id)))
+          if (revision === preferenceSaveRevision.current) setPlannerSyncStatus(matches ? 'saved' : 'error')
         } catch (error) {
           if (String(error?.message || '').includes('changed on another device')) {
             preferenceConflict.current = true
