@@ -572,6 +572,24 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     localStorage.getItem('nutrilog-timezone-' + (user?.id || 'default')) || 'auto'
   )
   const selectedTimeZone = timeZoneOverride === 'auto' ? deviceTimeZone : timeZoneOverride
+
+  // Calendar-day grouping is always evaluated in the user's selected IANA zone.
+  const zonedDay = value => {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: selectedTimeZone, year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(date).reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {})
+  }
+  const zonedDateKey = value => {
+    const parts = zonedDay(value)
+    return parts.year ? parts.year + '-' + parts.month + '-' + parts.day : ''
+  }
+  const zonedToday = () => zonedDateKey(new Date())
+  const zonedClock = value => new Intl.DateTimeFormat('en-US', {
+    timeZone: selectedTimeZone, hour: '2-digit', minute: '2-digit'
+  }).format(new Date(value))
+
   useEffect(() => {
     localStorage.setItem(timeZoneStorageKey, timeZoneOverride)
   }, [timeZoneStorageKey, timeZoneOverride])
@@ -1369,11 +1387,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
   // Calculate totals from log entries
   const today = new Date()
-  const todayKey = today.toLocaleDateString('en-US')
+  const todayKey = zonedToday()
 
   const todaysLogEntries = logEntries.filter(entry => {
     if (!entry.timestamp) return false
-    return new Date(entry.timestamp).toLocaleDateString('en-US') === todayKey
+    return zonedDateKey(entry.timestamp) === todayKey
   })
 
   const totalCalories = todaysLogEntries.reduce((sum, entry) => sum + entry.calories, 0)
@@ -1395,7 +1413,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         if (!entry.timestamp) return false
         const date = new Date(entry.timestamp)
         if (Number.isNaN(date.getTime())) return false
-        return getLocalDateString(date) === trackerHistoryDate
+        return zonedDateKey(date) === trackerHistoryDate
       }).reduce((totals, entry) => ({
         calories: totals.calories + Number(entry.calories || 0),
         protein: totals.protein + Number(entry.protein || 0),
@@ -1746,25 +1764,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp)
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    return zonedClock(timestamp)
   }
 
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    // Check if it's today
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today'
-    }
-    // Check if it's yesterday
-    if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday'
-    }
-    // Otherwise return formatted date
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+  const formatDate = timestamp => {
+    const key = /^\\d{4}-\\d{2}-\\d{2}$/.test(timestamp) ? timestamp : zonedDateKey(timestamp)
+    if (key === zonedToday()) return 'Today'
+    const yesterday = new Date(zonedToday() + 'T12:00:00Z')
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+    if (key === yesterday.toISOString().slice(0, 10)) return 'Yesterday'
+    return new Date(key + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   // Group log entries by date
@@ -1792,7 +1801,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     })
   }
 
-  const todayDateString = getLocalDateString()
+  const todayDateString = zonedToday()
   // Legacy log entries do not have a meal category. Group by local time of day.
   const mealPeriodForEntry = entry => {
     const date = new Date(entry.timestamp)
@@ -1810,7 +1819,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     if (!entry.timestamp) return false
     const date = new Date(entry.timestamp)
     if (Number.isNaN(date.getTime())) return false
-    return getLocalDateString(date) === todayDateString
+    return zonedDateKey(date) === todayDateString
   }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
   const todayLogTotals = todayLogEntries.reduce((totals, entry) => ({
@@ -1830,7 +1839,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       String(date.getMonth() + 1).padStart(2, '0'),
       String(date.getDate()).padStart(2, '0')
     ].join('-')
-    return localDate === trackerHistoryDate
+    return zonedDateKey(date) === trackerHistoryDate
   }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
   const trackerHistoryTotals = trackerHistoryEntries.reduce((totals, entry) => ({
@@ -1845,7 +1854,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     if (entry.type !== 'meal' || !entry.timestamp) return false
     const date = new Date(entry.timestamp)
     if (Number.isNaN(date.getTime())) return false
-    return getLocalDateString(date) === mealHistoryDate
+    return zonedDateKey(date) === mealHistoryDate
   }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
   const formatHistoryDate = dateString => {
