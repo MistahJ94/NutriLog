@@ -762,8 +762,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       // Preserve the original draft before normalizing legacy IDs.
       const backupKey = 'nutrilog-planned-meals-recovery-backup-' + (user?.id || 'default')
       if (!localStorage.getItem(backupKey)) localStorage.setItem(backupKey, JSON.stringify(plannedMeals))
-      const malformed = plannedMeals.map((item, index) => (!item || typeof item !== 'object' || Array.isArray(item)) ? index + 1 : null).filter(Boolean)
-      const normalized = plannedMeals.flatMap((item, index) => {
+      // Legacy storage may contain JSON-encoded meal objects rather than objects.
+      const decoded = plannedMeals.map(item => {
+        if (typeof item !== 'string') return item
+        try {
+          const parsed = JSON.parse(item)
+          return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : item
+        } catch { return item }
+      })
+      const malformed = decoded.map((item, index) => (!item || typeof item !== 'object' || Array.isArray(item)) ? index + 1 : null).filter(Boolean)
+      const normalized = decoded.flatMap((item, index) => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return []
         const existingId = item.id == null ? '' : String(item.id).trim()
         // Deterministic across retries and browser restarts for the same entry.
@@ -782,9 +790,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       if (missing.length) throw new Error('Server returned ' + remotePlans.length + ' of ' + normalized.length + ' submitted meals; ' + missing.length + ' missing. First missing ID: ' + String(missing[0].id).slice(0, 90))
       preferenceSyncVersion.current = result.syncVersion
       preferenceConflict.current = false
-      remotePlansHydrating.current = true
-      setPlannedMeals(remotePlans)
-      localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(remotePlans))
+      if (!malformed.length) {
+        remotePlansHydrating.current = true
+        setPlannedMeals(remotePlans)
+        localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(remotePlans))
+      }
+      // Partial uploads are not fully synced: retain all local entries unchanged.
       setPlannerSyncStatus(malformed.length ? 'error' : 'saved')
     } catch (error) {
       setPlannerSyncError(String(error?.message || 'Unknown server error'))
