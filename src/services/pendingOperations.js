@@ -40,6 +40,45 @@ export const pendingOperations = {
     localStorage.setItem(keyFor(accountId), JSON.stringify(items))
     return entry
   },
+  markConflict(accountId, operationId, message) {
+    const items = this.list(accountId)
+    const index = items.findIndex(item => item.id === operationId)
+    if (index < 0) return false
+    items[index] = { ...items[index], status: 'conflict', error: String(message || 'Remote changes require review') }
+    localStorage.setItem(keyFor(accountId), JSON.stringify(items))
+    return true
+  },
+  // No background replay runs without an authenticated account and explicit caller.
+  // Stop at the first ambiguous result; preserve the queue for manual recovery.
+  async replay(accountId, api) {
+    const items = this.list(accountId)
+    const summary = { acknowledged: 0, blocked: false }
+    for (const item of items) {
+      if (item.status === 'conflict') { summary.blocked = true; break }
+      const service = api[item.resource]
+      if (!service) throw new Error('Unknown pending resource')
+      try {
+        if (item.method === 'POST') {
+          await service.create(item.payload, { operationId: item.id })
+        } else if (item.method === 'PUT') {
+          if (!item.baseVersion) { summary.blocked = true; break }
+          await service.update(item.recordId, item.payload, { baseVersion: item.baseVersion })
+        } else if (item.method === 'DELETE') {
+          if (!item.baseVersion) { summary.blocked = true; break }
+          await service.remove(item.recordId, { baseVersion: item.baseVersion })
+        }
+        this.acknowledge(accountId, item.id)
+        summary.acknowledged += 1
+      } catch (error) {
+        if (error.status === 409 || error.status === 404 || error.status === 400) {
+          this.markConflict(accountId, item.id, error.message)
+        }
+        summary.blocked = true
+        break
+      }
+    }
+    return summary
+  },
   // Removal is permitted only after explicit server confirmation.
   acknowledge(accountId, operationId) {
     const items = this.list(accountId)
