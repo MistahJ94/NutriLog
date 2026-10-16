@@ -509,7 +509,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [foodSearch, setFoodSearch] = useState('')
   const [mealSearch, setMealSearch] = useState('')
   const [mealSort, setMealSort] = useState('az')
-  const [plannerSyncStatus, setPlannerSyncStatus] = useState('pending')
+  const [plannerSyncStatus, setPlannerSyncStatus] = useState('checking')
   const [plannerView, setPlannerView] = useState('week')
   const [plannerAnchor, setPlannerAnchor] = useState(() => getLocalDateString())
   const [plannedMealId, setPlannedMealId] = useState('')
@@ -930,7 +930,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     document.addEventListener('visibilitychange', onActive)
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') refreshAccountPlans()
-    }, 30000)
+    }, 5000)
     onActive()
     return () => {
       window.removeEventListener('focus', onActive)
@@ -2339,7 +2339,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         <p>Track your nutrition, macros, and daily goals</p>
         <div className="nutrilog-header-sync">
           <details className={'nutrilog-sync-compact is-' + plannerSyncStatus}>
-            <summary aria-label={'Account sync: ' + (plannerSyncStatus === 'saved' ? 'Synced' : plannerSyncStatus === 'saving' ? 'Syncing' : plannerSyncStatus === 'pending' ? 'Pending' : 'Not synced')}>
+            <summary aria-label={'Account sync: ' + (plannerSyncStatus === 'saved' ? 'Synced' : plannerSyncStatus === 'saving' ? 'Syncing' : plannerSyncStatus === 'pending' ? 'Saved locally' : plannerSyncStatus === 'checking' ? 'Checking sync' : 'Not synced')}>
               <RefreshCw size={15} aria-hidden="true" className={plannerSyncStatus === 'saving' ? 'nutrilog-sync-spinning' : ''} />
               <span>{plannerSyncStatus === 'saved' ? 'Synced' : plannerSyncStatus === 'saving' ? 'Syncing' : plannerSyncStatus === 'pending' ? 'Pending' : 'Not synced'}</span>
             </summary>
@@ -2347,7 +2347,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
               <p>{plannerSyncStatus === 'saved' ? 'Account preferences saved' :
                 plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
                 plannerSyncStatus === 'error' ? 'Changes are saved on this device only.' :
-                plannerSyncStatus === 'saving' ? 'Saving account changes…' : 'Waiting to save changes.'}</p>
+                plannerSyncStatus === 'saving' ? 'Saving account changes…' : plannerSyncStatus === 'checking' ? 'Checking account changes…' : 'Changes saved locally; awaiting sync.'}</p>
               {plannerSyncError && <p role="alert" className="nutrilog-sync-error-detail">Merge failed: {plannerSyncError}</p>}
               {(plannerSyncStatus === 'conflict' || plannerSyncStatus === 'error') && <button type="button" className="btn btn-secondary" onClick={recoverPlannedMeals}>Merge planned meals</button>}
               {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary" onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
