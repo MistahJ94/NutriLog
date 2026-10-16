@@ -2176,14 +2176,21 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     setShowTrackerHistory(next !== zonedToday())
                   }} aria-label="Next day">Forward ›</button>
                 </div>
-                <button type="button" className="btn food-log-history-open" onClick={() => {
-                  if (!showTrackerHistory) {
-                    const date = new Date(zonedToday() + 'T12:00:00Z')
-                    date.setUTCDate(date.getUTCDate() - 1)
-                    setTrackerHistoryDate(date.toISOString().slice(0, 10))
-                  }
-                  setShowTrackerHistory(true)
-                }}>View History</button>
+                <div className="food-log-history-search">
+                  <label htmlFor="food-log-history-search-date">Search History</label>
+                  <input
+                    id="food-log-history-search-date"
+                    type="date"
+                    max={zonedToday()}
+                    value={showTrackerHistory ? trackerHistoryDate : ''}
+                    onChange={e => {
+                      if (!e.target.value || e.target.value > zonedToday()) return
+                      setTrackerHistoryDate(e.target.value)
+                      setShowTrackerHistory(e.target.value !== zonedToday())
+                    }}
+                    aria-label="Search food history by date"
+                  />
+                </div>
               </div>
 
               {!showTrackerHistory ? (
@@ -2303,13 +2310,6 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 )
               ) : (
                 <div style={{ marginTop: 18 }}>
-                  <div className="food-log-history-date-picker">
-                    <label htmlFor="food-log-history-date">Browse history by date</label>
-                    <input id="food-log-history-date" type="date" max={zonedToday()} value={trackerHistoryDate} onChange={e => {
-                      if (!e.target.value || e.target.value > zonedToday()) return
-                      setTrackerHistoryDate(e.target.value)
-                    }} />
-                  </div>
                   <div className="section food-log-history-section" style={{ margin: 0, padding: 16 }}>
                     <div className="food-log-history-summary">
                     <h3>{formatHistoryDate(trackerHistoryDate)}</h3>
