@@ -732,11 +732,13 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
   // Serialize preference writes so an older response cannot overwrite a newer plan.
   const preferenceSaveQueue = useRef(Promise.resolve())
+  const preferenceSyncVersion = useRef(initialServerData?.preferences?.syncVersion ?? null)
+  const preferenceConflict = useRef(false)
   const preferenceSaveRevision = useRef(0)
   const latestPreferences = useRef(null)
   const [syncRetry, setSyncRetry] = useState(0)
   useEffect(() => {
-    if (!isInitialLoadComplete) return
+    if (!isInitialLoadComplete || preferenceConflict.current) return
     const preferences = {
       theme, mode, customAccent,
       trackerLayout: { template: trackerLayout.template, columns: trackerLayout.columns, cards: trackerLayout.cards,
@@ -752,10 +754,14 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         if (revision !== preferenceSaveRevision.current) return
         setPlannerSyncStatus('saving')
         try {
-          await api.preferences.save(latestPreferences.current)
+          const result = await api.preferences.save({ ...latestPreferences.current, syncVersion: preferenceSyncVersion.current })
+          preferenceSyncVersion.current = result.syncVersion ?? preferenceSyncVersion.current
           if (revision === preferenceSaveRevision.current) setPlannerSyncStatus('saved')
-        } catch {
-          if (revision === preferenceSaveRevision.current) setPlannerSyncStatus('error')
+        } catch (error) {
+          if (String(error?.message || '').includes('changed on another device')) {
+            preferenceConflict.current = true
+            setPlannerSyncStatus('conflict')
+          } else if (revision === preferenceSaveRevision.current) setPlannerSyncStatus('error')
         }
       })
     }, 600)
@@ -2713,14 +2719,17 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 <span className="nutrilog-planner-sync-indicator" aria-hidden="true" />
                 <span className="nutrilog-planner-sync-label">
                   {plannerSyncStatus === 'saved' ? 'Synced' :
-                    plannerSyncStatus === 'error' ? 'Not synced' :
+                    plannerSyncStatus === 'error' || plannerSyncStatus === 'conflict' ? 'Not synced' :
                     plannerSyncStatus === 'saving' ? 'Syncing…' : 'Pending sync'}
                 </span>
                 <span className="nutrilog-planner-sync-description">
                   {plannerSyncStatus === 'saved' ? 'Saved to your account' :
+                    plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
                     plannerSyncStatus === 'error' ? 'Changes are saved on this device only' :
                     plannerSyncStatus === 'saving' ? 'Saving changes to your account' : 'Waiting to save changes'}
                 </span>
+                {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary"
+                  onClick={() => window.location.reload()}>Reload latest account data</button>}
                 {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary"
                   onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
               </div>
