@@ -1096,7 +1096,13 @@ async function protectedApi(req, res, pathname, user) {
           return { status: 409, body: { error: "Operation ID reused with different data", code: "SYNC_CONFLICT" } }
         }
         if (!receipt.response_body) throw new Error("Incomplete sync receipt")
-        return { status: 200, body: { ...receipt.response_body, replayed: true } }
+        // A later deletion must not be undone visually by a delayed PUT replay.
+        const current = await tx.unsafe(
+          "SELECT " + config.select + " FROM " + config.table + " WHERE user_id=$1 AND id=$2",
+          [user.id, id]
+        )
+        if (!current.length) return { status: 200, body: { replayed: true, deleted: true, item: null } }
+        return { status: 200, body: { item: current[0], replayed: true } }
       }
       const setClause = config.fields.map((field, i) => field + "=$" + (i + 2)).join(", ")
       const updated = await tx.unsafe(
