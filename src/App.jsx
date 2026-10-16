@@ -503,6 +503,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [draggingTrackerCard, setDraggingTrackerCard] = useState(null)
   const [resizingTrackerCard, setResizingTrackerCard] = useState(null)
   const [foodSearch, setFoodSearch] = useState('')
+  const [mealSearch, setMealSearch] = useState('')
+  const [mealSort, setMealSort] = useState('az')
   const [foodSort, setFoodSort] = useState('newest')
   const [quickFoodFilter, setQuickFoodFilter] = useState('all')
   const [favoriteFoodIds, setFavoriteFoodIds] = useState(() => {
@@ -1829,6 +1831,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const orderedTrackerCards = (trackerLayout.order || trackerCards.map(card => card.id))
     .map(id => trackerCards.find(card => card.id === id))
     .filter(Boolean)
+
+  const visibleMeals = savedMeals
+    .filter(meal => String(meal.name || '').toLowerCase().includes(mealSearch.trim().toLowerCase()))
+    .sort((a, b) => mealSort === 'za'
+      ? String(b.name || '').localeCompare(String(a.name || ''))
+      : String(a.name || '').localeCompare(String(b.name || '')))
 
   const visibleFoods = savedFoods
     .filter(food => String(food.name || '').toLowerCase().includes(foodSearch.trim().toLowerCase()))
@@ -3211,6 +3219,20 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
             <div className="section">
               <h2>Your Meals ({savedMeals.length})</h2>
+              <div className="nutrilog-meal-library-controls">
+                <label className="nutrilog-meal-search">
+                  <Search size={17} aria-hidden="true" />
+                  <input type="search" value={mealSearch} onChange={e => setMealSearch(e.target.value)}
+                    placeholder="Search saved meals" aria-label="Search saved meals" />
+                </label>
+                <label className="nutrilog-meal-sort">Sort
+                  <select value={mealSort} onChange={e => setMealSort(e.target.value)}>
+                    <option value="az">A to Z</option>
+                    <option value="za">Z to A</option>
+                  </select>
+                </label>
+              </div>
+              <p className="nutrilog-meal-result-count">{visibleMeals.length} of {savedMeals.length} meals</p>
               <div className="food-list">
                 {savedMeals.length === 0 ? (
                   <div className="empty-state">
@@ -3219,7 +3241,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Create meals from your foods!</p>
                   </div>
                 ) : (
-                  savedMeals.map(meal => (
+                  visibleMeals.map(meal => (
                     <div key={meal.id} className="food-item">
                       <div className="food-info">
                         <h3>{meal.name}</h3>
