@@ -1233,3 +1233,42 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     gap: 10px;
   }
 }
+
+
+/* Redesign phase 1: goal-relative nutrition progress rings.
+   A completed circle remains full; the thin outer band tracks the next 100%.
+   Exact percentages remain visible, including 150%+. */
+.nutrilog-daily-overview .nutrilog-calorie-ring {
+  position: relative;
+  isolation: isolate;
+  background: conic-gradient(var(--ring-color, var(--accent)) var(--daily-progress), color-mix(in srgb, var(--text, #111827) 13%, transparent) 0);
+}
+.nutrilog-daily-overview .nutrilog-calorie-ring::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: conic-gradient(var(--ring-color, var(--accent)) var(--overflow-progress), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  pointer-events: none;
+}
+.nutrilog-daily-overview .nutrilog-calorie-ring-inner svg,
+.nutrilog-daily-overview .nutrilog-calorie-ring-inner small { color: var(--ring-color, var(--accent)); }
+.nutrilog-daily-overview .nutrilog-macro-circle::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(var(--macro-color) var(--overflow-progress), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  pointer-events: none;
+}
+.nutrilog-daily-overview .nutrilog-macro-percent {
+  color: var(--text, #111827);
+  font-weight: 800;
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
