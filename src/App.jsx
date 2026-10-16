@@ -2220,27 +2220,25 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           ))
         }
       />
-      <div className={'nutrilog-planner-sync-status is-' + plannerSyncStatus} role="status" aria-live="polite">
-                <span className="nutrilog-planner-sync-indicator" aria-hidden="true" />
-                <span className="nutrilog-planner-sync-label">
-                  {plannerSyncStatus === 'saved' ? 'Synced' :
-                    plannerSyncStatus === 'error' || plannerSyncStatus === 'conflict' ? 'Not synced' :
-                    plannerSyncStatus === 'saving' ? 'Syncing…' : 'Pending sync'}
-                </span>
-                <span className="nutrilog-planner-sync-description">
-                  {plannerSyncStatus === 'saved' ? 'Saved to your account' :
-                    plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
-                    plannerSyncStatus === 'error' ? 'Changes are saved on this device only' :
-                    plannerSyncStatus === 'saving' ? 'Saving changes to your account' : 'Waiting to save changes'}
-                </span>
-                {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary"
-                  onClick={() => window.location.reload()}>Reload latest account data</button>}
-                {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary"
-                  onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
-      </div>
       <div className="header">
         <h1>🥗 NutriLog</h1>
         <p>Track your nutrition, macros, and daily goals</p>
+        <div className="nutrilog-header-sync">
+          <details className={'nutrilog-sync-compact is-' + plannerSyncStatus}>
+            <summary aria-label={'Account sync: ' + (plannerSyncStatus === 'saved' ? 'Synced' : plannerSyncStatus === 'saving' ? 'Syncing' : plannerSyncStatus === 'pending' ? 'Pending' : 'Not synced')}>
+              <RefreshCw size={15} aria-hidden="true" className={plannerSyncStatus === 'saving' ? 'nutrilog-sync-spinning' : ''} />
+              <span>{plannerSyncStatus === 'saved' ? 'Synced' : plannerSyncStatus === 'saving' ? 'Syncing' : plannerSyncStatus === 'pending' ? 'Pending' : 'Not synced'}</span>
+            </summary>
+            <div className="nutrilog-sync-compact-details" role="status" aria-live="polite">
+              <p>{plannerSyncStatus === 'saved' ? 'Account preferences saved' :
+                plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
+                plannerSyncStatus === 'error' ? 'Changes are saved on this device only.' :
+                plannerSyncStatus === 'saving' ? 'Saving account changes…' : 'Waiting to save changes.'}</p>
+              {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary" onClick={() => window.location.reload()}>Reload latest account data</button>}
+              {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary" onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
+            </div>
+          </details>
+        </div>
         <div className="account-bar">
           <span>Signed in as <strong>{user?.email}</strong></span>
           <button className="account-logout" onClick={onLogout}>Sign out</button>
