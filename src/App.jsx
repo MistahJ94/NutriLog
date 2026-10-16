@@ -3256,12 +3256,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                           {meal.protein > 0 && <span>P: {meal.protein}g</span>}
                           {meal.carbs > 0 && <span>C: {meal.carbs}g</span>}
                           {meal.fat > 0 && <span>F: {meal.fat}g</span>}
-                          <span className="time-badge">{meal.foods.length} items</span>
+                          {Number(meal.fiber || 0) > 0 && <span>Fiber: {meal.fiber}g</span>}
+                          <span className="time-badge">{Array.isArray(meal.foods) ? meal.foods.length : 0} items</span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '5px' }}>
-                          {meal.foods.map((f, i) => (
-                            <span key={i}>{f.name} ({f.quantity}x){i < meal.foods.length - 1 ? ', ' : ''}</span>
-                          ))}
+                        <div className="nutrilog-meal-ingredients" aria-label="Meal ingredients">
+                          {Array.isArray(meal.foods) && meal.foods.length ? meal.foods.map((food, index) => (
+                            <span className="nutrilog-meal-ingredient" key={food.id || index}>
+                              <span>{food.name}</span>
+                              <strong>{Number(food.quantity || 1).toLocaleString()}×</strong>
+                            </span>
+                          )) : <span className="nutrilog-meal-no-ingredients">No ingredient details available</span>}
                         </div>
                       </div>
                       <div className="food-actions">
