@@ -1473,3 +1473,54 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   .app .food-library-section .food-item { flex-direction: column; align-items: stretch; }
   .app .food-library-section .food-actions { justify-content: flex-start; }
 }
+
+
+/* Phase 3: Quick Add serving presets and live nutrition details. */
+.app .nutrilog-quick-serving-control {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.app .nutrilog-quick-serving-control > label { font-weight: 650; }
+.app .nutrilog-quick-serving-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.app .nutrilog-quick-serving-presets > button {
+  min-width: 38px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.app .nutrilog-quick-serving-presets > input {
+  min-width: 64px;
+  width: 82px;
+  min-height: 40px;
+  text-align: center;
+}
+.app .nutrilog-quick-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.app .nutrilog-quick-nutrition-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 12px;
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+.app .nutrilog-quick-nutrition-preview > span:first-child {
+  color: var(--accent);
+  font-weight: 750;
+}
+@media (max-width: 640px) {
+  .app .nutrilog-quick-serving-presets { width: 100%; }
+  .app .nutrilog-quick-serving-presets > input { flex: 1 1 72px; max-width: 110px; }
+}
