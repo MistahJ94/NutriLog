@@ -900,7 +900,13 @@ async function protectedApi(req, res, pathname, user) {
     if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" })
     const body = await readBody(req)
     if (!Array.isArray(body.plannedMeals) || body.plannedMeals.length > 2000) return send(res, 400, { error: "Invalid planned meals" })
-    const incoming = body.plannedMeals.filter(item => item && typeof item === "object" && typeof item.id === "string" && item.id.length <= 100)
+    // Do not silently drop entries: legacy plans may use numeric IDs.
+    const incoming = body.plannedMeals.map(item => {
+      if (!item || typeof item !== "object" || item.id === null || item.id === undefined) return null
+      const id = String(item.id)
+      return id.length > 0 && id.length <= 100 ? { ...item, id } : null
+    })
+    if (incoming.some(item => !item)) return send(res, 400, { error: "A planned meal has a missing or invalid ID; nothing was merged" })
     const rows = await sql.unsafe(
       "INSERT INTO user_preferences (user_id, tracker_layout) VALUES ($1, jsonb_build_object('plannedMeals', $2::jsonb)) ON CONFLICT (user_id) DO UPDATE SET tracker_layout = jsonb_set(CASE WHEN jsonb_typeof(user_preferences.tracker_layout) = 'object' THEN user_preferences.tracker_layout ELSE '{}'::jsonb END, '{plannedMeals}', (SELECT COALESCE(jsonb_agg(value), '[]'::jsonb) FROM (SELECT DISTINCT ON (value->>'id') value FROM jsonb_array_elements(COALESCE(user_preferences.tracker_layout->'plannedMeals', '[]'::jsonb) || $2::jsonb) AS value ORDER BY value->>'id') AS unique_meals), true), updated_at = NOW() RETURNING tracker_layout, updated_at",
       [user.id, JSON.stringify(incoming)]
