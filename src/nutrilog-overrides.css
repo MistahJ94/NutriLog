@@ -1764,3 +1764,16 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .nutrilog-planner-sync-label { font-weight:750; }
 .nutrilog-planner-sync-description { font-size:.82rem; opacity:.9; }
 .nutrilog-planner-sync-status .btn { margin-left:auto; }
+
+
+/* Planner selected-day scheduled meal management */
+.nutrilog-planner-selected-meals { margin:14px 0; }
+.nutrilog-planner-selected-meals h4 { margin:0 0 10px; }
+.nutrilog-planner-selected-slot { padding:10px 0; border-top:1px solid rgba(128,128,128,.2); }
+.nutrilog-planner-selected-slot h5 { margin:0 0 8px; font-size:.9rem; }
+.nutrilog-planner-selected-item { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:8px 0; }
+.nutrilog-planner-selected-item > span { flex:1 1 180px; min-width:0; overflow-wrap:anywhere; }
+.nutrilog-planner-selected-item label { display:flex; align-items:center; gap:7px; font-size:.82rem; }
+.nutrilog-planner-selected-item select { max-width:140px; padding:7px; border-radius:7px; }
+.nutrilog-planner-selected-actions { display:flex; flex-wrap:wrap; gap:8px; }
+@media(max-width:480px) { .nutrilog-planner-selected-item > span { flex-basis:100%; } }
