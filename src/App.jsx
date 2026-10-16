@@ -1083,6 +1083,50 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }
   }, [draggingTab, customizeTabs])
 
+  // Replay only authenticated account operations, then reconcile temporary IDs
+  // using confirmed server results. Keep conflicts in the journal for review.
+  useEffect(() => {
+    if (!user?.id || isOfflineMode()) return
+    let active = true
+    const syncPending = async () => {
+      if (!navigator.onLine || !active) return
+      try {
+        const summary = await pendingOperations.replay(user.id, api)
+        if (!active || !summary.results?.length) return
+        const reconcile = (previous, resource) => {
+          let next = previous
+          for (const result of summary.results) {
+            if (result.resource !== resource) continue
+            const id = result.method === 'POST' ? 'pending:' + result.operationId : result.recordId
+            if (result.method === 'DELETE') next = next.filter(entry => String(entry.id) !== String(id))
+            else if (result.item) {
+              const resolved = { ...result.item, updatedAt: result.item.updated_at || result.item.updatedAt, pendingSync: false }
+              next = next.some(entry => String(entry.id) === String(id))
+                ? next.map(entry => String(entry.id) === String(id) ? resolved : entry)
+                : [...next, resolved]
+            }
+          }
+          return next
+        }
+        setSavedFoods(previous => reconcile(previous, 'foods'))
+        setSavedMeals(previous => reconcile(previous, 'meals'))
+        // Refresh the complete snapshot after the local IDs have been resolved.
+        if (typeof onRefresh === 'function') await onRefresh()
+      } catch (error) {
+        console.error('[NutriLog sync] Pending edits remain on this device', error)
+      }
+    }
+    const onResume = () => { void syncPending() }
+    window.addEventListener('online', onResume)
+    window.addEventListener('focus', onResume)
+    void syncPending()
+    return () => {
+      active = false
+      window.removeEventListener('online', onResume)
+      window.removeEventListener('focus', onResume)
+    }
+  }, [user?.id, onRefresh])
+
   // Load data through the application storage service.
   useEffect(() => {
     const local = storage.load()
