@@ -66,7 +66,10 @@ export const pendingOperations = {
         if (item.method === 'POST') {
           await service.create(item.payload, { operationId: item.id })
         } else if (item.method === 'PUT') {
-          if (!item.baseVersion) { summary.blocked = true; break }
+          if (!item.baseVersion) {
+            this.markConflict(accountId, item.id, 'Missing original server version; review before retrying')
+            summary.blocked = true; break
+          }
           await service.update(item.recordId, item.payload, { baseVersion: item.baseVersion })
         } else if (item.method === 'DELETE') {
           if (!item.baseVersion) { summary.blocked = true; break }
@@ -96,7 +99,7 @@ export const pendingOperations = {
       if (op.method === 'DELETE') items.delete(String(op.recordId))
       else if (op.method === 'PUT') {
         const existing = items.get(String(op.recordId))
-        if (existing) items.set(String(op.recordId), { ...existing, ...op.payload, id: op.recordId, pendingSync: true, syncConflict: op.status === 'conflict' })
+        items.set(String(op.recordId), { ...(existing || {}), ...op.payload, id: op.recordId, pendingSync: true, syncConflict: op.status === 'conflict' || !existing })
       } else if (op.method === 'POST') {
         items.set('pending:' + op.id, { ...op.payload, id: 'pending:' + op.id, pendingSync: true, syncConflict: op.status === 'conflict' })
       }
