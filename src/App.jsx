@@ -1212,7 +1212,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }
     try {
       const serverFood = user ? (await api.foods.create(draft)).item : null
-      const newFood = serverFood ? { ...draft, ...serverFood, id: serverFood.id, servingSize: serverFood.serving_size || draft.servingSize, calories: Number(serverFood.calories), protein: Number(serverFood.protein), carbs: Number(serverFood.carbs), fat: Number(serverFood.fat), fiber: Number(serverFood.fiber) } : { ...draft, id: Date.now() }
+      const newFood = serverFood ? { ...draft, ...serverFood, id: serverFood.id, updatedAt: serverFood.updated_at, servingSize: serverFood.serving_size || draft.servingSize, calories: Number(serverFood.calories), protein: Number(serverFood.protein), carbs: Number(serverFood.carbs), fat: Number(serverFood.fat), fiber: Number(serverFood.fiber) } : { ...draft, id: Date.now() }
       setSavedFoods(prev => [newFood, ...prev])
       setFoodFormData({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servingAmount: '1', servingUnit: 'serving' })
     } catch (error) {
@@ -1266,6 +1266,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       const result = user ? (await api.foods.update(editingFoodId, draft)).item : { ...draft, id: editingFoodId }
       const updatedFood = {
         ...draft, ...result, id: editingFoodId,
+        updatedAt: result?.updated_at || result?.updatedAt,
         servingSize: result?.serving_size || draft.servingSize,
         calories: Number(result?.calories ?? draft.calories),
         protein: Number(result?.protein ?? draft.protein),
@@ -1387,9 +1388,10 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             : (await api.meals.create(draft)).item)
         : { ...draft, id: editingMealId || Date.now() }
 
+      const versionedMeal = { ...newMeal, updatedAt: newMeal.updated_at || newMeal.updatedAt }
       setSavedMeals(prev => editingMealId
-        ? prev.map(meal => meal.id === editingMealId ? newMeal : meal)
-        : [newMeal, ...prev]
+        ? prev.map(meal => meal.id === editingMealId ? versionedMeal : meal)
+        : [versionedMeal, ...prev]
       )
       setMealFormData({ name: '', selectedFoods: [] })
       setEditingMealId(null)
