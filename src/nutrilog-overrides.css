@@ -1860,3 +1860,51 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     font-size: .8rem !important;
   }
 }
+
+
+/* Desktop saved-meal cards: stack nutrition and actions instead of squeezing them
+   into a narrow side-by-side row inside the three-column Meals page. */
+@media (min-width: 769px) {
+  .app .meals-page .food-list > .food-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    gap: 12px;
+  }
+  .app .meals-page .food-list > .food-item > .food-info {
+    width: 100%;
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+  .app .meals-page .food-list > .food-item .food-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    min-width: 0;
+  }
+  .app .meals-page .food-list > .food-item .food-details > span {
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    flex: 0 0 auto;
+  }
+  .app .meals-page .food-list > .food-item > .food-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 0;
+    gap: 6px;
+  }
+  .app .meals-page .food-list > .food-item > .food-actions .btn {
+    width: auto;
+    min-width: max-content;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+    flex: 0 0 auto;
+  }
+}
