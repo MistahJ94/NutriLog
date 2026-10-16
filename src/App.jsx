@@ -1284,11 +1284,27 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   }
 
   const handleDeleteFood = async (id) => {
+    let pendingWrite = null
     try {
-      if (user) await api.foods.remove(id)
-      setSavedFoods(prev => prev.filter(food => food.id !== id))
+      if (user?.id && !isOfflineMode()) {
+        const original = savedFoods.find(item => String(item.id) === String(id))
+        pendingWrite = pendingOperations.enqueue(user.id, {
+          resource: 'foods', method: 'DELETE', recordId: id,
+          baseVersion: original?.updatedAt || original?.updated_at || null
+        })
+      }
+      if (user) await api.foods.remove(id, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})
+      if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
+      setSavedFoods(prev => prev.filter(item => String(item.id) !== String(id)))
     } catch (error) {
-      alert(error.message)
+      if (pendingWrite && (error.isNetworkError || error.status >= 500)) {
+        setSavedFoods(prev => prev.filter(item => String(item.id) !== String(id)))
+        alert('Food deletion saved on this device and pending synchronization.')
+      } else {
+        if (pendingWrite && error.status >= 400 && error.status < 500 && error.status !== 409) pendingOperations.acknowledge(user.id, pendingWrite.id)
+        if (pendingWrite && error.status === 409) pendingOperations.markConflict(user.id, pendingWrite.id, error.message)
+        alert(error.message)
+      }
     }
   }
 
@@ -1520,11 +1536,27 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   }
 
   const handleDeleteMeal = async (id) => {
+    let pendingWrite = null
     try {
-      if (user) await api.meals.remove(id)
-      setSavedMeals(prev => prev.filter(meal => meal.id !== id))
+      if (user?.id && !isOfflineMode()) {
+        const original = savedMeals.find(item => String(item.id) === String(id))
+        pendingWrite = pendingOperations.enqueue(user.id, {
+          resource: 'meals', method: 'DELETE', recordId: id,
+          baseVersion: original?.updatedAt || original?.updated_at || null
+        })
+      }
+      if (user) await api.meals.remove(id, pendingWrite ? { baseVersion: pendingWrite.baseVersion } : {})
+      if (pendingWrite) pendingOperations.acknowledge(user.id, pendingWrite.id)
+      setSavedMeals(prev => prev.filter(item => String(item.id) !== String(id)))
     } catch (error) {
-      alert(error.message)
+      if (pendingWrite && (error.isNetworkError || error.status >= 500)) {
+        setSavedMeals(prev => prev.filter(item => String(item.id) !== String(id)))
+        alert('Meal deletion saved on this device and pending synchronization.')
+      } else {
+        if (pendingWrite && error.status >= 400 && error.status < 500 && error.status !== 409) pendingOperations.acknowledge(user.id, pendingWrite.id)
+        if (pendingWrite && error.status === 409) pendingOperations.markConflict(user.id, pendingWrite.id, error.message)
+        alert(error.message)
+      }
     }
   }
 
