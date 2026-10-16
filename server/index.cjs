@@ -931,6 +931,14 @@ async function protectedApi(req, res, pathname, user) {
       )
       const persisted = updated[0]?.tracker_layout?.plannedMeals
       if (!Array.isArray(persisted) || !incoming.every(item => persisted.some(saved => saved && String(saved.id) === item.id))) {
+        const returnedLayout = updated[0]?.tracker_layout
+        const returnedType = Array.isArray(returnedLayout) ? "array" : typeof returnedLayout
+        const returnedIds = Array.isArray(persisted) ? persisted.map(item => item && item.id).slice(0, 10) : []
+        const incomingIds = incoming.map(item => item.id).slice(0, 10)
+        console.error("Planner merge verification", JSON.stringify({
+          returnedType, layoutKeys: returnedLayout && typeof returnedLayout === "object" ? Object.keys(returnedLayout) : [],
+          incomingIds, returnedIds, persistedType: Array.isArray(persisted) ? "array" : typeof persisted
+        }))
         throw new Error("Planned meal merge did not persist all incoming IDs")
       }
       return { plannedMeals: persisted, syncVersion: updated[0].updated_at.toISOString() }
