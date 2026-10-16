@@ -13,6 +13,7 @@ const getLocalDateString = (date = new Date()) => {
   return year + '-' + month + '-' + day
 }
 import { storage, api, normalizeServerData, calculateMealTotals, scaleNutrition, getConfiguredServerUrl, isNutriLogNative, isOfflineMode } from './services'
+import { pendingOperations } from './services/pendingOperations'
 
 // Goal-relative color scale shared by the nutrition progress rings.
 // A zero or missing goal has no meaningful completion percentage.
@@ -1086,8 +1087,22 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   useEffect(() => {
     const local = storage.load()
     const data = initialServerData ? normalizeServerData(initialServerData) : local
-    setSavedFoods(data.savedFoods)
-    setSavedMeals(data.savedMeals)
+    // Keep account-scoped pending edits visible when server data refreshes.
+    // Never apply another account's queue to this account's records.
+    let visibleFoods = data.savedFoods
+    let visibleMeals = data.savedMeals
+    if (user?.id && !isOfflineMode()) {
+      try {
+        visibleFoods = pendingOperations.overlay(user.id, 'foods', visibleFoods)
+        visibleMeals = pendingOperations.overlay(user.id, 'meals', visibleMeals)
+      } catch (error) {
+        console.error('[NutriLog sync] Pending edits could not be loaded; preserving cached view', error)
+        visibleFoods = local.savedFoods
+        visibleMeals = local.savedMeals
+      }
+    }
+    setSavedFoods(visibleFoods)
+    setSavedMeals(visibleMeals)
     setLogEntries(data.logEntries)
     const goals = data.macroGoals || local.macroGoals
     const calories = Number(goals?.calories || local.dailyGoal || 2000)
@@ -1102,7 +1117,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     setDailyGoal(calories)
     setMacroGoals(goals)
     setIsInitialLoadComplete(true)
-  }, [initialServerData])
+  }, [initialServerData, user?.id])
 
   // Refresh server-authoritative Tracker logs without reloading other screens.
   // Do not apply a response that overlaps a local log mutation or open editor.
