@@ -3013,12 +3013,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     <div><small>Daily calorie goal</small><strong>{goalCalories > 0 ? Math.round(goalCalories) + ' kcal' : 'Not set'}</strong><span>{goalCalories > 0 ? Math.round(consumedCalories / goalCalories * 100) + '% consumed' : 'Set a goal to track progress'}</span></div>
                   </div>
                 })()}
-                <div className="nutrilog-planner-selected-meals">
-                  <h4>Planned meals</h4>
-                  <p className="nutrilog-planner-detail-hint">Select a date in the calendar to view the meals behind its planned count.</p>
-                  {plannedMeals.filter(item => item.date === plannerAnchor).length === 0
-                    ? <p>No meals planned for this date. Use Schedule a saved meal above to add one.</p>
-                    : ['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(slot => {
+                {plannedMeals.some(item => item.date === plannerAnchor) && <div className="nutrilog-planner-selected-meals">
+                  {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(slot => {
                       const items = plannedMeals.filter(item => item.date === plannerAnchor && item.slot === slot)
                       return items.length > 0 && <div className="nutrilog-planner-selected-slot" key={slot}>
                         <h5>{slot}</h5>
