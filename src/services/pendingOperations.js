@@ -79,6 +79,14 @@ export const pendingOperations = {
     const summary = { acknowledged: 0, blocked: false, results: [] }
     for (const item of items) {
       if (item.status === 'conflict') { summary.blocked = true; break }
+      if (!allowedResources.has(item.resource) || !allowedMethods.has(item.method) ||
+          typeof item.id !== 'string' ||
+          (item.method !== 'POST' && (!item.recordId || !item.baseVersion)) ||
+          (item.method !== 'DELETE' && (!item.payload || typeof item.payload !== 'object' || Array.isArray(item.payload)))) {
+        this.markConflict(accountId, item.id, 'Invalid queued operation; review local data before retrying')
+        summary.blocked = true
+        break
+      }
       const service = api[item.resource]
       if (!service) throw new Error('Unknown pending resource')
       try {
