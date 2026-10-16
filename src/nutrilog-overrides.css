@@ -1702,3 +1702,15 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 @media(max-width:760px) {
   .app .nutrilog-planner-day-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Phase 5: saved-meal scheduling, distinct from consumed nutrition. */
+.app .nutrilog-planner-schedule-form { display:flex; flex-wrap:wrap; align-items:end; gap:10px; margin:16px 0; }
+.app .nutrilog-planner-schedule-form label { display:flex; flex:1 1 160px; flex-direction:column; gap:6px; font-size:.85rem; }
+.app .nutrilog-planner-schedule-form input,
+.app .nutrilog-planner-schedule-form select { width:100%; min-width:0; min-height:40px; border-radius:9px; padding:8px; }
+.app .nutrilog-planner-schedule-form .btn { min-height:40px; width:auto; }
+.app .nutrilog-planner-scheduled-list { margin-top:16px; }
+.app .nutrilog-planner-scheduled-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--border,#475569); font-size:.86rem; }
+.app .nutrilog-planner-scheduled-item .btn { flex:0 0 auto; width:auto; padding:7px 11px; }
+@media(max-width:520px) { .app .nutrilog-planner-scheduled-item { align-items:start; } }
