@@ -1,7 +1,8 @@
 // Durable, account-scoped pending operations for future offline synchronization.
 // This module is deliberately not wired into API writes until the server supports
 // idempotent creates and version-checked updates. Never replay blindly.
-const PREFIX = 'nutrilog-pending-operations-v1-'
+const PREFIX = 'nutrilog-pending-operations-v1-' 
+const replayingAccounts = new Set()
 const allowedResources = new Set(['foods', 'meals'])
 const allowedMethods = new Set(['POST', 'PUT', 'DELETE'])
 const keyFor = accountId => {
@@ -51,6 +52,10 @@ export const pendingOperations = {
   // No background replay runs without an authenticated account and explicit caller.
   // Stop at the first ambiguous result; preserve the queue for manual recovery.
   async replay(accountId, api) {
+    const accountKey = keyFor(accountId)
+    if (replayingAccounts.has(accountKey)) return { acknowledged: 0, blocked: true, busy: true }
+    replayingAccounts.add(accountKey)
+    try {
     const items = this.list(accountId)
     const summary = { acknowledged: 0, blocked: false }
     for (const item of items) {
@@ -78,6 +83,25 @@ export const pendingOperations = {
       }
     }
     return summary
+    } finally { replayingAccounts.delete(accountKey) }
+  },
+  // Overlay unsent changes on top of a fresh server snapshot. A pending
+  // deletion stays hidden; a pending update remains visible until resolved.
+  // Temporary creates use their operation ID as a stable local-only key.
+  overlay(accountId, resource, serverItems) {
+    if (!allowedResources.has(resource)) throw new Error('Unsupported pending resource')
+    const items = new Map((serverItems || []).map(item => [String(item.id), item]))
+    for (const op of this.list(accountId)) {
+      if (op.resource !== resource) continue
+      if (op.method === 'DELETE') items.delete(String(op.recordId))
+      else if (op.method === 'PUT') {
+        const existing = items.get(String(op.recordId))
+        if (existing) items.set(String(op.recordId), { ...existing, ...op.payload, id: op.recordId, pendingSync: true, syncConflict: op.status === 'conflict' })
+      } else if (op.method === 'POST') {
+        items.set('pending:' + op.id, { ...op.payload, id: 'pending:' + op.id, pendingSync: true, syncConflict: op.status === 'conflict' })
+      }
+    }
+    return [...items.values()]
   },
   // Removal is permitted only after explicit server confirmation.
   acknowledge(accountId, operationId) {
