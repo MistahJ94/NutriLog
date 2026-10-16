@@ -1788,3 +1788,6 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 @media(max-width:600px) { .nutrilog-planner-day-summary { grid-template-columns:1fr; gap:7px; } .nutrilog-planner-day-summary > div { padding:10px 12px; } }
 
 .nutrilog-planner-sync-status.is-conflict { color:#dc2626; background:rgba(239,68,68,.09); }
+
+.app > .nutrilog-planner-sync-status { position: sticky; top: 0; z-index: 110; margin: 0; padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-radius: 0 0 10px 10px; }
+.app > .nutrilog-planner-sync-status .nutrilog-planner-sync-description { flex: 1; min-width: 160px; }
