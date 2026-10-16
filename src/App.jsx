@@ -743,7 +743,9 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const latestPreferences = useRef(null)
   const [syncRetry, setSyncRetry] = useState(0)
 
+  const [plannerSyncError, setPlannerSyncError] = useState('')
   const recoverPlannedMeals = async () => {
+    setPlannerSyncError('')
     setPlannerSyncStatus('saving')
     try {
       // Merge only planned meals. Preserve all other account preferences from
@@ -784,7 +786,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           if (!String(error?.message || '').includes('changed on another device') || attempt === 2) throw error
         }
       }
-    } catch {
+    } catch (error) {
+      setPlannerSyncError(String(error?.message || 'Unknown server error'))
       preferenceConflict.current = true
       setPlannerSyncStatus('conflict')
     }
@@ -2290,6 +2293,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
                 plannerSyncStatus === 'error' ? 'Changes are saved on this device only.' :
                 plannerSyncStatus === 'saving' ? 'Saving account changes…' : 'Waiting to save changes.'}</p>
+              {plannerSyncError && <p role="alert" className="nutrilog-sync-error-detail">Merge failed: {plannerSyncError}</p>}
               {(plannerSyncStatus === 'conflict' || plannerSyncStatus === 'error') && <button type="button" className="btn btn-secondary" onClick={recoverPlannedMeals}>Merge planned meals</button>}
               {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary" onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
             </div>
