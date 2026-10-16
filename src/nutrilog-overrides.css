@@ -1272,3 +1272,58 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
 }
+
+
+/* Phase 2 — compact, centered Tracker heading and prominent circular summary. */
+.app .tracker-dashboard-header {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  margin-inline: auto;
+}
+.app .tracker-dashboard-header > div { width: 100%; }
+.app .tracker-dashboard-header h2 {
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -.025em;
+  margin-bottom: 4px;
+}
+.app .tracker-dashboard-header .nutrilog-tracker-date {
+  color: var(--text-muted, #94a3b8);
+  font-size: .94rem;
+  margin: 0;
+}
+.app .nutrilog-daily-overview .nutrilog-calorie-ring-inner .nutrilog-calorie-percent {
+  color: var(--ring-color, var(--accent));
+  font-weight: 800;
+  font-size: 1.12rem;
+  line-height: 1.2;
+}
+.app .nutrilog-daily-overview .nutrilog-calorie-ring-inner .nutrilog-calorie-remaining {
+  color: var(--text-muted, #94a3b8);
+  font-size: .7rem;
+}
+.app .nutrilog-daily-overview .nutrilog-macro-summary {
+  gap: 4px;
+}
+.app .nutrilog-daily-overview .nutrilog-macro-circle {
+  margin-bottom: 2px;
+}
+.app .nutrilog-daily-overview .nutrilog-macro-summary > strong {
+  font-size: .84rem;
+  font-weight: 750;
+}
+.app .nutrilog-daily-overview .nutrilog-macro-summary > small {
+  white-space: nowrap;
+}
+:root[data-mode="dark"] .app .nutrilog-daily-overview {
+  border-color: color-mix(in srgb, var(--accent) 15%, #334155);
+}
+@media (max-width: 440px) {
+  .app .nutrilog-daily-overview .nutrilog-macro-overview {
+    gap: 4px;
+    width: 100%;
+  }
+  .app .nutrilog-daily-overview .nutrilog-macro-summary > strong { font-size: .75rem; }
+  .app .nutrilog-daily-overview .nutrilog-macro-summary > small { font-size: .65rem; }
+}
