@@ -32,6 +32,42 @@ const nutritionProgress = (value, goal) => {
   return { percent, color, valid: true }
 }
 
+function FoodLogNutritionSummary({ totals, goals }) {
+  const nutrients = [
+    { key: 'calories', label: 'Calories', unit: 'kcal', Icon: Flame },
+    { key: 'protein', label: 'Protein', unit: 'g', Icon: Target },
+    { key: 'carbs', label: 'Carbs', unit: 'g', Icon: TrendingUp },
+    { key: 'fat', label: 'Fat', unit: 'g', Icon: UtensilsCrossed },
+    { key: 'fiber', label: 'Fiber', unit: 'g', Icon: BookOpen }
+  ]
+  return (
+    <section className="food-log-nutrition-summary" aria-label="Selected day nutrition progress">
+      {nutrients.map(({ key, label, unit, Icon }) => {
+        const value = Number(totals?.[key]) || 0
+        const goal = Number(goals?.[key]) || 0
+        const progress = nutritionProgress(value, goal)
+        return (
+          <div className="food-log-nutrition-item" key={key} aria-label={label + ': ' + Math.round(progress.percent) + '% of daily goal'}>
+            <div className="food-log-nutrition-ring" style={{
+              '--food-log-ring-color': progress.color,
+              '--food-log-ring-progress': Math.min(100, progress.percent) + '%',
+              '--food-log-ring-overflow': Math.min(100, Math.max(0, progress.percent - 100)) + '%'
+            }}>
+              <div className="food-log-nutrition-ring-center">
+                <Icon size={16} aria-hidden="true" />
+                <strong>{progress.valid ? Math.round(progress.percent) + '%' : '—'}</strong>
+              </div>
+            </div>
+            <strong className="food-log-nutrition-label">{label}</strong>
+            <span className="food-log-nutrition-amount">{Number(value.toFixed(key === 'calories' ? 0 : 1)).toLocaleString()} {unit}</span>
+            <small>of {Number(goal.toFixed(key === 'calories' ? 0 : 1)).toLocaleString()} {unit}</small>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
 function LoggedMealServingInput({ quantity, foodName, onCommit }) {
   const [draft, setDraft] = useState(String(quantity ?? 1))
   useEffect(() => { setDraft(String(quantity ?? 1)) }, [quantity])
@@ -2216,6 +2252,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   />
                 </div>
               </div>
+              <FoodLogNutritionSummary totals={showTrackerHistory ? trackerHistoryTotals : todayLogTotals} goals={macroGoals} />
 
               {!showTrackerHistory ? (
                 todayLogEntries.length === 0 ? (
