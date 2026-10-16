@@ -1098,7 +1098,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
           for (const result of summary.results) {
             if (result.resource !== resource) continue
             const id = result.method === 'POST' ? 'pending:' + result.operationId : result.recordId
-            if (result.method === 'DELETE') next = next.filter(entry => String(entry.id) !== String(id))
+            if (result.method === 'DELETE' || result.deleted) next = next.filter(entry => String(entry.id) !== String(id))
             else if (result.item) {
               const resolved = { ...result.item, updatedAt: result.item.updated_at || result.item.updatedAt, pendingSync: false }
               next = next.some(entry => String(entry.id) === String(id))
