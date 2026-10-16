@@ -907,6 +907,8 @@ async function protectedApi(req, res, pathname, user) {
       return id.length > 0 && id.length <= 100 ? { ...item, id } : null
     })
     if (incoming.some(item => !item)) return send(res, 400, { error: "A planned meal has a missing or invalid ID; nothing was merged" })
+    const requestedDeletes = Array.isArray(body.deletedIds) ? body.deletedIds : []
+    if (requestedDeletes.length > 2000 || requestedDeletes.some(id => typeof id !== "string" || !id || id.length > 100)) return send(res, 400, { error: "Invalid deleted meal IDs" })
     // Serialize merges for this account. Do the union in JavaScript so the
     // database cannot silently discard a submitted meal.
     const parsePlannerLayout = value => {
@@ -922,21 +924,23 @@ async function protectedApi(req, res, pathname, user) {
       )
       const base = parsePlannerLayout(current[0]?.tracker_layout)
       const existing = Array.isArray(base.plannedMeals) ? base.plannedMeals : []
-      const merged = [...existing]
+      const deletedIds = [...new Set([...(Array.isArray(base.plannedMealDeletedIds) ? base.plannedMealDeletedIds : []), ...requestedDeletes])]
+      const deleted = new Set(deletedIds)
+      const merged = existing.filter(item => !item || item.id == null || !deleted.has(String(item.id)))
       const seen = new Set(existing.filter(item => item && typeof item === "object" && item.id != null).map(item => String(item.id)))
       for (const item of incoming) {
-        if (!seen.has(item.id)) {
+        if (!deleted.has(item.id) && !seen.has(item.id)) {
           merged.push(item)
           seen.add(item.id)
         }
       }
       const updated = await tx.unsafe(
         "INSERT INTO user_preferences (user_id, tracker_layout) VALUES ($1,$2::jsonb) ON CONFLICT (user_id) DO UPDATE SET tracker_layout=EXCLUDED.tracker_layout, updated_at=NOW() RETURNING tracker_layout, updated_at",
-        [user.id, JSON.stringify({ ...base, plannedMeals: merged })]
+        [user.id, JSON.stringify({ ...base, plannedMeals: merged, plannedMealDeletedIds: deletedIds })]
       )
       const returnedLayout = parsePlannerLayout(updated[0]?.tracker_layout)
       const persisted = returnedLayout.plannedMeals
-      if (!Array.isArray(persisted) || !incoming.every(item => persisted.some(saved => saved && String(saved.id) === item.id))) {
+      if (!Array.isArray(persisted) || !incoming.filter(item => !deleted.has(item.id)).every(item => persisted.some(saved => saved && String(saved.id) === item.id)) || requestedDeletes.some(id => persisted.some(saved => saved && String(saved.id) === id))) {
         const returnedType = typeof updated[0]?.tracker_layout
         const returnedIds = Array.isArray(persisted) ? persisted.map(item => item && item.id).slice(0, 10) : []
         const incomingIds = incoming.map(item => item.id).slice(0, 10)
@@ -946,7 +950,7 @@ async function protectedApi(req, res, pathname, user) {
         }))
         throw new Error("Planned meal merge did not persist all incoming IDs")
       }
-      return { plannedMeals: persisted, syncVersion: updated[0].updated_at.toISOString() }
+      return { plannedMeals: persisted, deletedIds, syncVersion: updated[0].updated_at.toISOString() }
     })
     return send(res, 200, mergedResult)
   }
