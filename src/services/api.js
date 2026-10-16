@@ -70,7 +70,10 @@ const syncJson = (method, path, body, options = {}) => request(path, {
 })
 const syncDelete = (path, options = {}) => request(path, {
   method: 'DELETE',
-  headers: options.baseVersion ? { 'X-NutriLog-Base-Version': options.baseVersion } : {},
+  headers: {
+    ...(options.baseVersion ? { 'X-NutriLog-Base-Version': options.baseVersion } : {}),
+    ...(options.operationId ? { 'X-NutriLog-Operation-Id': options.operationId } : {}),
+  },
 })
 
 const offlineEnabled = () => localStorage.getItem('nutrilog-offline-mode') === 'true'
