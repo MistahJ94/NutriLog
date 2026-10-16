@@ -505,6 +505,28 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [foodSearch, setFoodSearch] = useState('')
   const [foodSort, setFoodSort] = useState('newest')
   const [quickFoodFilter, setQuickFoodFilter] = useState('all')
+  const [favoriteFoodIds, setFavoriteFoodIds] = useState(() => {
+    try {
+      const key = 'nutrilog-favorite-foods-' + (user?.id || 'default')
+      const stored = JSON.parse(localStorage.getItem(key) || '[]')
+      return Array.isArray(stored) ? stored.map(String) : []
+    } catch { return [] }
+  })
+  useEffect(() => {
+    try {
+      const key = 'nutrilog-favorite-foods-' + (user?.id || 'default')
+      const stored = JSON.parse(localStorage.getItem(key) || '[]')
+      setFavoriteFoodIds(Array.isArray(stored) ? stored.map(String) : [])
+    } catch { setFavoriteFoodIds([]) }
+  }, [user?.id])
+  const toggleFavoriteFood = id => {
+    setFavoriteFoodIds(prev => {
+      const value = String(id)
+      const next = prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
+      localStorage.setItem('nutrilog-favorite-foods-' + (user?.id || 'default'), JSON.stringify(next))
+      return next
+    })
+  }
   const [foodLogQuantities, setFoodLogQuantities] = useState({})
   
   // Ref for click outside detection
@@ -1105,7 +1127,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     const foods = savedFoods.filter(food => {
       if (!matches(food)) return false
       if (quickFoodFilter === 'recent') return recentNames.has(String(food.name || '').toLowerCase())
-      if (quickFoodFilter === 'favorites') return Boolean(food.favorite || food.isFavorite || food.is_favorite)
+      if (quickFoodFilter === 'favorites') return favoriteFoodIds.includes(String(food.id))
       return true
     })
     const meals = quickFoodFilter === 'all' ? savedMeals.filter(matches) : []
@@ -2877,6 +2899,12 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       </div>
                     </div>
                     <div className="food-actions">
+                      <button type="button" className={'btn btn-secondary food-favorite-action' + (favoriteFoodIds.includes(String(food.id)) ? ' is-favorite' : '')}
+                        onClick={() => toggleFavoriteFood(food.id)} aria-pressed={favoriteFoodIds.includes(String(food.id))}
+                        aria-label={(favoriteFoodIds.includes(String(food.id)) ? 'Remove ' : 'Add ') + food.name + (favoriteFoodIds.includes(String(food.id)) ? ' from favorites' : ' to favorites')}
+                        title={favoriteFoodIds.includes(String(food.id)) ? 'Remove favorite' : 'Add favorite'}>
+                        {favoriteFoodIds.includes(String(food.id)) ? '★' : '☆'}
+                      </button>
                       <div className="food-serving-actions"><button type="button" className="btn btn-secondary" onClick={() => setFoodLogQuantities(prev => ({ ...prev, [food.id]: '0.5' }))} aria-label={'Half serving of ' + food.name}>½</button><button type="button" className="btn btn-secondary" onClick={() => setFoodLogQuantities(prev => ({ ...prev, [food.id]: '1' }))} aria-label={'One serving of ' + food.name}>1</button><button type="button" className="btn btn-secondary" onClick={() => setFoodLogQuantities(prev => ({ ...prev, [food.id]: '2' }))} aria-label={'Two servings of ' + food.name}>2</button><input className="quantity-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={foodLogQuantities[food.id] ?? 1} onChange={e => setFoodLogQuantities(prev => ({ ...prev, [food.id]: e.target.value }))} aria-label={"Quantity for " + food.name} /><button className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => handleLogSavedFood(food, foodLogQuantities[food.id] ?? 1)}><Plus size={16} />Log</button></div>
                       <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.9rem' }} onClick={() => startEditFood(food)}><Edit size={16} />Edit</button>
                       <button type="button" className="btn btn-danger food-library-delete" onClick={() => handleDeleteFood(food.id)} aria-label={"Delete " + food.name} title={"Delete " + food.name}><Trash2 size={16} /></button>
