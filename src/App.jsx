@@ -868,40 +868,64 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
   // Read the account's latest plans when this device becomes active, without
   // overwriting local edits that have not yet been confirmed by the server.
+  // Reconcile plans on activation and periodically while online. The merge
+  // endpoint unions by ID; never replace an unsynced local draft with a snapshot.
+  const plannerReconcileBusy = useRef(false)
   const refreshAccountPlans = async () => {
-    if (isOfflineMode() || plannerSyncStatus !== 'saved') return
+    if (isOfflineMode() || plannerReconcileBusy.current || !isInitialLoadComplete) return
+    plannerReconcileBusy.current = true
     try {
-      const response = await api.preferences.get()
-      const remote = response?.preferences
-      if (!remote?.syncVersion || remote.syncVersion === preferenceSyncVersion.current) return
-      preferenceSyncVersion.current = remote.syncVersion
-      if (Array.isArray(remote.trackerLayout?.plannedMeals) && JSON.stringify(remote.trackerLayout.plannedMeals) !== JSON.stringify(plannedMeals)) {
-        remotePlansHydrating.current = true
-        setPlannedMeals(remote.trackerLayout.plannedMeals)
-        localStorage.setItem('nutrilog-planned-meals-' + (user?.id || 'default'), JSON.stringify(remote.trackerLayout.plannedMeals))
+      const local = readLocalPlannedMeals()
+      const valid = local.filter(item => item && typeof item === 'object' && !Array.isArray(item) && item.id != null && String(item.id).trim())
+      const malformed = local.length !== valid.length
+      const response = valid.length
+        ? await api.preferences.mergePlannedMeals(valid)
+        : await api.preferences.get()
+      const remote = valid.length ? response : response?.preferences
+      const serverPlans = valid.length ? response?.plannedMeals : remote?.trackerLayout?.plannedMeals
+      if (!Array.isArray(serverPlans)) throw new Error('Server returned no planned meal list')
+      const combined = combinePlannedMeals(local, serverPlans)
+      const localIds = new Set(valid.map(item => String(item.id)))
+      if (!valid.every(item => serverPlans.some(saved => saved && String(saved.id) === String(item.id)))) {
+        throw new Error('Server did not confirm every local planned meal')
       }
-    } catch {
-      // Keep the last confirmed local copy if the network is unavailable.
+      preferenceSyncVersion.current = remote?.syncVersion ?? preferenceSyncVersion.current
+      preferenceConflict.current = false
+      if (JSON.stringify(combined) !== JSON.stringify(local)) {
+        remotePlansHydrating.current = true
+        localStorage.setItem(plannedMealsStorageKey, JSON.stringify(combined))
+        setPlannedMeals(combined)
+      }
+      if (malformed) {
+        setPlannerSyncError('Some legacy planned meal entries remain local only; recovery is required.')
+        setPlannerSyncStatus('error')
+      } else {
+        setPlannerSyncError('')
+        setPlannerSyncStatus('saved')
+      }
+    } catch (error) {
+      setPlannerSyncError(String(error?.message || 'Automatic sync failed'))
+      setPlannerSyncStatus('error')
+    } finally {
+      plannerReconcileBusy.current = false
     }
   }
   useEffect(() => {
-    const onFocus = () => { if (document.visibilityState === 'visible') refreshAccountPlans() }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onFocus)
+    const onActive = () => { if (document.visibilityState === 'visible') refreshAccountPlans() }
+    window.addEventListener('focus', onActive)
+    window.addEventListener('online', onActive)
+    document.addEventListener('visibilitychange', onActive)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshAccountPlans()
+    }, 30000)
+    onActive()
     return () => {
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onFocus)
+      window.removeEventListener('focus', onActive)
+      window.removeEventListener('online', onActive)
+      document.removeEventListener('visibilitychange', onActive)
+      clearInterval(interval)
     }
-  }, [plannerSyncStatus, user?.id, plannedMeals])
-
-  useEffect(() => {
-    const retryOnReconnect = () => {
-      if (plannerSyncStatus === 'error') setSyncRetry(value => value + 1)
-    }
-    window.addEventListener('online', retryOnReconnect)
-    return () => window.removeEventListener('online', retryOnReconnect)
-  }, [plannerSyncStatus])
-
+  }, [user?.id, plannedMeals, isInitialLoadComplete])
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
     const normalized = [...tabOrder.filter(tab => available.includes(tab)), ...available.filter(tab => !tabOrder.includes(tab))]
