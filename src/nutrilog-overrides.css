@@ -1791,3 +1791,18 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 
 .app > .nutrilog-planner-sync-status { position: sticky; top: 0; z-index: 110; margin: 0; padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-radius: 0 0 10px 10px; }
 .app > .nutrilog-planner-sync-status .nutrilog-planner-sync-description { flex: 1; min-width: 160px; }
+
+
+/* Small sync indicator integrated into the NutriLog header */
+.nutrilog-header-sync { display:flex; justify-content:center; margin:5px 0 9px; }
+.nutrilog-sync-compact { position:relative; font-size:.8rem; }
+.nutrilog-sync-compact summary { display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:1px solid rgba(128,128,128,.25); border-radius:999px; padding:4px 10px; list-style:none; }
+.nutrilog-sync-compact summary::-webkit-details-marker { display:none; }
+.nutrilog-sync-compact.is-saved summary { color:#22c55e; }
+.nutrilog-sync-compact.is-error summary,.nutrilog-sync-compact.is-conflict summary { color:#ef4444; }
+.nutrilog-sync-compact.is-saving summary { color:#f59e0b; }
+.nutrilog-sync-compact-details { position:absolute; top:calc(100% + 7px); left:50%; transform:translateX(-50%); z-index:130; width:min(300px,85vw); padding:12px; border:1px solid rgba(128,128,128,.35); border-radius:12px; background:var(--card-bg,var(--background,#1c2430)); box-shadow:0 8px 26px rgba(0,0,0,.22); color:var(--text-color,inherit); }
+.nutrilog-sync-compact-details p { margin:0 0 8px; font-size:.8rem; }
+.nutrilog-sync-compact-details button { font-size:.78rem; }
+.nutrilog-sync-spinning { animation:nutrilog-sync-spin 1.2s linear infinite; }
+@keyframes nutrilog-sync-spin { to { transform:rotate(360deg); } }
