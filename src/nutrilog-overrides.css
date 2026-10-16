@@ -1959,3 +1959,17 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     text-align: left;
   }
 }
+
+
+/* Meals typography: use the compact saved-meal detail size consistently
+   in the food picker and saved-meal cards without changing section headings. */
+.app .meals-page .nutrilog-meal-food-choice > span:first-of-type,
+.app .meals-page .nutrilog-meal-food-choice > .nutrilog-meal-food-calories,
+.app .meals-page .food-list > .food-item .food-details,
+.app .meals-page .food-list > .food-item .nutrilog-meal-ingredient {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.app .meals-page .nutrilog-meal-food-choice > span:first-of-type {
+  font-weight: 500;
+}
