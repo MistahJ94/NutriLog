@@ -1587,3 +1587,21 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+
+/* Saved food favorites: compact, accessible toggle. Favorites persist on this device per account. */
+.app .food-library-section .food-actions .food-favorite-action {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.app .food-library-section .food-actions .food-favorite-action.is-favorite {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
