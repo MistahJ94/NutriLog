@@ -904,7 +904,8 @@ async function protectedApi(req, res, pathname, user) {
         mode: rows[0].mode,
         customAccent: rows[0].accent_color,
         trackerLayout: rows[0].tracker_layout || {},
-        tabOrder: Array.isArray(rows[0].tab_order) ? rows[0].tab_order : []
+        tabOrder: Array.isArray(rows[0].tab_order) ? rows[0].tab_order : [],
+        syncVersion: rows[0].updated_at ? rows[0].updated_at.toISOString() : null
       } : null })
     }
     if (req.method === "PUT") {
@@ -915,8 +916,18 @@ async function protectedApi(req, res, pathname, user) {
       const accent = /^#[0-9a-fA-F]{6}$/.test(String(body.customAccent || "")) ? String(body.customAccent) : "#6B9080"
       const layout = body.trackerLayout && typeof body.trackerLayout === "object" ? body.trackerLayout : {}
       const order = Array.isArray(body.tabOrder) ? body.tabOrder.filter(value => typeof value === "string").slice(0, 20) : []
-      await sql.unsafe("INSERT INTO user_preferences (user_id, theme, mode, accent_color, tracker_layout, tab_order) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET theme=EXCLUDED.theme, mode=EXCLUDED.mode, accent_color=EXCLUDED.accent_color, tracker_layout=EXCLUDED.tracker_layout, tab_order=EXCLUDED.tab_order, updated_at=NOW()", [user.id, theme, mode, accent, JSON.stringify(layout), JSON.stringify(order)])
-      return send(res, 200, { ok: true })
+      const expectedVersion = body.syncVersion === null || typeof body.syncVersion === "string" ? body.syncVersion : undefined
+      if (expectedVersion !== undefined) {
+        // Optimistic concurrency: a stale device must not overwrite a newer account save.
+        const rows = await sql.unsafe(
+          "INSERT INTO user_preferences (user_id, theme, mode, accent_color, tracker_layout, tab_order) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET theme=EXCLUDED.theme, mode=EXCLUDED.mode, accent_color=EXCLUDED.accent_color, tracker_layout=EXCLUDED.tracker_layout, tab_order=EXCLUDED.tab_order, updated_at=NOW() WHERE user_preferences.updated_at = $7::timestamptz RETURNING updated_at",
+          [user.id, theme, mode, accent, JSON.stringify(layout), JSON.stringify(order), expectedVersion]
+        )
+        if (!rows.length) return send(res, 409, { error: "Account preferences changed on another device. Refresh to review the latest changes.", code: "SYNC_CONFLICT" })
+        return send(res, 200, { ok: true, syncVersion: rows[0].updated_at.toISOString() })
+      }
+      const rows = await sql.unsafe("INSERT INTO user_preferences (user_id, theme, mode, accent_color, tracker_layout, tab_order) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET theme=EXCLUDED.theme, mode=EXCLUDED.mode, accent_color=EXCLUDED.accent_color, tracker_layout=EXCLUDED.tracker_layout, tab_order=EXCLUDED.tab_order, updated_at=NOW() RETURNING updated_at", [user.id, theme, mode, accent, JSON.stringify(layout), JSON.stringify(order)])
+      return send(res, 200, { ok: true, syncVersion: rows[0].updated_at.toISOString() })
     }
     return send(res, 405, { error: "Method not allowed" })
   }
