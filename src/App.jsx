@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, Save, BarChart3, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Target, TrendingUp, Flame, Coffee, UtensilsCrossed, BookOpen, Edit, Search, Loader, ClipboardList, Settings, Download, Upload, Users, Shield, UserCheck, UserX, KeyRound, RefreshCw, Save, BarChart3, ChevronDown, CalendarDays } from 'lucide-react'
 import HealthGoals from './HealthGoals'
 import ActivityBoard from './ActivityBoard'
 import ConnectionsPanel from './ConnectionsPanel'
@@ -2177,9 +2177,13 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   }} aria-label="Next day">Forward ›</button>
                 </div>
                 <div className="food-log-history-search">
-                  <label htmlFor="food-log-history-search-date">Search History</label>
+                  <label htmlFor="food-log-history-search-date" className="food-log-history-tile">
+                    <span>Search History</span>
+                    <CalendarDays size={19} aria-hidden="true" />
+                  </label>
                   <input
                     id="food-log-history-search-date"
+                    className="food-log-history-tile-date"
                     type="date"
                     max={zonedToday()}
                     value={showTrackerHistory ? trackerHistoryDate : ''}
