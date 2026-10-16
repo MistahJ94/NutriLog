@@ -1605,3 +1605,48 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
+
+
+/* Phase 4: saved meals text-first search and sorting. */
+.app .nutrilog-meal-library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+.app .nutrilog-meal-search {
+  display: flex;
+  flex: 1 1 210px;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border, #475569);
+  border-radius: 12px;
+  padding: 0 12px;
+}
+.app .nutrilog-meal-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.app .nutrilog-meal-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .85rem;
+}
+.app .nutrilog-meal-sort select {
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 0 10px;
+}
+.app .nutrilog-meal-result-count {
+  margin: 0 0 12px;
+  font-size: .82rem;
+  color: var(--text-muted, #94a3b8);
+}
