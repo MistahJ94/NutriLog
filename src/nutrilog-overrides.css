@@ -930,3 +930,31 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   .food-log-day-navigation .btn { grid-column: auto; grid-row: auto; padding: 9px 5px; }
   .food-log-history-date-picker input { max-width: none; width: 100%; }
 }
+
+
+/* Center Food Log navigation labels and day headings. */
+.food-log-day-navigation .btn,
+.food-log-history-open {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.food-log-day-navigation .btn { white-space: nowrap; }
+.food-log-history-summary,
+.food-log-history-summary h3,
+.log-by-date .date-header,
+.log-by-date .date-header h3 {
+  text-align: center;
+}
+.log-by-date .date-header .date-totals,
+.food-log-history-summary .date-totals {
+  justify-content: center;
+}
+.food-log-date-detail {
+  display: block;
+  margin-top: 4px;
+  font-size: .82rem;
+  font-weight: 500;
+  opacity: .85;
+}
