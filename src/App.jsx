@@ -550,7 +550,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     // Never discard a local draft merely because the server snapshot is stale.
     const deleted = new Set(readDeletedMealIds())
     const result = [...local.filter(item => !item || item.id == null || !deleted.has(String(item.id)))]
-    const indices = new Map(result.filter(item => item && typeof item === 'object' && item.id != null).map((item, index) => [String(item.id), index]))
+    const indices = new Map(result.map((item, index) => item && typeof item === 'object' && item.id != null ? [String(item.id), index] : null).filter(Boolean))
     const revision = item => { const time = Date.parse(item?.updatedAt || ''); return Number.isFinite(time) ? time : 0 }
     for (const item of server) {
       if (item && item.id != null && deleted.has(String(item.id))) continue
