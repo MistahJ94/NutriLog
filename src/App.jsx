@@ -515,6 +515,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [plannedMealId, setPlannedMealId] = useState('')
   const [plannedMealSlot, setPlannedMealSlot] = useState('Breakfast')
   const plannedMealsStorageKey = 'nutrilog-planned-meals-' + (user?.id || 'default')
+  const plannedMealsDeletedKey = 'nutrilog-planned-meals-deleted-' + (user?.id || 'default')
+  const readDeletedMealIds = () => {
+    try { const value = JSON.parse(localStorage.getItem(plannedMealsDeletedKey) || '[]'); return Array.isArray(value) ? value.map(String) : [] }
+    catch { return [] }
+  }
   const readLocalPlannedMeals = () => {
     try {
       const value = JSON.parse(localStorage.getItem(plannedMealsStorageKey) || '[]')
@@ -523,10 +528,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   }
   const combinePlannedMeals = (local, server) => {
     // Never discard a local draft merely because the server snapshot is stale.
-    const result = [...local]
-    const ids = new Set(local.filter(item => item && typeof item === 'object' && item.id != null).map(item => String(item.id)))
+    const deleted = new Set(readDeletedMealIds())
+    const result = [...local.filter(item => !item || item.id == null || !deleted.has(String(item.id)))]
+    const ids = new Set(result.filter(item => item && typeof item === 'object' && item.id != null).map(item => String(item.id)))
     for (const item of server) {
-      if (item && typeof item === 'object' && item.id != null && ids.has(String(item.id))) continue
+      if (item && typeof item === 'object' && item.id != null && (ids.has(String(item.id)) || deleted.has(String(item.id)))) continue
       result.push(item)
       if (item && typeof item === 'object' && item.id != null) ids.add(String(item.id))
     }
@@ -545,9 +551,14 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     localStorage.setItem(plannedMealsStorageKey, JSON.stringify(combined))
   }, [user?.id])
   const savePlannedMeals = next => {
-    // Persist before updating React so a reload cannot race the local write.
+    const nextIds = new Set(next.filter(item => item && item.id != null).map(item => String(item.id)))
+    const removed = plannedMeals.filter(item => item && item.id != null && !nextIds.has(String(item.id))).map(item => String(item.id))
+    if (removed.length) {
+      localStorage.setItem(plannedMealsDeletedKey, JSON.stringify([...new Set([...readDeletedMealIds(), ...removed])]))
+    }
     localStorage.setItem(plannedMealsStorageKey, JSON.stringify(next))
     setPlannedMeals(next)
+    setPlannerSyncStatus('pending')
   }
   const scheduleSavedMeal = event => {
     event.preventDefault()
@@ -790,10 +801,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         setPlannerSyncError('Invalid entries: ' + malformed.map(index => '#' + index + ' = ' + describe(index)).join(', ') + '. Original local data and recovery backup are preserved; valid meals may have uploaded, but full sync is not confirmed.')
       }
       if (!normalized.length) throw new Error('No valid planned meal objects to recover. Local backup is preserved.')
-      const result = await api.preferences.mergePlannedMeals(normalized)
+      const result = await api.preferences.mergePlannedMeals(normalized, readDeletedMealIds())
       const remotePlans = result.plannedMeals || []
       const ids = new Set(remotePlans.map(item => String(item.id)))
-      const missing = normalized.filter(item => !ids.has(String(item.id)))
+      const deleted = new Set(readDeletedMealIds())
+      const missing = normalized.filter(item => !deleted.has(String(item.id)) && !ids.has(String(item.id)))
       if (missing.length) throw new Error('Server returned ' + remotePlans.length + ' of ' + normalized.length + ' submitted meals; ' + missing.length + ' missing. First missing ID: ' + String(missing[0].id).slice(0, 90))
       preferenceSyncVersion.current = result.syncVersion
       preferenceConflict.current = false
@@ -878,15 +890,13 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       const local = readLocalPlannedMeals()
       const valid = local.filter(item => item && typeof item === 'object' && !Array.isArray(item) && item.id != null && String(item.id).trim())
       const malformed = local.length !== valid.length
-      const response = valid.length
-        ? await api.preferences.mergePlannedMeals(valid)
-        : await api.preferences.get()
-      const remote = valid.length ? response : response?.preferences
-      const serverPlans = valid.length ? response?.plannedMeals : remote?.trackerLayout?.plannedMeals
+      const response = await api.preferences.mergePlannedMeals(valid, readDeletedMealIds())
+      const remote = response
+      const serverPlans = response?.plannedMeals
       if (!Array.isArray(serverPlans)) throw new Error('Server returned no planned meal list')
       const combined = combinePlannedMeals(local, serverPlans)
-      const localIds = new Set(valid.map(item => String(item.id)))
-      if (!valid.every(item => serverPlans.some(saved => saved && String(saved.id) === String(item.id)))) {
+      const deleted = new Set(readDeletedMealIds())
+      if (!valid.filter(item => !deleted.has(String(item.id))).every(item => serverPlans.some(saved => saved && String(saved.id) === String(item.id))) || serverPlans.some(item => item && deleted.has(String(item.id)))) {
         throw new Error('Server did not confirm every local planned meal')
       }
       preferenceSyncVersion.current = remote?.syncVersion ?? preferenceSyncVersion.current
