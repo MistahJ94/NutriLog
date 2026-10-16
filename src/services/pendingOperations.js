@@ -72,31 +72,33 @@ export const pendingOperations = {
   // Stop at the first ambiguous result; preserve the queue for manual recovery.
   async replay(accountId, api) {
     const accountKey = keyFor(accountId)
-    if (replayingAccounts.has(accountKey)) return { acknowledged: 0, blocked: true, busy: true }
+    if (replayingAccounts.has(accountKey)) return { acknowledged: 0, blocked: true, busy: true, results: [] }
     replayingAccounts.add(accountKey)
     try {
     const items = this.list(accountId)
-    const summary = { acknowledged: 0, blocked: false }
+    const summary = { acknowledged: 0, blocked: false, results: [] }
     for (const item of items) {
       if (item.status === 'conflict') { summary.blocked = true; break }
       const service = api[item.resource]
       if (!service) throw new Error('Unknown pending resource')
       try {
+        let response = null
         if (item.method === 'POST') {
           // The server records the operation ID and response atomically with
           // creation, and retains the receipt after the item is deleted.
-          await service.create(item.payload, { operationId: item.id })
+          response = await service.create(item.payload, { operationId: item.id })
         } else if (item.method === 'PUT') {
           if (!item.baseVersion) {
             this.markConflict(accountId, item.id, 'Missing original server version; review before retrying')
             summary.blocked = true; break
           }
-          await service.update(item.recordId, item.payload, { baseVersion: item.baseVersion })
+          response = await service.update(item.recordId, item.payload, { baseVersion: item.baseVersion })
         } else if (item.method === 'DELETE') {
           if (!item.baseVersion) { summary.blocked = true; break }
-          await service.remove(item.recordId, { baseVersion: item.baseVersion })
+          response = await service.remove(item.recordId, { baseVersion: item.baseVersion })
         }
         this.acknowledge(accountId, item.id)
+        summary.results.push({ operationId: item.id, resource: item.resource, method: item.method, recordId: item.recordId, item: response?.item || null })
         summary.acknowledged += 1
       } catch (error) {
         if (error.status === 409 || error.status === 404 || error.status === 400) {
