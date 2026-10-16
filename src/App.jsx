@@ -510,6 +510,23 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [mealSearch, setMealSearch] = useState('')
   const [mealSort, setMealSort] = useState('az')
   const [plannerSyncStatus, setPlannerSyncStatus] = useState('checking')
+  const [visiblePlannerSyncStatus, setVisiblePlannerSyncStatus] = useState('saving')
+  const syncAnimationStartedAt = useRef(Date.now())
+  const syncDisplayTimer = useRef(null)
+  useEffect(() => {
+    if (syncDisplayTimer.current) clearTimeout(syncDisplayTimer.current)
+    if (plannerSyncStatus === 'checking' || plannerSyncStatus === 'saving' || plannerSyncStatus === 'pending') {
+      if (visiblePlannerSyncStatus !== 'saving') syncAnimationStartedAt.current = Date.now()
+      setVisiblePlannerSyncStatus('saving')
+      return
+    }
+    const elapsed = Date.now() - syncAnimationStartedAt.current
+    syncDisplayTimer.current = setTimeout(() => {
+      setVisiblePlannerSyncStatus(plannerSyncStatus)
+    }, Math.max(0, 2000 - elapsed))
+    return () => { if (syncDisplayTimer.current) clearTimeout(syncDisplayTimer.current) }
+  }, [plannerSyncStatus])
+  useEffect(() => () => { if (syncDisplayTimer.current) clearTimeout(syncDisplayTimer.current) }, [])
   const [plannerView, setPlannerView] = useState('week')
   const [plannerAnchor, setPlannerAnchor] = useState(() => getLocalDateString())
   const [plannedMealId, setPlannedMealId] = useState('')
@@ -867,6 +884,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const refreshAccountPlans = async () => {
     if (isOfflineMode() || plannerReconcileBusy.current || !isInitialLoadComplete) return
     plannerReconcileBusy.current = true
+    if (plannerSyncStatus !== 'saved') setPlannerSyncStatus('saving')
     try {
       const local = readLocalPlannedMeals()
       const valid = local.filter(item => item && typeof item === 'object' && !Array.isArray(item) && item.id != null && String(item.id).trim())
@@ -919,7 +937,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       document.removeEventListener('visibilitychange', onActive)
       clearInterval(interval)
     }
-  }, [user?.id, plannedMeals, isInitialLoadComplete])
+  }, [user?.id, plannedMeals, isInitialLoadComplete, syncRetry])
   useEffect(() => {
     const available = user?.role === 'admin' ? [...tabDefaults, 'admin'] : tabDefaults
     const normalized = [...tabOrder.filter(tab => available.includes(tab)), ...available.filter(tab => !tabOrder.includes(tab))]
@@ -2319,19 +2337,19 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         <h1>🥗 NutriLog</h1>
         <p>Track your nutrition, macros, and daily goals</p>
         <div className="nutrilog-header-sync">
-          <details className={'nutrilog-sync-compact is-' + plannerSyncStatus}>
-            <summary aria-label={'Account sync: ' + (plannerSyncStatus === 'saved' ? 'Synced' : plannerSyncStatus === 'saving' ? 'Syncing' : plannerSyncStatus === 'pending' ? 'Saved locally' : plannerSyncStatus === 'checking' ? 'Checking sync' : 'Not synced')}>
-              <RefreshCw size={15} aria-hidden="true" className={plannerSyncStatus === 'saving' ? 'nutrilog-sync-spinning' : ''} />
-              <span>{plannerSyncStatus === 'saved' ? 'Synced' : plannerSyncStatus === 'saving' ? 'Syncing' : plannerSyncStatus === 'pending' ? 'Pending' : 'Not synced'}</span>
+          <details className={'nutrilog-sync-compact is-' + visiblePlannerSyncStatus}>
+            <summary aria-label={'Account sync: ' + (visiblePlannerSyncStatus === 'saved' ? 'Synced' : visiblePlannerSyncStatus === 'saving' ? 'Syncing…' : visiblePlannerSyncStatus === 'pending' ? 'Saved locally' : visiblePlannerSyncStatus === 'checking' ? 'Checking sync' : 'Not synced')}>
+              <RefreshCw size={15} aria-hidden="true" className={visiblePlannerSyncStatus === 'saving' ? 'nutrilog-sync-spinning' : ''} />
+              <span>{visiblePlannerSyncStatus === 'saved' ? 'Synced' : visiblePlannerSyncStatus === 'saving' ? 'Syncing' : visiblePlannerSyncStatus === 'pending' ? 'Syncing…' : 'Sync failed'}</span>
             </summary>
             <div className="nutrilog-sync-compact-details" role="status" aria-live="polite">
-              <p>{plannerSyncStatus === 'saved' ? 'Account preferences saved' :
-                plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
-                plannerSyncStatus === 'error' ? 'Changes are saved on this device only.' :
-                plannerSyncStatus === 'saving' ? 'Saving account changes…' : plannerSyncStatus === 'checking' ? 'Checking account changes…' : 'Changes saved locally; awaiting sync.'}</p>
+              <p>{visiblePlannerSyncStatus === 'saved' ? 'Planned meals confirmed with server' :
+                visiblePlannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
+                visiblePlannerSyncStatus === 'error' ? 'Changes are saved on this device only.' :
+                visiblePlannerSyncStatus === 'saving' ? 'Synchronizing planned meals…' : visiblePlannerSyncStatus === 'checking' ? 'Checking account changes…' : 'Changes saved locally; awaiting sync.'}</p>
               {plannerSyncError && <p role="alert" className="nutrilog-sync-error-detail">Merge failed: {plannerSyncError}</p>}
-              {(plannerSyncStatus === 'conflict' || plannerSyncStatus === 'error') && <button type="button" className="btn btn-secondary" onClick={recoverPlannedMeals}>Merge planned meals</button>}
-              {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary" onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
+              {(visiblePlannerSyncStatus === 'conflict' || visiblePlannerSyncStatus === 'error') && <button type="button" className="btn btn-secondary" onClick={recoverPlannedMeals}>Merge planned meals</button>}
+              {visiblePlannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary" onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
             </div>
           </details>
         </div>
