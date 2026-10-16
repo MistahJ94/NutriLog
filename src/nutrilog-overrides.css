@@ -958,3 +958,36 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   font-weight: 500;
   opacity: .85;
 }
+
+
+/* Single combined Search History calendar control. */
+.food-log-history-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--nl-log-bg));
+}
+.food-log-history-search label {
+  flex: 0 0 auto;
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--nl-log-text);
+}
+.food-log-history-search input[type="date"] {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border-radius: 8px;
+  color: var(--nl-log-text);
+  color-scheme: dark;
+}
+@media (max-width: 420px) {
+  .food-log-history-search { flex-direction: column; align-items: stretch; gap: 6px; }
+  .food-log-history-search label { text-align: center; }
+  .food-log-history-search input[type="date"] { width: 100%; }
+}
