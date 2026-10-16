@@ -2151,7 +2151,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 </p>
                 <button
                   type="button"
-                  className={showTrackerHistory ? 'btn btn-primary' : 'btn btn-secondary'}
+                  className={'btn food-log-accent-action ' + (showTrackerHistory ? 'btn-primary' : 'btn-secondary')}
                   style={{ padding: '5px 10px', fontSize: '0.82rem', marginTop: 8 }}
                   onClick={() => setShowTrackerHistory(prev => !prev)}
                 >
