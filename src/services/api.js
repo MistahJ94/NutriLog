@@ -222,6 +222,7 @@ export const api = {
   preferences: {
     get: () => offlineEnabled() ? offlineApi.preferences.get() : request('/preferences'),
     save: preferences => offlineEnabled() ? offlineApi.preferences.save(preferences) : json('PUT', '/preferences', preferences),
+    mergePlannedMeals: plannedMeals => offlineEnabled() ? Promise.reject(new Error('Account sync is unavailable offline')) : json('POST', '/planned-meals/merge', { plannedMeals }),
   },
   healthProfile: {
     get: () => offlineEnabled() ? offlineApi.healthProfile.get() : request('/health-profile'),
