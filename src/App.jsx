@@ -894,8 +894,11 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       const remote = response
       const serverPlans = response?.plannedMeals
       if (!Array.isArray(serverPlans)) throw new Error('Server returned no planned meal list')
+      const deletedFromServer = Array.isArray(response.deletedIds) ? response.deletedIds.map(String) : []
+      const allDeleted = [...new Set([...readDeletedMealIds(), ...deletedFromServer])]
+      localStorage.setItem(plannedMealsDeletedKey, JSON.stringify(allDeleted))
       const combined = combinePlannedMeals(local, serverPlans)
-      const deleted = new Set(readDeletedMealIds())
+      const deleted = new Set(allDeleted)
       if (!valid.filter(item => !deleted.has(String(item.id))).every(item => serverPlans.some(saved => saved && String(saved.id) === String(item.id))) || serverPlans.some(item => item && deleted.has(String(item.id)))) {
         throw new Error('Server did not confirm every local planned meal')
       }
