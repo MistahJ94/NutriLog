@@ -3032,7 +3032,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                         </div>)}
                       </div>
                     })}
-                </div>
+                </div>}
 
               </div>
             </section>
