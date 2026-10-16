@@ -2740,7 +2740,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   <button type="button" className="btn btn-secondary" aria-label="Previous period"
                     onClick={() => setPlannerAnchor(prev => {
                       const date = new Date(prev + 'T12:00:00Z')
-                      if (plannerView === 'month') date.setUTCMonth(date.getUTCMonth() - 1)
+                      if (plannerView === 'month') { date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() - 1) }
                       else date.setUTCDate(date.getUTCDate() - (plannerView === 'week' ? 7 : 1))
                       return date.toISOString().slice(0, 10)
                     })}>←</button>
@@ -2748,28 +2748,58 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   <button type="button" className="btn btn-secondary" aria-label="Next period"
                     onClick={() => setPlannerAnchor(prev => {
                       const date = new Date(prev + 'T12:00:00Z')
-                      if (plannerView === 'month') date.setUTCMonth(date.getUTCMonth() + 1)
+                      if (plannerView === 'month') { date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() + 1) }
                       else date.setUTCDate(date.getUTCDate() + (plannerView === 'week' ? 7 : 1))
                       return date.toISOString().slice(0, 10)
                     })}>→</button>
                 </div>
               </div>
               <p className="nutrilog-planner-caption">Consumed food only · {plannerDays[0]?.label || ''}{plannerDays.length > 1 ? ' – ' + plannerDays[plannerDays.length - 1].label : ''}</p>
-              <div className="nutrilog-planner-day-grid">
-                {plannerDays.map(day => (
-                  <button type="button" key={day.key}
-                    className={'nutrilog-planner-day' + (day.key === plannerAnchor ? ' nutrilog-planner-day-selected' : '')}
-                    aria-pressed={day.key === plannerAnchor}
-                    onClick={() => setPlannerAnchor(day.key)}
-                    aria-label={day.label + ', ' + day.plannedCount + ' planned meals, ' + day.count + ' consumed entries'}>
-                    <strong>{day.label}</strong>
-                    <span>{day.plannedCount ? day.plannedCount + ' planned · ' + Math.round(day.plannedCalories) + ' kcal' : 'No plans'}</span>
-                    <small>{day.count ? day.count + ' consumed · ' + Math.round(day.calories) + ' kcal' : 'No food logged'}</small>
-                  </button>
-                ))}
-              </div>
+              {plannerView === 'month' ? (
+                <div className="nutrilog-planner-month">
+                  <div className="nutrilog-planner-month-grid" role="group" aria-label="Monthly meal calendar">
+                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(name => (
+                      <span className="nutrilog-planner-month-weekday" key={name}>{name}</span>
+                    ))}
+                    {plannerDays.length > 0 && Array.from({ length: new Date(plannerDays[0].key + 'T12:00:00Z').getUTCDay() }, (_, index) => (
+                      <span key={'blank-' + index} aria-hidden="true" />
+                    ))}
+                    {plannerDays.map(day => (
+                      <button type="button" key={day.key}
+                        className={'nutrilog-planner-month-day' + (day.key === plannerAnchor ? ' is-selected' : '')}
+                        aria-pressed={day.key === plannerAnchor}
+                        onClick={() => setPlannerAnchor(day.key)}
+                        aria-label={day.label + ', ' + day.plannedCount + ' planned meals and ' + day.count + ' consumed entries'}>
+                        <span>{Number(day.key.slice(-2))}</span>
+                        <span className="nutrilog-planner-month-markers" aria-hidden="true">
+                          {day.count > 0 && <i className="is-consumed" />}
+                          {day.plannedCount > 0 && <i className="is-planned" />}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="nutrilog-planner-month-legend">
+                    <span><i className="is-consumed" /> Consumed</span>
+                    <span><i className="is-planned" /> Planned</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="nutrilog-planner-day-grid">
+                  {plannerDays.map(day => (
+                    <button type="button" key={day.key}
+                      className={'nutrilog-planner-day' + (day.key === plannerAnchor ? ' nutrilog-planner-day-selected' : '')}
+                      aria-pressed={day.key === plannerAnchor}
+                      onClick={() => setPlannerAnchor(day.key)}
+                      aria-label={day.label + ', ' + day.plannedCount + ' planned meals, ' + day.count + ' consumed entries'}>
+                      <strong>{day.label}</strong>
+                      <span>{day.plannedCount ? day.plannedCount + ' planned · ' + Math.round(day.plannedCalories) + ' kcal' : 'No plans'}</span>
+                      <small>{day.count ? day.count + ' consumed · ' + Math.round(day.calories) + ' kcal' : 'No food logged'}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="nutrilog-planner-day-detail">
-                <h3>Selected date: {plannerAnchor}</h3>
+                <h3>{formatHistoryDate(plannerAnchor)}</h3>
                 <p>{plannedMeals.filter(item => item.date === plannerAnchor).length} planned meal(s) · {logEntries.filter(entry => zonedDateKey(entry.timestamp) === plannerAnchor).length} consumed entry/entries</p>
                 <button type="button" className="btn btn-secondary"
                   onClick={() => { setQuickLogForm(prev => ({ ...prev, date: plannerAnchor })); setActiveTab('tracker') }}>
