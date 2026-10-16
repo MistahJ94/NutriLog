@@ -1276,7 +1276,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         alert('Food saved on this device. It is pending synchronization; do not delete or edit it until synced.')
       } else {
         // A definitive HTTP rejection is not an offline edit.
-        if (pendingCreate && error.status && error.status !== 409) pendingOperations.acknowledge(user.id, pendingCreate.id)
+        if (pendingCreate && error.status >= 400 && error.status < 500 && error.status !== 409) pendingOperations.acknowledge(user.id, pendingCreate.id)
         if (pendingCreate && error.status === 409) pendingOperations.markConflict(user.id, pendingCreate.id, error.message)
         alert(error.message)
       }
@@ -1480,7 +1480,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         setEditingMealId(null)
         alert('Meal saved on this device and pending synchronization.')
       } else {
-        if (pendingWrite && error.status && error.status !== 409) pendingOperations.acknowledge(user.id, pendingWrite.id)
+        if (pendingWrite && error.status >= 400 && error.status < 500 && error.status !== 409) pendingOperations.acknowledge(user.id, pendingWrite.id)
         if (pendingWrite && error.status === 409) pendingOperations.markConflict(user.id, pendingWrite.id, error.message)
         alert(error.message)
       }
