@@ -1104,6 +1104,52 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     setIsInitialLoadComplete(true)
   }, [initialServerData])
 
+  // Refresh server-authoritative Tracker logs without reloading other screens.
+  // Do not apply a response that overlaps a local log mutation or open editor.
+  const trackerLogRevision = useRef(0)
+  const trackerLogWrites = useRef(0)
+  const trackerLogRefreshBusy = useRef(false)
+  const trackedLogWrite = async operation => {
+    trackerLogRevision.current += 1
+    trackerLogWrites.current += 1
+    try { return await operation() }
+    finally {
+      trackerLogRevision.current += 1
+      trackerLogWrites.current -= 1
+    }
+  }
+  useEffect(() => {
+    if (!user?.id || !isInitialLoadComplete || isOfflineMode()) return
+    let disposed = false
+    const refreshLogs = async () => {
+      if (disposed || document.visibilityState !== 'visible' || trackerLogRefreshBusy.current ||
+          trackerLogWrites.current || editingLogEntry || editingLogMeal) return
+      trackerLogRefreshBusy.current = true
+      const revision = trackerLogRevision.current
+      try {
+        const response = await api.logs.list()
+        if (disposed || trackerLogWrites.current || revision !== trackerLogRevision.current ||
+            !Array.isArray(response.items)) return
+        const remote = normalizeServerData({ logs: response.items }).logEntries
+        setLogEntries(current => JSON.stringify(current) === JSON.stringify(remote) ? current : remote)
+      } catch (error) {
+        console.warn('[NutriLog] Tracker log refresh failed:', error)
+      } finally {
+        trackerLogRefreshBusy.current = false
+      }
+    }
+    const onActive = () => { void refreshLogs() }
+    const interval = setInterval(onActive, 5000)
+    window.addEventListener('focus', onActive)
+    document.addEventListener('visibilitychange', onActive)
+    return () => {
+      disposed = true
+      clearInterval(interval)
+      window.removeEventListener('focus', onActive)
+      document.removeEventListener('visibilitychange', onActive)
+    }
+  }, [user?.id, isInitialLoadComplete, editingLogEntry, editingLogMeal])
+
   // Persist state through the storage service. This adapter can later be
   // replaced by the authenticated API without changing the UI components.
   useEffect(() => { if (isInitialLoadComplete) storage.save('foods', savedFoods) }, [savedFoods, isInitialLoadComplete])
@@ -1401,7 +1447,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   }
 
   const createLogEntry = async (entry) => {
-    const saved = user ? (await api.logs.create(entry)).item : null
+    const saved = user ? (await trackedLogWrite(() => api.logs.create(entry))).item : null
     return saved ? {
       id: saved.id,
       type: saved.entry_type,
@@ -1498,7 +1544,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     const scale = quantity / currentQuantity
     const updated = { ...entry, quantity, calories: Number((entry.calories * scale).toFixed(2)), protein: Number((entry.protein * scale).toFixed(2)), carbs: Number((entry.carbs * scale).toFixed(2)), fat: Number((entry.fat * scale).toFixed(2)), fiber: Number(((entry.fiber || 0) * scale).toFixed(2)) }
     try {
-      const saved = user ? (await api.logs.update(entry.id, updated)).item : null
+      const saved = user ? (await trackedLogWrite(() => api.logs.update(entry.id, updated))).item : null
       const next = saved ? { ...updated, id: saved.id, type: saved.entry_type, name: saved.name, calories: Number(saved.calories), protein: Number(saved.protein), carbs: Number(saved.carbs), fat: Number(saved.fat), fiber: Number(saved.fiber), quantity: Number(saved.quantity || quantity), foods: Array.isArray(saved.foods) ? saved.foods : updated.foods, timestamp: saved.consumed_at } : updated
       setLogEntries(prev => prev.map(item => item.id === entry.id ? next : item))
     } catch (error) { alert(error.message) }
@@ -1528,7 +1574,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }
     const updated = { ...entry, ...nutrition, name: entry.name.trim(), quantity, timestamp: timestamp.toISOString() }
     try {
-      const saved = user ? (await api.logs.update(entry.id, updated)).item : null
+      const saved = user ? (await trackedLogWrite(() => api.logs.update(entry.id, updated))).item : null
       const next = saved ? { ...updated, name: saved.name, calories: Number(saved.calories), protein: Number(saved.protein), carbs: Number(saved.carbs), fat: Number(saved.fat), fiber: Number(saved.fiber), quantity: Number(saved.quantity), timestamp: saved.consumed_at } : updated
       setLogEntries(prev => prev.map(item => item.id === entry.id ? next : item))
       setEditingLogEntry(null)
@@ -1658,7 +1704,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }
 
     try {
-      const saved = user ? (await api.logs.update(editingLogMeal.id, updated)).item : null
+      const saved = user ? (await trackedLogWrite(() => api.logs.update(editingLogMeal.id, updated))).item : null
       const next = saved ? {
         ...updated,
         id: saved.id,
@@ -1684,7 +1730,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
   const handleDeleteLogEntry = async (id) => {
     try {
-      if (user) await api.logs.remove(id)
+      if (user) await trackedLogWrite(() => api.logs.remove(id))
       setLogEntries(prev => prev.filter(entry => entry.id !== id))
       if (expandedLogEntryId === id) {
         setExpandedLogEntryId(null)
