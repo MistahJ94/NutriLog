@@ -1052,6 +1052,13 @@ async function protectedApi(req, res, pathname, user) {
       : send(res, 200, { items: rows })
   }
 
+  // Opt-in optimistic concurrency for future queued offline food edits.
+  // Existing online clients omit this header and retain their current behavior.
+  const baseVersion = req.headers["x-nutrilog-base-version"]
+  if (baseVersion !== undefined && (typeof baseVersion !== "string" || !Number.isFinite(Date.parse(baseVersion)))) {
+    return send(res, 400, { error: "Invalid base version" })
+  }
+
   if (req.method === "PUT" && id && match[1] === "foods") {
     const body = await readBody(req)
     if (!body.name) return send(res, 400, { error: "Name is required" })
@@ -1065,9 +1072,13 @@ async function protectedApi(req, res, pathname, user) {
     })
     const setClause = config.fields.map((field, i) => field + " = $" + (i + 2)).join(", ")
     const rows = await sql.unsafe(
-      "UPDATE " + config.table + " SET " + setClause + ", updated_at = NOW() WHERE user_id = $1 AND id = $" + (config.fields.length + 2) + " RETURNING " + config.select,
-      [user.id, ...values, id]
+      "UPDATE " + config.table + " SET " + setClause + ", updated_at = NOW() WHERE user_id = $1 AND id = $" + (config.fields.length + 2) + (baseVersion ? " AND updated_at = $" + (config.fields.length + 3) + "::timestamptz" : "") + " RETURNING " + config.select,
+      [user.id, ...values, id, ...(baseVersion ? [baseVersion] : [])]
     )
+    if (!rows.length && baseVersion) {
+      const exists = await sql.unsafe("SELECT 1 FROM foods WHERE user_id=$1 AND id=$2", [user.id, id])
+      if (exists.length) return send(res, 409, { error: "Food changed on another device. Review before retrying.", code: "SYNC_CONFLICT" })
+    }
     return rows.length ? send(res, 200, { item: rows[0] }) : send(res, 404, { error: "Not found" })
   }
 
@@ -1106,9 +1117,29 @@ async function protectedApi(req, res, pathname, user) {
       if (field === "quantity") return numberValue(body[field] || 1)
       return body[field] ?? null
     })
-    const placeholders = config.fields.map((_, i) => "$" + (i + 2)).join(", ")
-    const query = "INSERT INTO " + config.table + " (user_id, " + config.fields.join(", ") + ") VALUES ($1, " + placeholders + ") RETURNING " + config.select
-    const rows = await sql.unsafe(query, [user.id, ...values])
+    // A stable operation ID makes uncertain network retries safe. The derived
+    // UUID is scoped to both account and resource, without a schema migration.
+    const operationId = req.headers["x-nutrilog-operation-id"]
+    if (operationId !== undefined && (typeof operationId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId))) {
+      return send(res, 400, { error: "Invalid operation ID" })
+    }
+    let stableId = null
+    if (operationId && (match[1] === "foods" || match[1] === "meals")) {
+      const digest = crypto.createHash("sha256").update(user.id + ":" + match[1] + ":" + operationId).digest("hex")
+      stableId = digest.slice(0, 8) + "-" + digest.slice(8, 12) + "-4" + digest.slice(13, 16) + "-a" + digest.slice(17, 20) + "-" + digest.slice(20, 32)
+      const existing = await sql.unsafe("SELECT " + config.select + " FROM " + config.table + " WHERE user_id=$1 AND id=$2", [user.id, stableId])
+      if (existing.length) return send(res, 200, { item: existing[0], replayed: true })
+    }
+    const offset = stableId ? 3 : 2
+    const placeholders = config.fields.map((_, i) => "$" + (i + offset)).join(", ")
+    const columns = "user_id, " + (stableId ? "id, " : "") + config.fields.join(", ")
+    const query = "INSERT INTO " + config.table + " (" + columns + ") VALUES ($1, " + (stableId ? "$2, " : "") + placeholders + ")" + (stableId ? " ON CONFLICT (id) DO NOTHING" : "") + " RETURNING " + config.select
+    const rows = await sql.unsafe(query, [user.id, ...(stableId ? [stableId] : []), ...values])
+    if (!rows.length && stableId) {
+      const existing = await sql.unsafe("SELECT " + config.select + " FROM " + config.table + " WHERE user_id=$1 AND id=$2", [user.id, stableId])
+      if (existing.length) return send(res, 200, { item: existing[0], replayed: true })
+      return send(res, 409, { error: "Operation ID collision", code: "SYNC_CONFLICT" })
+    }
     if (match[1] === "log-entries") notifyProgressChanged(user.id)
     return send(res, 201, { item: rows[0] })
   }
