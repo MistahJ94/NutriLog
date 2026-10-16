@@ -2198,7 +2198,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     {[[todayDateString, { entries: todayLogEntries, totals: todayLogTotals }]].map(([dateKey, dateData]) => (
                       <div key={dateKey} className="date-group">
                         <div className="date-header">
-                          <h3>{formatDate(dateKey)} <span className="food-log-date-detail">· {formatHistoryDate(dateKey)}</span></h3>
+                          <h3>Today <span className="food-log-date-detail">{formatHistoryDate(todayDateString)}</span></h3>
                           <div className="date-totals">
                             <span className="total-calories">{dateData.totals.calories.toFixed(2)} kcal</span>
                             <span>P: {dateData.totals.protein.toFixed(2)}g</span>
@@ -2312,7 +2312,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                   </div>
                   <div className="section food-log-history-section" style={{ margin: 0, padding: 16 }}>
                     <div className="food-log-history-summary">
-                    <h3>{formatDate(trackerHistoryDate)} <span className="food-log-date-detail">· {formatHistoryDate(trackerHistoryDate)}</span></h3>
+                    <h3>{formatHistoryDate(trackerHistoryDate)}</h3>
                     <div className="date-totals">
                       <span className="total-calories">{trackerHistoryTotals.calories.toFixed(2)} kcal</span>
                       <span>P: {trackerHistoryTotals.protein.toFixed(2)}g</span>
