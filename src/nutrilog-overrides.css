@@ -1123,3 +1123,44 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
   color: #f8fafc !important;
   opacity: 1 !important;
 }
+
+
+/* Global secondary actions: replace legacy brown with translucent selected accent.
+   Applies across Tracker, Planner, Foods, Meals, More and settings. */
+.app .btn-secondary,
+.app label.btn-secondary {
+  background: color-mix(in srgb, var(--accent) 19%, var(--surface-raised, #f8fafc)) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 58%, transparent) !important;
+  color: var(--text, #263238) !important;
+  box-shadow: none;
+}
+:root[data-mode="dark"] .app .btn-secondary,
+:root[data-mode="dark"] .app label.btn-secondary {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-raised, #273244)) !important;
+  color: var(--text, #f3f4f6) !important;
+}
+.app .btn-secondary:hover:not(:disabled),
+.app label.btn-secondary:hover {
+  background: color-mix(in srgb, var(--accent) 29%, var(--surface-raised, #f8fafc)) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.app .btn-secondary:focus-visible,
+.app label.btn-secondary:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.app .btn-secondary:disabled {
+  opacity: .43;
+  box-shadow: none !important;
+  cursor: not-allowed;
+}
+.app .action-icon.import {
+  background: color-mix(in srgb, var(--accent) 25%, var(--surface-raised, #273244)) !important;
+  color: var(--text, #f3f4f6) !important;
+}
+/* Retain stronger selected/active state in Food Log. */
+.app .food-log-day-navigation .food-log-accent-action {
+  background: linear-gradient(125deg, var(--accent), color-mix(in srgb, var(--accent) 68%, var(--surface-raised, #273244))) !important;
+  color: #fff !important;
+}
