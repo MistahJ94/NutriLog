@@ -2709,14 +2709,21 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
             </div>
             <section className="section nutrilog-planner-schedule" aria-label="Schedule saved meals">
               <h3>Schedule a saved meal</h3>
-              <p className="nutrilog-planner-sync-status" role="status">
-                Account sync: {plannerSyncStatus === 'saved' ? 'Saved to server' :
-                  plannerSyncStatus === 'saving' ? 'Saving…' :
-                  plannerSyncStatus === 'error' ? 'Save failed — plans remain on this device. Retry below.' :
-                  'Waiting to save'}
+              <div className={'nutrilog-planner-sync-status is-' + plannerSyncStatus} role="status" aria-live="polite">
+                <span className="nutrilog-planner-sync-indicator" aria-hidden="true" />
+                <span className="nutrilog-planner-sync-label">
+                  {plannerSyncStatus === 'saved' ? 'Synced' :
+                    plannerSyncStatus === 'error' ? 'Not synced' :
+                    plannerSyncStatus === 'saving' ? 'Syncing…' : 'Pending sync'}
+                </span>
+                <span className="nutrilog-planner-sync-description">
+                  {plannerSyncStatus === 'saved' ? 'Saved to your account' :
+                    plannerSyncStatus === 'error' ? 'Changes are saved on this device only' :
+                    plannerSyncStatus === 'saving' ? 'Saving changes to your account' : 'Waiting to save changes'}
+                </span>
                 {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary"
                   onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
-              </p>
+              </div>
               <p>Planned meals are not counted as consumed until you log them. Plans sync through your account preferences when connected to the server; offline changes remain on this device until a successful save.</p>
               <form className="nutrilog-planner-schedule-form" onSubmit={scheduleSavedMeal}>
                 <label>Date <input type="date" value={plannerAnchor} onChange={event => setPlannerAnchor(event.target.value)} required /></label>
