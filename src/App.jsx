@@ -2865,6 +2865,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 })()}
                 <div className="nutrilog-planner-selected-meals">
                   <h4>Planned meals</h4>
+                  <p className="nutrilog-planner-detail-hint">Select a date in the calendar to view the meals behind its planned count.</p>
                   {plannedMeals.filter(item => item.date === plannerAnchor).length === 0
                     ? <p>No meals planned for this date. Use Schedule a saved meal above to add one.</p>
                     : ['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(slot => {
