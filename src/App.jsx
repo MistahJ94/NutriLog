@@ -504,6 +504,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [resizingTrackerCard, setResizingTrackerCard] = useState(null)
   const [foodSearch, setFoodSearch] = useState('')
   const [foodSort, setFoodSort] = useState('newest')
+  const [quickFoodFilter, setQuickFoodFilter] = useState('all')
   const [foodLogQuantities, setFoodLogQuantities] = useState({})
   
   // Ref for click outside detection
@@ -1092,19 +1093,23 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const handleQuickLogDateChange = (e) => {
     setQuickLogForm(prev => ({ ...prev, date: e.target.value }))
   }
-  // Filter foods and meals based on search query
+  // Search categories reuse saved foods and recent log history.
   const getFilteredSuggestions = () => {
-    const query = quickLogForm.searchQuery.toLowerCase()
-    if (!query) return { foods: [], meals: [] }
-
-    const filteredFoods = savedFoods.filter(food => 
-      food.name.toLowerCase().includes(query)
+    const query = quickLogForm.searchQuery.trim().toLowerCase()
+    const recentNames = new Set(
+      [...logEntries].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 100).filter(entry => entry.type === 'food')
+        .map(entry => String(entry.name || '').toLowerCase())
     )
-    const filteredMeals = savedMeals.filter(meal => 
-      meal.name.toLowerCase().includes(query)
-    )
-
-    return { foods: filteredFoods, meals: filteredMeals }
+    const matches = item => !query || String(item.name || '').toLowerCase().includes(query)
+    const foods = savedFoods.filter(food => {
+      if (!matches(food)) return false
+      if (quickFoodFilter === 'recent') return recentNames.has(String(food.name || '').toLowerCase())
+      if (quickFoodFilter === 'favorites') return Boolean(food.favorite || food.isFavorite || food.is_favorite)
+      return true
+    })
+    const meals = quickFoodFilter === 'all' ? savedMeals.filter(matches) : []
+    return { foods, meals }
   }
 
   const createLogEntry = async (entry) => {
@@ -2171,7 +2176,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                     onChange={handleQuickLogSearchChange}
                     onFocus={() => setQuickLogForm(prev => ({ ...prev, showSuggestions: Boolean(prev.searchQuery) }))}
                     placeholder="Search saved foods and meals…" autoComplete="off" />
-                  {quickLogForm.showSuggestions && quickLogForm.searchQuery.trim() && (
+                  {quickLogForm.showSuggestions && (
                     <div className="nutrilog-quick-results" role="listbox" aria-label="Matching foods and meals">
                       {[
                         ...getFilteredSuggestions().foods.slice(0, 8).map(item => ({ item, type: 'food' })),
@@ -2188,6 +2193,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                       )) : <p className="nutrilog-quick-empty">No matches. Create a food in the Foods tab first.</p>}
                     </div>
                   )}
+                </div>
+                <div className="nutrilog-quick-filter-row" role="group" aria-label="Filter foods">
+                  {[['all', 'All'], ['recent', 'Recent'], ['favorites', 'Favorites'], ['custom', 'Custom']].map(([id, label]) => (
+                    <button key={id} type="button" className={'nutrilog-quick-filter ' + (quickFoodFilter === id ? 'is-active' : '')}
+                      aria-pressed={quickFoodFilter === id}
+                      onClick={() => {
+                        setQuickFoodFilter(id)
+                        setQuickLogForm(prev => ({ ...prev, showSuggestions: true, selectedItem: null, itemType: '' }))
+                      }}>{label}</button>
+                  ))}
                 </div>
                 <div className="nutrilog-quick-serving-control">
                   <label className="nutrilog-quick-field" htmlFor="quick-log-servings">Servings</label>
