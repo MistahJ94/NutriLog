@@ -514,6 +514,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const syncAnimationStartedAt = useRef(Date.now())
   const plannerLocalChangeRevision = useRef(0)
   const plannerConfirmedRevision = useRef(0)
+  const plannerHasConfirmedSync = useRef(false)
   const syncDisplayTimer = useRef(null)
   useEffect(() => {
     if (syncDisplayTimer.current) clearTimeout(syncDisplayTimer.current)
@@ -888,7 +889,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     if (isOfflineMode() || plannerReconcileBusy.current || !isInitialLoadComplete) return
     plannerReconcileBusy.current = true
     const revisionAtStart = plannerLocalChangeRevision.current
-    if (plannerSyncStatus !== 'saved' || revisionAtStart > plannerConfirmedRevision.current) setPlannerSyncStatus('saving')
+    if (!plannerHasConfirmedSync.current || revisionAtStart > plannerConfirmedRevision.current) setPlannerSyncStatus('saving')
     try {
       const local = readLocalPlannedMeals()
       const valid = local.filter(item => item && typeof item === 'object' && !Array.isArray(item) && item.id != null && String(item.id).trim())
@@ -913,15 +914,18 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
         setPlannedMeals(combined)
       }
       if (malformed) {
+        plannerHasConfirmedSync.current = false
         setPlannerSyncError('Some legacy planned meal entries remain local only; recovery is required.')
         setPlannerSyncStatus('error')
       } else if (revisionAtStart === plannerLocalChangeRevision.current) {
         plannerConfirmedRevision.current = revisionAtStart
+        plannerHasConfirmedSync.current = true
         setPlannerSyncError('')
         setPlannerSyncStatus('saved')
       }
     } catch (error) {
       if (revisionAtStart === plannerLocalChangeRevision.current) {
+        plannerHasConfirmedSync.current = false
         setPlannerSyncError(String(error?.message || 'Automatic sync failed'))
         setPlannerSyncStatus('error')
       }
