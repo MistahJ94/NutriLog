@@ -1,6 +1,5 @@
-// Durable, account-scoped pending operations for future offline synchronization.
-// This module is deliberately not wired into API writes until the server supports
-// idempotent creates and version-checked updates. Never replay blindly.
+// Durable, account-scoped pending operations for offline synchronization.
+// The app must persist edits before invoking replay. Do not bypass version checks.
 const PREFIX = 'nutrilog-pending-operations-v1-' 
 const replayingAccounts = new Set()
 const allowedResources = new Set(['foods', 'meals'])
@@ -75,11 +74,9 @@ export const pendingOperations = {
       if (!service) throw new Error('Unknown pending resource')
       try {
         if (item.method === 'POST') {
-          // Stable IDs cannot prevent resurrection after a successful create
-          // was subsequently deleted. Require a durable server replay ledger.
-          this.markConflict(accountId, item.id, 'Create requires server replay history before safe retry')
-          summary.blocked = true
-          break
+          // The server records the operation ID and response atomically with
+          // creation, and retains the receipt after the item is deleted.
+          await service.create(item.payload, { operationId: item.id })
         } else if (item.method === 'PUT') {
           if (!item.baseVersion) {
             this.markConflict(accountId, item.id, 'Missing original server version; review before retrying')
