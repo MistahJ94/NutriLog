@@ -512,6 +512,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const [plannerSyncStatus, setPlannerSyncStatus] = useState('checking')
   const [visiblePlannerSyncStatus, setVisiblePlannerSyncStatus] = useState('saving')
   const syncAnimationStartedAt = useRef(Date.now())
+  const plannerLocalChangeRevision = useRef(0)
+  const plannerConfirmedRevision = useRef(0)
   const syncDisplayTimer = useRef(null)
   useEffect(() => {
     if (syncDisplayTimer.current) clearTimeout(syncDisplayTimer.current)
@@ -575,6 +577,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     }
     localStorage.setItem(plannedMealsStorageKey, JSON.stringify(next))
     setPlannedMeals(next)
+    plannerLocalChangeRevision.current += 1
     setPlannerSyncStatus('pending')
   }
   const scheduleSavedMeal = event => {
@@ -884,7 +887,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   const refreshAccountPlans = async () => {
     if (isOfflineMode() || plannerReconcileBusy.current || !isInitialLoadComplete) return
     plannerReconcileBusy.current = true
-    if (plannerSyncStatus !== 'saved') setPlannerSyncStatus('saving')
+    const revisionAtStart = plannerLocalChangeRevision.current
+    if (plannerSyncStatus !== 'saved' || revisionAtStart > plannerConfirmedRevision.current) setPlannerSyncStatus('saving')
     try {
       const local = readLocalPlannedMeals()
       const valid = local.filter(item => item && typeof item === 'object' && !Array.isArray(item) && item.id != null && String(item.id).trim())
@@ -911,13 +915,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       if (malformed) {
         setPlannerSyncError('Some legacy planned meal entries remain local only; recovery is required.')
         setPlannerSyncStatus('error')
-      } else {
+      } else if (revisionAtStart === plannerLocalChangeRevision.current) {
+        plannerConfirmedRevision.current = revisionAtStart
         setPlannerSyncError('')
         setPlannerSyncStatus('saved')
       }
     } catch (error) {
-      setPlannerSyncError(String(error?.message || 'Automatic sync failed'))
-      setPlannerSyncStatus('error')
+      if (revisionAtStart === plannerLocalChangeRevision.current) {
+        setPlannerSyncError(String(error?.message || 'Automatic sync failed'))
+        setPlannerSyncStatus('error')
+      }
     } finally {
       plannerReconcileBusy.current = false
     }
