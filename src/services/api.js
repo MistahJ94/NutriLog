@@ -274,7 +274,7 @@ export const api = {
   foods: {
     list: () => offlineEnabled() ? offlineApi.foods.list() : request('/foods'),
     create: (food, options) => offlineEnabled() ? offlineApi.foods.create(food) : syncJson('POST', '/foods', { name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, serving_size: food.servingSize, serving_amount: food.servingAmount, serving_unit: food.servingUnit, source: food.source || 'custom' }, options),
-    update: (id, food, options) => offlineEnabled() ? offlineApi.foods.update(id, food) : syncJson('PUT', '/foods/' + id, { name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, serving_size: food.servingSize, serving_amount: food.servingAmount, serving_unit: food.servingUnit, source: food.source || 'custom' }),
+    update: (id, food, options) => offlineEnabled() ? offlineApi.foods.update(id, food) : syncJson('PUT', '/foods/' + id, { name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, serving_size: food.servingSize, serving_amount: food.servingAmount, serving_unit: food.servingUnit, source: food.source || 'custom' }, options),
     remove: (id, options) => offlineEnabled() ? offlineApi.foods.remove(id) : syncDelete('/foods/' + id, options),
   },
   meals: {
