@@ -1276,7 +1276,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(204, {
         "Access-Control-Allow-Origin": requestOrigin,
         "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-NutriLog-Client",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-NutriLog-Client, X-NutriLog-Operation-Id, X-NutriLog-Base-Version",
         "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS"
       })
     } else {
