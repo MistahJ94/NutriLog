@@ -1777,3 +1777,12 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .nutrilog-planner-selected-item select { max-width:140px; padding:7px; border-radius:7px; }
 .nutrilog-planner-selected-actions { display:flex; flex-wrap:wrap; gap:8px; }
 @media(max-width:480px) { .nutrilog-planner-selected-item > span { flex-basis:100%; } }
+
+
+/* Selected-day planned vs consumed nutrition summary */
+.nutrilog-planner-day-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0; }
+.nutrilog-planner-day-summary > div { display:flex; flex-direction:column; gap:5px; min-width:0; padding:13px; border:1px solid rgba(128,128,128,.22); border-radius:12px; background:rgba(128,128,128,.055); }
+.nutrilog-planner-day-summary small { font-size:.78rem; opacity:.78; }
+.nutrilog-planner-day-summary strong { font-size:1.2rem; overflow-wrap:anywhere; }
+.nutrilog-planner-day-summary span { font-size:.77rem; opacity:.8; }
+@media(max-width:600px) { .nutrilog-planner-day-summary { grid-template-columns:1fr; gap:7px; } .nutrilog-planner-day-summary > div { padding:10px 12px; } }
