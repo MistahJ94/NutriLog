@@ -767,7 +767,8 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       const result = await api.preferences.mergePlannedMeals(normalized)
       const remotePlans = result.plannedMeals || []
       const ids = new Set(remotePlans.map(item => String(item.id)))
-      if (!normalized.every(item => ids.has(String(item.id)))) throw new Error('Server response did not contain all recovered planned meals')
+      const missing = normalized.filter(item => !ids.has(String(item.id)))
+      if (missing.length) throw new Error('Server returned ' + remotePlans.length + ' of ' + normalized.length + ' submitted meals; ' + missing.length + ' missing. First missing ID: ' + String(missing[0].id).slice(0, 90))
       preferenceSyncVersion.current = result.syncVersion
       preferenceConflict.current = false
       remotePlansHydrating.current = true
