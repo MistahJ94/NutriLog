@@ -550,11 +550,18 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     // Never discard a local draft merely because the server snapshot is stale.
     const deleted = new Set(readDeletedMealIds())
     const result = [...local.filter(item => !item || item.id == null || !deleted.has(String(item.id)))]
-    const ids = new Set(result.filter(item => item && typeof item === 'object' && item.id != null).map(item => String(item.id)))
+    const indices = new Map(result.filter(item => item && typeof item === 'object' && item.id != null).map((item, index) => [String(item.id), index]))
+    const revision = item => { const time = Date.parse(item?.updatedAt || ''); return Number.isFinite(time) ? time : 0 }
     for (const item of server) {
-      if (item && typeof item === 'object' && item.id != null && (ids.has(String(item.id)) || deleted.has(String(item.id)))) continue
-      result.push(item)
-      if (item && typeof item === 'object' && item.id != null) ids.add(String(item.id))
+      if (item && item.id != null && deleted.has(String(item.id))) continue
+      const id = item?.id == null ? null : String(item.id)
+      const index = id == null ? undefined : indices.get(id)
+      if (index === undefined) {
+        if (id != null) indices.set(id, result.length)
+        result.push(item)
+      } else if (revision(item) > revision(result[index])) {
+        result[index] = item
+      }
     }
     return result
   }
@@ -576,8 +583,16 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
     if (removed.length) {
       localStorage.setItem(plannedMealsDeletedKey, JSON.stringify([...new Set([...readDeletedMealIds(), ...removed])]))
     }
-    localStorage.setItem(plannedMealsStorageKey, JSON.stringify(next))
-    setPlannedMeals(next)
+    const previous = new Map(plannedMeals.filter(item => item && item.id != null).map(item => [String(item.id), item]))
+    const now = new Date().toISOString()
+    const versioned = next.map(item => {
+      if (!item || item.id == null) return item
+      const old = previous.get(String(item.id))
+      if (old && JSON.stringify(old) === JSON.stringify(item)) return item
+      return { ...item, updatedAt: now }
+    })
+    localStorage.setItem(plannedMealsStorageKey, JSON.stringify(versioned))
+    setPlannedMeals(versioned)
     plannerLocalChangeRevision.current += 1
     setPlannerSyncStatus('pending')
   }
@@ -908,6 +923,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
       }
       preferenceSyncVersion.current = remote?.syncVersion ?? preferenceSyncVersion.current
       preferenceConflict.current = false
+      if (revisionAtStart !== plannerLocalChangeRevision.current) return
       if (JSON.stringify(combined) !== JSON.stringify(local)) {
         remotePlansHydrating.current = true
         localStorage.setItem(plannedMealsStorageKey, JSON.stringify(combined))
