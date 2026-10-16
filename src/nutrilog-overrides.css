@@ -1106,3 +1106,20 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 :root[data-mode="dark"] .planner-container .goals-overview .breakdown-bar {
   background: #121b2a !important;
 }
+
+
+/* Planner goal cards: Calories matches all other macro cards in dark mode. */
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item.primary {
+  background: #263347 !important;
+  border: 1px solid #40516a !important;
+  color: #f1f5f9 !important;
+}
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item.primary .goal-icon {
+  background: color-mix(in srgb, var(--accent) 20%, #263347) !important;
+  color: #f8fafc !important;
+}
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item.primary .goal-label,
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item.primary .goal-value {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+}
