@@ -769,3 +769,25 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
     box-sizing: border-box;
   }
 }
+
+
+/* Match the Food Log's brown action tiles to the accent-driven date header. */
+.food-log-accent-action,
+.date-entries .entries-table tbody td:last-child > .btn:not(.food-log-meal-toggle) {
+  background: linear-gradient(125deg, var(--accent), color-mix(in srgb, var(--accent) 68%, var(--surface-raised, #1f2937))) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent) !important;
+  color: #fff !important;
+  border-radius: 11px;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 16%, transparent);
+  transition: filter .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.food-log-accent-action:hover,
+.date-entries .entries-table tbody td:last-child > .btn:not(.food-log-meal-toggle):hover {
+  filter: brightness(1.09);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.food-log-accent-action:focus-visible,
+.date-entries .entries-table tbody td:last-child > .btn:not(.food-log-meal-toggle):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
