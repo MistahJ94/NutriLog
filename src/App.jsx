@@ -2290,7 +2290,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
                 plannerSyncStatus === 'conflict' ? 'Another device saved newer changes. Review before syncing.' :
                 plannerSyncStatus === 'error' ? 'Changes are saved on this device only.' :
                 plannerSyncStatus === 'saving' ? 'Saving account changes…' : 'Waiting to save changes.'}</p>
-              {plannerSyncStatus === 'conflict' && <button type="button" className="btn btn-secondary" onClick={recoverPlannedMeals}>Merge planned meals</button>}
+              {(plannerSyncStatus === 'conflict' || plannerSyncStatus === 'error') && <button type="button" className="btn btn-secondary" onClick={recoverPlannedMeals}>Merge planned meals</button>}
               {plannerSyncStatus === 'error' && <button type="button" className="btn btn-secondary" onClick={() => setSyncRetry(value => value + 1)}>Retry sync</button>}
             </div>
           </details>
