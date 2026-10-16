@@ -1106,7 +1106,7 @@ async function protectedApi(req, res, pathname, user) {
       }
       const setClause = config.fields.map((field, i) => field + "=$" + (i + 2)).join(", ")
       const updated = await tx.unsafe(
-        "UPDATE " + config.table + " SET " + setClause + ", updated_at=NOW() WHERE user_id=$1 AND id=$" + (config.fields.length + 2) + " AND updated_at=$" + (config.fields.length + 3) + "::timestamptz RETURNING " + config.select,
+        "UPDATE " + config.table + " SET " + setClause + ", updated_at=GREATEST(date_trunc('milliseconds', clock_timestamp()), date_trunc('milliseconds', updated_at) + INTERVAL '1 millisecond') WHERE user_id=$1 AND id=$" + (config.fields.length + 2) + " AND date_trunc('milliseconds', updated_at)=$" + (config.fields.length + 3) + "::timestamptz RETURNING " + config.select,
         [user.id, ...values, id, baseVersion]
       )
       if (!updated.length) {
@@ -1141,7 +1141,7 @@ async function protectedApi(req, res, pathname, user) {
     })
     const setClause = config.fields.map((field, i) => field + " = $" + (i + 2)).join(", ")
     const rows = await sql.unsafe(
-      "UPDATE " + config.table + " SET " + setClause + ", updated_at = NOW() WHERE user_id = $1 AND id = $" + (config.fields.length + 2) + (baseVersion ? " AND updated_at = $" + (config.fields.length + 3) + "::timestamptz" : "") + " RETURNING " + config.select,
+      "UPDATE " + config.table + " SET " + setClause + ", updated_at = GREATEST(date_trunc('milliseconds', clock_timestamp()), date_trunc('milliseconds', updated_at) + INTERVAL '1 millisecond') WHERE user_id = $1 AND id = $" + (config.fields.length + 2) + (baseVersion ? " AND date_trunc('milliseconds', updated_at) = $" + (config.fields.length + 3) + "::timestamptz" : "") + " RETURNING " + config.select,
       [user.id, ...values, id, ...(baseVersion ? [baseVersion] : [])]
     )
     if (!rows.length && baseVersion) {
@@ -1160,7 +1160,7 @@ async function protectedApi(req, res, pathname, user) {
     )
     const setClause = config.fields.map((field, i) => field + " = $" + (i + 2)).join(", ")
     const rows = await sql.unsafe(
-      "UPDATE meals SET " + setClause + ", updated_at=NOW() WHERE user_id=$1 AND id=$" + (config.fields.length + 2) + (baseVersion ? " AND updated_at=$" + (config.fields.length + 3) + "::timestamptz" : "") + " RETURNING " + config.select,
+      "UPDATE meals SET " + setClause + ", updated_at=GREATEST(date_trunc('milliseconds', clock_timestamp()), date_trunc('milliseconds', updated_at) + INTERVAL '1 millisecond') WHERE user_id=$1 AND id=$" + (config.fields.length + 2) + (baseVersion ? " AND date_trunc('milliseconds', updated_at)=$" + (config.fields.length + 3) + "::timestamptz" : "") + " RETURNING " + config.select,
       [user.id, ...values, id, ...(baseVersion ? [baseVersion] : [])]
     )
     if (!rows.length && baseVersion) {
@@ -1207,10 +1207,18 @@ async function protectedApi(req, res, pathname, user) {
           return { status: 409, body: { error: "Operation ID reused with different data", code: "SYNC_CONFLICT" } }
         }
         if (!receipt.response_body) throw new Error("Incomplete sync receipt")
-        return { status: 200, body: { ...receipt.response_body, replayed: true } }
+        return {
+          status: 200,
+          body: {
+            ...(typeof receipt.response_body === "string"
+              ? JSON.parse(receipt.response_body)
+              : receipt.response_body),
+            replayed: true
+          }
+        }
       }
       const deleted = await tx.unsafe(
-        "DELETE FROM " + config.table + " WHERE user_id=$1 AND id=$2 AND updated_at=$3::timestamptz RETURNING id",
+        "DELETE FROM " + config.table + " WHERE user_id=$1 AND id=$2 AND date_trunc('milliseconds', updated_at)=$3::timestamptz RETURNING id",
         [user.id, id, baseVersion]
       )
       if (!deleted.length) {
@@ -1236,7 +1244,7 @@ async function protectedApi(req, res, pathname, user) {
   if (req.method === "DELETE" && id) {
     const guarded = baseVersion && (match[1] === "foods" || match[1] === "meals")
     const rows = await sql.unsafe(
-      "DELETE FROM " + config.table + " WHERE user_id=$1 AND id=$2" + (guarded ? " AND updated_at=$3::timestamptz" : "") + " RETURNING id",
+      "DELETE FROM " + config.table + " WHERE user_id=$1 AND id=$2" + (guarded ? " AND date_trunc('milliseconds', updated_at)=$3::timestamptz" : "") + " RETURNING id",
       [user.id, id, ...(guarded ? [baseVersion] : [])]
     )
     if (!rows.length && guarded) {
@@ -1300,7 +1308,15 @@ async function protectedApi(req, res, pathname, user) {
           if (!existing.length) {
             return { status: 200, body: { replayed: true, deleted: true, item: null } }
           }
-          return { status: 200, body: { ...receipt.response_body, replayed: true } }
+          return {
+            status: 200,
+            body: {
+              ...(typeof receipt.response_body === "string"
+                ? JSON.parse(receipt.response_body)
+                : receipt.response_body),
+              replayed: true
+            }
+          }
         }
         const placeholders = config.fields.map((_, i) => "$" + (i + 3)).join(", ")
         const insertQuery = "INSERT INTO " + config.table + " (user_id, id, " + config.fields.join(", ") +
