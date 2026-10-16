@@ -1078,3 +1078,31 @@ div[style*="max-height: 220px"] label:hover { background: var(--nl-input-bg); }
 .app.theme-dark .planner-container .goals-overview .goal-value {
   color: inherit !important;
 }
+
+
+/* Planner mode correction: data-mode controls light/dark; data-theme is the accent. */
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item:not(.primary) {
+  background: #263347 !important;
+  border-color: #40516a !important;
+  color: #f1f5f9 !important;
+}
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item:not(.primary) .goal-icon {
+  background: color-mix(in srgb, var(--accent) 20%, #263347) !important;
+  color: #f8fafc !important;
+}
+:root[data-mode="dark"] .planner-container .goals-overview .macro-breakdown {
+  background: #263347 !important;
+  border-color: #40516a !important;
+  color: #f1f5f9 !important;
+  box-shadow: none !important;
+}
+:root[data-mode="dark"] .planner-container .goals-overview .macro-breakdown h4,
+:root[data-mode="dark"] .planner-container .goals-overview .macro-breakdown .breakdown-label,
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item:not(.primary) .goal-label,
+:root[data-mode="dark"] .planner-container .goals-overview .goal-display-item:not(.primary) .goal-value {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+}
+:root[data-mode="dark"] .planner-container .goals-overview .breakdown-bar {
+  background: #121b2a !important;
+}
