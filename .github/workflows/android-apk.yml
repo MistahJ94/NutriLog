@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p android/app/src/main/assets
-          printf '%s\\n' 'DM3G46TPXHKIAAAAAAAAAAAAAA' > android/app/src/main/assets/adi-registration.properties
+          printf '%s\n' 'DM3G46TPXHKIAAAAAAAAAAAAAA' > android/app/src/main/assets/adi-registration.properties
           test "$(cat android/app/src/main/assets/adi-registration.properties)" = 'DM3G46TPXHKIAAAAAAAAAAAAAA'
 
       - name: Configure Android app version
