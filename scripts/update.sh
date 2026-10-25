@@ -32,10 +32,44 @@ fi
 
 # Do not change ownership recursively: installations may contain local backups.
 run_app() { runuser -u "${APP_USER}" -- "$@"; }
-if ! run_app test -r "${APP_DIR}/package.json" || ! run_app test -w "${APP_DIR}/.git"; then
-  echo "Application checkout is not accessible to ${APP_USER}; repair ownership deliberately before updating." >&2
-  exit 1
-fi
+
+# Verify the service account can update this checkout before changing any source files.
+# A previous root-run updater may have left Git metadata, tracked files, or
+# npm installation metadata unreadable by the application user.
+preflight_access() {
+  if ! run_app git -C "${APP_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Git checkout is inaccessible to ${APP_USER}; repair Git metadata permissions before updating." >&2
+    return 1
+  fi
+  if ! run_app test -w "${APP_DIR}/.git" || ! run_app test -r "${APP_DIR}/package.json"; then
+    echo "Application checkout is not accessible to ${APP_USER}; repair ownership deliberately before updating." >&2
+    return 1
+  fi
+  if ! run_app bash -c '
+    set -euo pipefail
+    cd "$1"
+    while IFS= read -r -d "" path; do
+      if [[ -f "$path" && ( ! -r "$path" || ! -w "$path" ) ]]; then
+        printf "Inaccessible tracked file: %s\\n" "$path" >&2
+        exit 1
+      fi
+    done < <(git ls-files -z)
+    while IFS= read -r -d "" dir; do
+      if [[ ! -w "$dir" || ! -x "$dir" ]]; then
+        printf "Unwritable application directory: %s\\n" "$dir" >&2
+        exit 1
+      fi
+    done < <(find . -path ./.git -prune -o -path ./node_modules -prune -o -path ./.npm -prune -o -type d -print0)
+    if [[ -e node_modules/.package-lock.json && ! -r node_modules/.package-lock.json ]]; then
+      echo "npm installation metadata is unreadable by the service account." >&2
+      exit 1
+    fi
+  ' _ "${APP_DIR}"; then
+    echo "Permission preflight failed; no source update attempted." >&2
+    return 1
+  fi
+}
+preflight_access
 
 # Keep the installed updater in sync, including on no-op updates.
 refresh_updater() {
