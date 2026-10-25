@@ -4326,3 +4326,22 @@ body {
 @media (max-width: 540px) {
   .logged-meal-properties { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 }
+
+/* Mobile light-mode navigation: readable inactive tabs and theme-derived active accent. */
+@media (max-width: 640px) {
+  :root[data-mode="light"] .header .tab-navigation:not(.tab-navigation-customizing) {
+    background: var(--surface, #fff);
+    border-top-color: var(--border, #d4d4ce);
+  }
+  :root[data-mode="light"] .header .tab-navigation:not(.tab-navigation-customizing) > .tab-btn.mobile-primary-tab,
+  :root[data-mode="light"] .header .tab-navigation:not(.tab-navigation-customizing) > .tab-btn.mobile-more-toggle {
+    color: var(--text, #1f2933) !important;
+    background: transparent;
+    border-color: transparent;
+  }
+  :root[data-mode="light"] .header .tab-navigation:not(.tab-navigation-customizing) > .tab-btn.mobile-primary-tab.active {
+    color: var(--accent-dark, var(--accent)) !important;
+    background: var(--accent-pale, transparent);
+    border-color: var(--accent-border, transparent);
+  }
+}

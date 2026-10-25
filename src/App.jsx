@@ -479,6 +479,22 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
   })
   const [customizeTabs, setCustomizeTabs] = useState(false)
   const [showMobileMore, setShowMobileMore] = useState(false)
+  const mobileNavigationRef = useRef(null)
+  useEffect(() => {
+    if (!showMobileMore) return undefined
+    const dismissOutside = event => {
+      if (!mobileNavigationRef.current?.contains(event.target)) setShowMobileMore(false)
+    }
+    const dismissEscape = event => {
+      if (event.key === 'Escape') setShowMobileMore(false)
+    }
+    document.addEventListener('pointerdown', dismissOutside)
+    document.addEventListener('keydown', dismissEscape)
+    return () => {
+      document.removeEventListener('pointerdown', dismissOutside)
+      document.removeEventListener('keydown', dismissEscape)
+    }
+  }, [showMobileMore])
   const tabDragRef = useRef(null)
   const [draggingTab, setDraggingTab] = useState(null)
   const [theme, setTheme] = useState(() => initialServerData?.preferences?.theme || localStorage.getItem('nutrilog-theme') || 'orange')
@@ -2605,7 +2621,7 @@ function App({ user, initialServerData, onRefresh, onLogout, onChangeServer }) {
 
         
         {/* Tab Navigation */}
-        <div className={`tab-navigation ${customizeTabs ? 'tab-navigation-customizing' : ''}`}>
+        <div ref={mobileNavigationRef} className={`tab-navigation ${customizeTabs ? 'tab-navigation-customizing' : ''}`}>
           {tabOrder.map(tabId => {
             const Icon = tabIcons[tabId]
             return (
