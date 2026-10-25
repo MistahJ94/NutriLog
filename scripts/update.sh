@@ -30,9 +30,12 @@ if ! id "${APP_USER}" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Repair files created by older root-run updates before accessing the checkout.
-chown -R "${APP_USER}:${APP_GROUP}" "${APP_DIR}"
+# Do not change ownership recursively: installations may contain local backups.
 run_app() { runuser -u "${APP_USER}" -- "$@"; }
+if ! run_app test -r "${APP_DIR}/package.json" || ! run_app test -w "${APP_DIR}/.git"; then
+  echo "Application checkout is not accessible to ${APP_USER}; repair ownership deliberately before updating." >&2
+  exit 1
+fi
 
 # Keep the installed updater in sync, including on no-op updates.
 refresh_updater() {
@@ -72,13 +75,12 @@ printf 'Previous: %s (%s)\n' "${CURRENT_VERSION}" "${CURRENT_SHORT}"
 printf 'New:      %s (%s)\n\n' "${REMOTE_VERSION}" "${REMOTE_SHORT}"
 
 echo "[2/6] Updating source..."
-if [[ -n "$(run_app git status --porcelain)" ]]; then
-  echo "Local changes detected; refusing to overwrite production files." >&2
+if ! run_app git diff --quiet || ! run_app git diff --cached --quiet; then
+  echo "Tracked local changes detected; refusing to overwrite production files. Untracked backups are preserved." >&2
   exit 1
 fi
 run_app git checkout --quiet main
 run_app git reset --hard origin/main
-refresh_updater
 
 echo "[3/6] Installing dependencies..."
 run_app npm ci
@@ -88,7 +90,7 @@ psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f db/schema.sql
 
 echo "[5/6] Building NutriLog..."
 run_app npm run build
-run_app npm prune --omit=dev
+run_app npm prune --omit=dev --package-lock=false
 
 # Ensure service account can read every generated runtime artifact.
 if ! run_app node -e "require('postgres'); require('fs').accessSync('dist/index.html', require('fs').constants.R_OK); require('fs').accessSync('server/index.cjs', require('fs').constants.R_OK)"; then
@@ -106,6 +108,7 @@ echo "NutriLog service restarted. Waiting for the health check..."
 for attempt in {1..15}; do
   if curl -fsS --max-time 3 "${HEALTH_URL}" >/dev/null; then
     echo "NutriLog health check passed."
+    refresh_updater
     echo
     echo "NutriLog update complete."
     echo "Previous: ${CURRENT_VERSION} (${CURRENT_SHORT})"
