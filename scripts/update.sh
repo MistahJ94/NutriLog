@@ -54,6 +54,9 @@ preflight_access() {
         exit 1
       fi
     done < <(git ls-files -z)
+    # Check traversal commands separately: process substitution hides their exit codes.
+    git ls-files -z >/dev/null
+    find . -path ./.git -prune -o -path ./node_modules -prune -o -path ./.npm -prune -o -type d -print0 >/dev/null
     while IFS= read -r -d "" dir; do
       if [[ ! -w "$dir" || ! -x "$dir" ]]; then
         printf "Unwritable application directory: %s\\n" "$dir" >&2
@@ -114,15 +117,13 @@ if ! run_app git diff --quiet || ! run_app git diff --cached --quiet; then
   exit 1
 fi
 run_app git checkout --quiet main
+echo "Recovery checkpoint: previous Git commit ${CURRENT_COMMIT}"
 run_app git reset --hard origin/main
 
 echo "[3/6] Installing dependencies..."
 run_app npm ci
 
-echo "[4/6] Applying database schema..."
-psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f db/schema.sql
-
-echo "[5/6] Building NutriLog..."
+echo "[4/6] Building NutriLog..."
 run_app npm run build
 run_app npm prune --omit=dev --package-lock=false
 
@@ -131,6 +132,9 @@ if ! run_app node -e "require('postgres'); require('fs').accessSync('dist/index.
   echo "Runtime file/dependency access check failed." >&2
   exit 1
 fi
+
+echo "[5/6] Applying database schema..."
+psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f db/schema.sql
 
 echo "[6/6] Restarting service and checking health..."
 systemctl daemon-reload
