@@ -4,6 +4,8 @@ set -euo pipefail
 APP_DIR="${NUTRILOG_APP_DIR:-/opt/nutrilog}"
 ENV_FILE="${NUTRILOG_ENV_FILE:-/etc/nutrilog/nutrilog.env}"
 SERVICE_NAME="nutrilog"
+APP_USER="nutrilog"
+APP_GROUP="nutrilog"
 HEALTH_URL="${NUTRILOG_HEALTH_URL:-http://127.0.0.1:3001/api/health}"
 
 if [[ "${EUID}" -ne 0 ]]; then
@@ -23,6 +25,22 @@ fi
 
 source "${ENV_FILE}"
 
+if ! id "${APP_USER}" >/dev/null 2>&1; then
+  echo "Missing application service user: ${APP_USER}" >&2
+  exit 1
+fi
+
+# Repair files created by older root-run updates before accessing the checkout.
+chown -R "${APP_USER}:${APP_GROUP}" "${APP_DIR}"
+run_app() { runuser -u "${APP_USER}" -- "$@"; }
+
+# Keep the installed updater in sync, including on no-op updates.
+refresh_updater() {
+  if [[ -f "${APP_DIR}/scripts/update.sh" ]]; then
+    install -m 0755 "${APP_DIR}/scripts/update.sh" /usr/bin/update
+  fi
+}
+
 cd "${APP_DIR}"
 
 if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null || true)" != "true" ]]; then
@@ -35,12 +53,13 @@ CURRENT_SHORT="$(git rev-parse --short HEAD)"
 CURRENT_VERSION="$(node -p "require('./package.json').version" 2>/dev/null || echo "unknown")"
 
 echo "[1/6] Checking for updates..."
-git fetch --prune origin main
+run_app git fetch --prune origin main
 REMOTE_COMMIT="$(git rev-parse origin/main)"
 REMOTE_SHORT="$(git rev-parse --short origin/main)"
 
 if [[ "${CURRENT_COMMIT}" == "${REMOTE_COMMIT}" ]]; then
   echo
+  refresh_updater
   echo "NutriLog is already up to date."
   echo "Version: ${CURRENT_VERSION} (${CURRENT_SHORT})"
   exit 0
@@ -53,18 +72,29 @@ printf 'Previous: %s (%s)\n' "${CURRENT_VERSION}" "${CURRENT_SHORT}"
 printf 'New:      %s (%s)\n\n' "${REMOTE_VERSION}" "${REMOTE_SHORT}"
 
 echo "[2/6] Updating source..."
-git checkout --quiet main
-git reset --hard origin/main
+if [[ -n "$(run_app git status --porcelain)" ]]; then
+  echo "Local changes detected; refusing to overwrite production files." >&2
+  exit 1
+fi
+run_app git checkout --quiet main
+run_app git reset --hard origin/main
+refresh_updater
 
 echo "[3/6] Installing dependencies..."
-npm ci
+run_app npm ci
 
 echo "[4/6] Applying database schema..."
 psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f db/schema.sql
 
 echo "[5/6] Building NutriLog..."
-npm run build
-npm prune --omit=dev
+run_app npm run build
+run_app npm prune --omit=dev
+
+# Ensure service account can read every generated runtime artifact.
+if ! run_app node -e "require('postgres'); require('fs').accessSync('dist/index.html', require('fs').constants.R_OK); require('fs').accessSync('server/index.cjs', require('fs').constants.R_OK)"; then
+  echo "Runtime file/dependency access check failed." >&2
+  exit 1
+fi
 
 echo "[6/6] Restarting service and checking health..."
 systemctl daemon-reload
